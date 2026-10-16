@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>W3IR Browser</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' https: http: data:">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="root">
+    <div id="tabbar">
+      <div id="tabs"></div>
+      <button id="newtab" title="Нова вкладка (Ctrl+T) — або двічі клікніть по порожньому місцю панелі вкладок">+</button>
+      <span id="incog" hidden title="Приватне вікно: історія, cookie та паролі не зберігаються і стираються після закриття">Інкогніто</span>
+      <button id="profile" hidden title="Поточний профіль. Клік — керування профілями"></button>
+    </div>
+    <div id="toolbar">
+      <button id="back" title="Назад (Alt+←) — на попередню сторінку цієї вкладки">←</button>
+      <button id="forward" title="Вперед (Alt+→) — на наступну сторінку цієї вкладки">→</button>
+      <button id="reload" title="Оновити сторінку (Ctrl+R / F5). Під час завантаження — зупинити">⟳</button>
+      <button id="home" title="Домашня сторінка (Alt+Home) — змінюється в налаштуваннях">⌂</button>
+      <div id="omni">
+        <span id="sec" title="Інформація про сайт: безпека з’єднання, дозволи, блокування реклами, cookie" role="button"></span>
+        <input id="url" type="text" spellcheck="false" autocomplete="off" placeholder="Введіть адресу або пошуковий запит" title="Адреса або пошук (Ctrl+L). Ключові слова: gh owner/repo, npm, mdn, yt… Повний список у довідці (F1)">
+        <button id="reader" title="Режим читання (Ctrl+Shift+R) — лише текст статті, зі зміною шрифту й теми" hidden>📖</button>
+        <button id="star" title="Додати в закладки (Ctrl+D). Закладки видно під адресним рядком">☆</button>
+      </div>
+      <button id="upd" title="" hidden>⬆</button>
+      <button id="gh" title="GitHub: сповіщення та запити на рев’ю" hidden>🐙</button>
+      <button id="vault" title="Менеджер паролів: автозаповнення та збережені паролі">🔑</button>
+      <button id="shield" title="Блокування реклами й трекерів: клік вмикає чи вимикає">🛡</button>
+      <button id="dl" title="Завантаження (Ctrl+J): прогрес, пауза, відкриття файлів">⬇</button>
+      <button id="menu" title="Головне меню: вікна, закладки, історія, масштаб, налаштування, довідка (F1)">⋮</button>
+    </div>
+    <div id="savebar" hidden>
+      <span id="savetext"></span>
+      <button id="savego" class="primary" title="Зберегти введені дані в зашифрованому менеджері паролів"></button>
+      <button id="savenever" title="Більше не пропонувати зберігати паролі для цього сайту">Ніколи для цього сайту</button>
+      <button id="savex" title="Закрити без збереження">✕</button>
+    </div>
+    <div id="findbar" hidden>
+      <input id="find" type="text" placeholder="Знайти на сторінці" spellcheck="false" title="Enter — далі, Shift+Enter — назад, Esc — закрити">
+      <span id="findcount"></span>
+      <button id="findprev" title="Попередній збіг (Shift+Enter)">↑</button>
+      <button id="findnext" title="Наступний збіг (Enter)">↓</button>
+      <button id="findclose" title="Закрити пошук (Esc)">✕</button>
+    </div>
+    <div id="bookmarks" hidden></div>
+  </div>
+  <div id="toast" hidden></div>
+  <script src="renderer.js"></script>
+</body>
+</html>

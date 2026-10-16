@@ -1,0 +1,82 @@
+{
+  "name": "w3ir-browser",
+  "productName": "W3IR Browser",
+  "version": "1.9.0",
+  "description": "W3IR Browser — власний браузер на основі Chromium",
+  "main": "main.js",
+  "author": "W3IR",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron .",
+    "icon": "node build/make-icon.js",
+    "pack": "electron-builder --win --dir",
+    "dist": "electron-builder --win",
+    "keygen": "node build/update-keygen.js",
+    "release": "npm run dist && node build/release.js",
+    "release:github": "npm run dist && node build/release.js --github",
+    "winget": "node build/winget.js",
+    "winget:submit": "node build/winget.js --submit"
+  },
+  "build": {
+    "appId": "com.w3ir.browser",
+    "productName": "W3IR Browser",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "page-preload.js",
+      "package.json",
+      "src/**",
+      "ui/**",
+      "pages/**",
+      "build/icon.png"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "include": "build/installer.nsh",
+      "artifactName": "W3IR-Browser-Setup-${version}.${ext}"
+    },
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true,
+      "grantFileProtocolExtraPrivileges": false
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://invalid.invalid/"
+      }
+    ],
+    "portable": {
+      "artifactName": "W3IR-Browser-${version}-portable.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^41.7.1",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "@ghostery/adblocker-electron": "^2.20.1",
+    "@ghostery/adblocker-electron-preload": "^2.20.1",
+    "@mozilla/readability": "^0.6.0",
+    "electron-updater": "^6.8.9",
+    "ethers": "^6.17.0",
+    "tldts-experimental": "^7.4.18"
+  }
+}
