@@ -1738,6 +1738,97 @@ async function ipcPolicyTests() {
   ok(denied.length === 0, 'ipc: кожна команда, яку викликає сторінка, дозволена цій самій сторінці (таблиця не розходиться з кодом сторінок)', denied);
 }
 
+async function tabFeatureTests(ctx) {
+  const srvT = http.createServer((q, r) => { r.setHeader('content-type', 'text/html; charset=utf-8'); r.end('<!doctype html><title>t</title><p>t</p>'); });
+  await new Promise(r => srvT.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${srvT.address().port}/`;
+  const { stripCtl, cleanStrict, isWebUrl } = require('../src/util');
+  ok(stripCtl('a\u0000b\u007fc\u0085d\ne') === 'a b c d e' && stripCtl('x'.repeat(300), 10) === 'x'.repeat(10) && stripCtl(null) === '', 'util: stripCtl замінює керівні символи й обрізає');
+  ok(cleanStrict('  a\u200b  b\u202ec \t d ') === 'a b c d' && isWebUrl('https://a') && isWebUrl('HTTP://a') && !isWebUrl('w3ir://a') && !isWebUrl(undefined), 'util: cleanStrict (невидимі й двонаправлені символи, пробіли), isWebUrl');
+
+  const w = ctx.openWindow({ urls: [base + 'a', base + 'b', base + 'c', base + 'd'] });
+  await sleep(3000);
+  w.win.setSize(1200, 800);
+  await sleep(400);
+  const [t1, t2, t3, t4] = w.tabs;
+
+  // --- закрити інші в групі ---
+  const gid = w.newGroup([t1.id, t2.id, t3.id]);
+  ok(gid && w.groupTabs(gid).length === 3, 'tabs: група з трьох вкладок створена');
+  w.exec('closeOthersInGroup', t2.id);
+  await sleep(500);
+  ok(w.tabs.includes(t2) && !w.tabs.includes(t1) && !w.tabs.includes(t3) && w.tabs.includes(t4) && w.activeId === t2.id, 'tabs: «закрити інші в групі» лишає цю вкладку й вкладки поза групою, активує вибрану');
+  w.exec('closeOthersInGroup', t4.id);
+  ok(w.tabs.length === 2, 'tabs: для вкладки поза групою команда нічого не закриває');
+  const labels = (() => { const items = w.tabGroupMenuItems(t2).map(i => i.label); return items; })();
+  ok(labels.includes('Закрити інші вкладки групи'), 'tabs: пункт «Закрити інші вкладки групи» є в меню вкладки групи');
+
+  // --- вкладка в нове вікно ---
+  const t5 = w.createTab(base + 'e', { activate: false });
+  await sleep(600);
+  const wins0 = ctx.windows.size;
+  const n0 = w.tabs.length;
+  w.exec('tabToWindow', { id: t5.id });
+  await sleep(2500);
+  const nw = [...ctx.windows].find(x => x !== w && !x.incognito && x.tabs.some(t => /\/e$/.test(t.view.webContents.getURL())));
+  ok(ctx.windows.size === wins0 + 1 && nw && w.tabs.length === n0 - 1 && !w.tabs.includes(t5), 'tabs: вкладку можна перенести в нове вікно (сторінка відкрилась у новому, у старому закрита)');
+  if (nw) nw.win.destroy();
+  const last = ctx.openWindow({ urls: [base + 'only'] });
+  await sleep(2200);
+  const wins1 = ctx.windows.size;
+  last.exec('tabToWindow', { id: last.tabs[0].id });
+  await sleep(500);
+  ok(ctx.windows.size === wins1 && last.tabs.length === 1, 'tabs: єдину вкладку вікна в нове вікно не переносимо');
+  last.win.destroy();
+  const inc = ctx.openWindow({ incognito: true, urls: [base + 'p', base + 'q'] });
+  await sleep(2500);
+  const wins2 = ctx.windows.size;
+  inc.exec('tabToWindow', { id: inc.tabs[0].id });
+  await sleep(500);
+  ok(ctx.windows.size === wins2 && inc.tabs.length === 2, 'tabs: у приватному вікні перенесення вимкнено (інакше зникли б входи тимчасового сеансу)');
+  inc.win.destroy();
+
+  // перетягування за межі панелі: подія dragend із координатами поза панеллю
+  const wins3 = ctx.windows.size;
+  const nb = w.tabs.length;
+  await w.chrome.executeJavaScript(`(() => { const tab = document.querySelector('.tab:last-of-type'); const dt = new DataTransfer(); tab.dispatchEvent(new DragEvent('dragend', { bubbles: true, clientX: 600, clientY: 400, dataTransfer: dt })); })()`);
+  await sleep(2500);
+  ok(ctx.windows.size === wins3 + 1 && w.tabs.length === nb - 1, 'tabs: вкладка, відпущена за межами панелі вкладок, виноситься в нове вікно');
+  for (const x of [...ctx.windows]) if (x !== w && !x.incognito && x.tabs.length === 1 && x.tabs[0].view.webContents.getURL().startsWith(base)) x.win.destroy();
+  w.createTab(base + 'f', { activate: false }); await sleep(800);
+  await w.chrome.executeJavaScript(`(() => { const tab = document.querySelector('.tab'); const dt = new DataTransfer(); tab.dispatchEvent(new DragEvent('dragend', { bubbles: true, clientX: 0, clientY: 0, dataTransfer: dt })); })()`);
+  await sleep(600);
+  ok(ctx.windows.size === wins3, 'tabs: скасоване перетягування (Esc, координати 0,0) вкладку не виносить');
+
+  // --- пара розділеного екрана зберігається в сеансі ---
+  const s = ctx.openWindow({ urls: [base + 's1', base + 's2', base + 's3'] });
+  await sleep(3000);
+  s.win.setSize(1200, 800);
+  s.switchTab(s.tabs[0].id);
+  s.startSplit(s.tabs[2].id);
+  s.exec('splitRatio', 0.6);
+  const snap = s.snapshot();
+  ok(snap.split && snap.split.a === 0 && snap.split.b === 2 && Math.abs(snap.split.ratio - 0.6) < 0.001, 'session: пара розділеного екрана потрапляє в знімок сеансу (індекси й пропорція)', snap.split);
+  const r = ctx.openWindow({ ...snap, urls: snap.urls });
+  await sleep(3500);
+  const kids = () => r.win.contentView.children;
+  ok(r.split && r.split.a === r.tabs[0].id && r.split.b === r.tabs[2].id && Math.abs(r.split.ratio - 0.6) < 0.001 && kids().includes(r.tabs[0].view) && kids().includes(r.tabs[2].view), 'session: розділений екран відновлюється з сеансу (та сама пара й пропорція)');
+  const bad = [{ a: 0, b: 0, ratio: 0.5 }, { a: 5, b: 1, ratio: 0.5 }, { a: 'x', b: 1 }, { a: -1, b: 1 }, null];
+  let bad0 = true;
+  for (const sp of bad) {
+    const rb = ctx.openWindow({ urls: [base + 'b1', base + 'b2'], split: sp });
+    await sleep(2200);
+    if (rb.split) bad0 = false;
+    rb.win.destroy();
+  }
+  ok(bad0, 'session: пошкоджені дані розділеного екрана (однакові/неіснуючі індекси, не числа) ігноруються');
+  const rr = ctx.openWindow({ urls: [base + 'b1', base + 'b2'], split: { a: 0, b: 1, ratio: 99 } });
+  await sleep(2500);
+  ok(rr.split && rr.split.ratio === 0.75, 'session: пропорція з сеансу обмежується діапазоном 25–75 %');
+  rr.win.destroy(); r.win.destroy(); s.win.destroy(); w.win.destroy();
+  srvT.close();
+}
+
 async function designTests() {
   const root = path.join(__dirname, '..');
   const css = (f) => fs.readFileSync(path.join(root, f), 'utf8');
@@ -1983,6 +2074,7 @@ module.exports = async function run(ctx) {
     await auditTests(ctx);
     await webauthnTests(ctx);
     await ipcPolicyTests();
+    await tabFeatureTests(ctx);
     await splitTests(ctx);
     await fullscreenTests(ctx);
   } catch (e) {

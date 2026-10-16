@@ -20,7 +20,8 @@ const CHROMIUM = [
 ];
 
 const isImportable = (u) => typeof u === 'string' && u.length <= 4096 && /^(https?|file):/i.test(u);
-const clean = (s, n = 500) => String(s == null ? '' : s).replace(/[\u0000-\u001f]/g, ' ').slice(0, n);
+const { stripCtl } = require('./util');
+const clean = (s, n = 500) => stripCtl(s, n);
 
 // Позначки часу Chrome (мкс від 1601 р.) не вміщуються в double, тому читаємо BigInt і ділимо точно
 const big = (st) => { st.setReadBigInts(true); return st; };

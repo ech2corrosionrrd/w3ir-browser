@@ -6,7 +6,8 @@ const { isSafeRpc } = require('./wallet');
 const PING_TIMEOUT = 6000;
 const PING_MIN_INTERVAL = 10000;
 const CLIP_CLEAR_MS = 20000;
-const clean = (s, n = 160) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').slice(0, n);
+const { stripCtl } = require('./util');
+const clean = (s, n = 160) => stripCtl(s, n);
 
 // Пінг eth_chainId на RPC кожної мережі: зелений лише якщо відповів правильний chainId
 async function pingNetworks(networks, { timeout = PING_TIMEOUT, fetchFn = fetch } = {}) {

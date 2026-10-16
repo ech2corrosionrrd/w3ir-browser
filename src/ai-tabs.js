@@ -1,6 +1,6 @@
 'use strict';
 // Доступ ШІ (Claude Code через MCP) до вкладок користувача: меню вкладки, команди палітри, значок.
-const isWebUrl = (u) => /^https?:/i.test(u || '');
+const { isWebUrl } = require('./util');
 
 // Методи змішуються в прототип AppWindow
 const methods = {

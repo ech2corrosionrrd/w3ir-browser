@@ -235,7 +235,10 @@ const methods = {
         }),
       });
     }
-    if (tab.group) items.push({ label: 'Видалити з групи', click: () => this.removeFromGroup(tab.id) });
+    if (tab.group) {
+      items.push({ label: 'Видалити з групи', click: () => this.removeFromGroup(tab.id) });
+      items.push({ label: 'Закрити інші вкладки групи', enabled: this.groupTabs(tab.group).length > 1, click: () => this.exec('closeOthersInGroup', tab.id) });
+    }
     return items;
   },
 };

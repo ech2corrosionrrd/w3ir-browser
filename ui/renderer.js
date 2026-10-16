@@ -138,6 +138,11 @@ function render(s) {
     tab.onmousedown = (e) => { if (e.button === 0) api.cmd('switchTab', t.id); };
     tab.onauxclick = (e) => { if (e.button === 1) { e.preventDefault(); api.cmd('closeTab', t.id); } };
     tab.ondragstart = (e) => { e.dataTransfer.setData('text/plain', String(t.id)); e.dataTransfer.effectAllowed = 'move'; };
+    // Вкладку відпустили поза панеллю вкладок (не на прийнятому місці): виносимо її в нове вікно. Скасування (Esc) дає нульові координати
+    tab.ondragend = (e) => {
+      if (e.dataTransfer.dropEffect !== 'none' || (e.clientX === 0 && e.clientY === 0)) return;
+      if (e.clientY > 90 || e.clientY < -4 || e.clientX < 0 || e.clientX > innerWidth) api.cmd('tabToWindow', { id: t.id, drag: true });
+    };
     tab.ondragover = (e) => { e.preventDefault(); tab.classList.add('dragover'); };
     tab.ondragleave = () => tab.classList.remove('dragover');
     tab.ondrop = (e) => {

@@ -10,7 +10,8 @@ const { verifyFile, fingerprint } = require('./update-verify');
 const CHECK_EVERY = 6 * 60 * 60 * 1000;
 // Офіційне джерело оновлень (публічні релізи GitHub); користувач може вказати власне в налаштуваннях
 const DEFAULT_FEED = 'github:ech2corrosionrrd/w3ir-browser';
-const clip = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f]/g, ' ').slice(0, n);
+const { stripCtl } = require('./util');
+const clip = (s, n) => stripCtl(s, n);
 
 // Джерело оновлень: «github:власник/репозиторій» або https-адреса теки зі статичними файлами
 function parseFeed(feed, allowInsecure = false) {
