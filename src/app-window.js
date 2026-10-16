@@ -33,6 +33,7 @@ class AppWindow {
     if (this.agent) this.ses.__w3irAgent = true;
     this.tabs = [];
     this.initGroups();
+    this.split = null; // розділений екран: { a, b, ratio } — id двох вкладок поруч
     this.activeId = null;
     this.nextTabId = 1;
     this.chromeHeight = 118;
@@ -53,7 +54,7 @@ class AppWindow {
       x: b.x, y: b.y, width: b.width || 1280, height: b.height || 800,
       minWidth: 480, minHeight: 320, show: false,
       title: 'W3IR Browser', icon: ICON,
-      backgroundColor: this.incognito ? '#1b1626' : (require('electron').nativeTheme.shouldUseDarkColors ? '#1e1f22' : '#f1f3f4'),
+      backgroundColor: this.incognito ? '#120a24' : (require('electron').nativeTheme.shouldUseDarkColors ? '#14122f' : '#f1f0fb'),
       webPreferences: { preload: path.join(ROOT, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false },
     });
     this.chrome = this.win.webContents;
@@ -130,7 +131,14 @@ class AppWindow {
     const top = this.htmlFullscreen ? 0 : this.chromeHeight;
     const left = this.htmlFullscreen || !this.vertical() ? 0 : SIDEBAR_W;
     const t = this.active();
-    if (t) t.view.setBounds({ x: left, y: top, width: Math.max(0, w - left), height: Math.max(0, h - top) });
+    const area = { x: left, y: top, width: Math.max(0, w - left), height: Math.max(0, h - top) };
+    const pair = this.htmlFullscreen ? null : this.splitPair();
+    if (pair) {
+      const gap = 6;
+      const lw = Math.round((area.width - gap) * this.split.ratio);
+      pair.left.view.setBounds({ x: area.x, y: area.y, width: lw, height: area.height });
+      pair.right.view.setBounds({ x: area.x + lw + gap, y: area.y, width: Math.max(0, area.width - lw - gap), height: area.height });
+    } else if (t) t.view.setBounds(area);
     if (ANCHORED_OVERLAYS.has(this.overlayType)) {
       const y = this.overlayAnchor || top;
       this.overlay.setBounds({ x: 0, y, width: w, height: Math.max(0, h - y) });
@@ -181,6 +189,7 @@ class AppWindow {
           sleeping: !!sl,
           group: t.group || null,
           ai: this.aiMode(t),
+          split: this.split ? (t.id === this.split.a ? 'L' : t.id === this.split.b ? 'R' : '') : '',
         };
       }),
       bookmarked: !!curUrl && bookmarks.some(b => b.url === curUrl),
@@ -280,6 +289,7 @@ class AppWindow {
       this.showError(tab, -1, 'RENDERER_CRASHED (' + details.reason + ')', this.tabUrl(tab));
     });
     wc.on('before-input-event', (e, input) => this.onKey(e, input));
+    wc.on('focus', () => { if (this.split && this.activeId !== tab.id && (tab.id === this.split.a || tab.id === this.split.b)) this.switchTab(tab.id); });
 
     if (this.agent) {
       // у вікні ШІ кожен перехід, ініційований сторінкою, перевіряється: лише http(s) і лише підтверджені сайти
@@ -355,10 +365,14 @@ class AppWindow {
     if (!t) return;
     this.closeOverlay();
     const prev = this.active();
+    const inPair = (x) => !!(this.split && x && (x.id === this.split.a || x.id === this.split.b));
     if (prev && prev !== t) {
       prev.lastActive = Date.now();
       try { prev.view.webContents.stopFindInPage('clearSelection'); } catch {}
-      this.win.contentView.removeChildView(prev.view);
+      if (!(inPair(prev) && inPair(t))) {
+        this.win.contentView.removeChildView(prev.view); // обидві вкладки пари лишаються на екрані
+        if (inPair(prev)) { const mate = this.tabs.find(x => x.id === (prev.id === this.split.a ? this.split.b : this.split.a)); if (mate) this.win.contentView.removeChildView(mate.view); }
+      }
       this.chrome.send('find-close');
     }
     const tg = t.group && this.groups.get(t.group);
@@ -367,6 +381,10 @@ class AppWindow {
     t.lastActive = Date.now();
     if (t.sleep) this.wake(t);
     this.win.contentView.addChildView(t.view);
+    if (inPair(t)) {
+      const mate = this.tabs.find(x => x.id === (t.id === this.split.a ? this.split.b : this.split.a));
+      if (mate) { if (mate.sleep) this.wake(mate); this.win.contentView.addChildView(mate.view); }
+    }
     this.layout();
     if (!isBlankUrl(this.tabUrl(t))) t.view.webContents.focus();
     this.push();
@@ -382,6 +400,7 @@ class AppWindow {
       if (this.closedStack.length > 25) this.closedStack.shift();
     }
     if (this.tabs.length === 1) { this.win.close(); return; }
+    if (this.split && (id === this.split.a || id === this.split.b)) this.endSplit();
     this.tabs.splice(i, 1);
     this.enforceGroups();
     if (id === this.activeId) {
@@ -611,6 +630,7 @@ class AppWindow {
     if (!this.ctx.cfg().sleepTabs || this.agent) return;
     const now = Date.now();
     for (const t of this.tabs) {
+      if (this.split && (t.id === this.split.a || t.id === this.split.b)) continue;
       if (!t.sleep && t.id !== this.activeId && now - t.lastActive > SLEEP_AFTER) this.sleepTab(t);
     }
   }
@@ -724,6 +744,7 @@ class AppWindow {
       { label: 'Нова вкладка', hint: 'Ctrl+T', cmd: 'newTab' },
       { label: 'Нове вікно', hint: 'Ctrl+N', cmd: 'newWindow' },
       { label: 'Нове вікно інкогніто', hint: 'Ctrl+Shift+N', cmd: 'newIncognito' },
+      ...this.splitCommands(),
       ...this.aiCommands(),
       { label: 'Закрити вкладку', hint: 'Ctrl+W', cmd: 'closeTab', arg: this.activeId },
       { label: 'Відновити закриту вкладку', hint: 'Ctrl+Shift+T', cmd: 'reopenClosed' },
@@ -760,6 +781,58 @@ class AppWindow {
   }
 
   aiMode(tab) { const a = this.ai(); return a && !this.incognito ? a.shareMode(this, tab) : ''; }
+
+  // ---------- розділений екран ----------
+  splitPair() {
+    const s = this.split;
+    if (!s) return null;
+    const a = this.tabs.find(t => t.id === s.a), b = this.tabs.find(t => t.id === s.b);
+    if (!a || !b) { this.split = null; return null; }
+    if (this.activeId !== a.id && this.activeId !== b.id) return null;
+    return { left: a, right: b };
+  }
+
+  // Показує активну вкладку й вкладку partnerId поруч
+  startSplit(partnerId) {
+    const act = this.active();
+    const p = this.tabs.find(t => t.id === partnerId);
+    if (!act || !p || act === p || this.agent) return false;
+    if (this.split) this.endSplit();
+    this.split = { a: act.id, b: p.id, ratio: 0.5 };
+    if (p.sleep) this.wake(p);
+    this.win.contentView.addChildView(act.view);
+    this.win.contentView.addChildView(p.view);
+    this.layout();
+    this.push();
+    return true;
+  }
+
+  endSplit() {
+    const s = this.split;
+    if (!s) return;
+    this.split = null;
+    for (const t of this.tabs) if ((t.id === s.a || t.id === s.b) && t.id !== this.activeId) { try { this.win.contentView.removeChildView(t.view); } catch { /* ignore */ } }
+    this.layout();
+    this.push();
+  }
+
+  splitMenuItems(t) {
+    if (this.agent) return [];
+    if (this.split) return (t.id === this.split.a || t.id === this.split.b) ? [{ label: 'Закрити розділений екран', click: () => this.exec('splitEnd') }] : [];
+    return t.id !== this.activeId ? [{ label: 'Показати поруч з активною вкладкою', click: () => this.exec('splitWith', t.id) }] : [];
+  }
+
+  splitCommands() {
+    if (this.agent) return [];
+    if (!this.split) return [{ label: 'Розділений екран: нова вкладка поруч', cmd: 'splitNew' }];
+    return [
+      { label: 'Закрити розділений екран', cmd: 'splitEnd' },
+      { label: 'Розділений екран: поміняти панелі місцями', cmd: 'splitSwap' },
+      { label: 'Розділений екран: пропорція 50 / 50', cmd: 'splitRatio', arg: 0.5 },
+      { label: 'Розділений екран: ширша ліва панель (60 / 40)', cmd: 'splitRatio', arg: 0.6 },
+      { label: 'Розділений екран: ширша права панель (40 / 60)', cmd: 'splitRatio', arg: 0.4 },
+    ];
+  }
 
   // Агент керування ШІ живе в основному профілі; null, якщо недоступний
   ai() { const m = this.ctx.manager; return (m ? m.ctx('default') : this.ctx).agent || null; }
@@ -849,6 +922,7 @@ class AppWindow {
       { label: 'Приспати вкладку', enabled: id !== this.activeId && isWebUrl(this.tabUrl(t)) && !t.sleep, click: () => this.sleepTab(t) },
       { type: 'separator' },
       ...(t.pinned ? [] : [...this.tabGroupMenuItems(t), { type: 'separator' }]),
+      ...this.splitMenuItems(t),
       ...this.aiMenuItems(t),
       { label: 'Закрити', click: () => this.closeTab(id) },
       { label: 'Закрити інші', enabled: this.tabs.length > 1, click: () => this.exec('closeOthers', id) },
@@ -1118,6 +1192,17 @@ class AppWindow {
       case 'newWindow': ctx.openWindow({}); break;
       case 'openProfile': if (ctx.manager && ctx.manager.has(arg)) ctx.manager.open(arg); break;
       case 'newIncognito': ctx.openWindow({ incognito: true }); break;
+      case 'splitWith': this.startSplit(arg); break;
+      case 'splitNew': {
+        if (this.agent) break;
+        const cur = this.active();
+        const nt = this.createTab('w3ir://newtab', { activate: false });
+        if (cur && this.startSplit(nt.id)) { this.switchTab(nt.id); this.focusUrlBar(); }
+        break;
+      }
+      case 'splitEnd': this.endSplit(); break;
+      case 'splitSwap': if (this.split) { const s = this.split; this.split = { ...s, a: s.b, b: s.a, ratio: 1 - s.ratio }; this.layout(); this.push(); } break;
+      case 'splitRatio': if (this.split) { this.split.ratio = Math.max(0.25, Math.min(0.75, Number(arg) || 0.5)); this.layout(); } break;
       case 'aiShare': {
         const a = this.ai(); const tb = this.tabs.find(x => x.id === (arg && arg.id));
         if (!a || !tb) break;

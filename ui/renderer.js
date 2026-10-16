@@ -95,7 +95,7 @@ function render(s) {
     const grp = t.group ? groupsById.get(t.group) : null;
     if (grp && !chipShown.has(grp.id)) { chipShown.add(grp.id); tabsEl.append(makeChip(grp, index)); }
     if (grp && grp.collapsed) return; // вкладки згорнутої групи не показуємо
-    const tab = el('div', 'tab' + (t.id === s.activeId ? ' active' : '') + (t.pinned ? ' pinned' : '') + (t.sleeping ? ' sleeping' : ''));
+    const tab = el('div', 'tab' + (t.id === s.activeId ? ' active' : '') + (t.pinned ? ' pinned' : '') + (t.sleeping ? ' sleeping' : '') + (t.split ? ' split' : ''));
     tab.title = t.title + (t.url ? '\n' + t.url : '') + (t.pinned ? '\n📌 Закріплена вкладка' : '') + (t.sleeping ? '\n💤 Спляча вкладка: оживе при відкритті' : '') +
       '\n\nПравий клік — меню вкладки (групи, закріплення…) · Середня кнопка — закрити · Перетягніть — змінити порядок або додати до групи';
     tab.oncontextmenu = (e) => { e.preventDefault(); api.cmd('tabMenu', t.id); };
@@ -114,6 +114,7 @@ function render(s) {
       b.title = t.ai === 'control' ? 'ШІ може керувати цією вкладкою (меню вкладки → припинити)' : 'ШІ може читати цю вкладку (меню вкладки → припинити)';
       tab.append(b);
     }
+    if (t.split) { const b = el('span', 'splitmark', t.split === 'L' ? '◧' : '◨'); b.title = 'Розділений екран: ця вкладка показана поруч з іншою'; tab.append(b); }
     tab.append(el('span', 'title', t.title));
     if (t.audible || t.muted) {
       const b = el('button', 'ico', t.muted ? '🔇' : '🔊');
