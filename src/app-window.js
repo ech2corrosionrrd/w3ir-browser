@@ -5,6 +5,8 @@ const { githubRepo, HTML_URL } = require('./github');
 const { ASK } = require('./context');
 const { withTip } = require('./tips');
 const tabGroups = require('./tab-groups');
+const splitView = require('./split-view');
+const aiTabs = require('./ai-tabs');
 const fs = require('fs');
 const path = require('path');
 
@@ -790,89 +792,6 @@ class AppWindow {
     ];
   }
 
-  aiMode(tab) { const a = this.ai(); return a && !this.incognito ? a.shareMode(this, tab) : ''; }
-
-  // Вихід із повноекранного режиму сайту (відео тощо): скидає прапорець, закриває його в усіх вкладках і повертає інтерфейс
-  exitHtmlFullscreen(leaveWindow = true) {
-    const was = this.htmlFullscreen;
-    this.htmlFullscreen = false;
-    for (const t of this.tabs) {
-      try { if (!t.view.webContents.isDestroyed()) t.view.webContents.executeJavaScript('document.fullscreenElement && document.exitFullscreen && document.exitFullscreen()', true).catch(() => {}); } catch { /* ignore */ }
-    }
-    if (was && leaveWindow && !this.userFs && this.win.isFullScreen()) this.win.setFullScreen(false);
-    this.layout();
-    this.push();
-  }
-
-  // ---------- розділений екран ----------
-  splitPair() {
-    const s = this.split;
-    if (!s) return null;
-    const a = this.tabs.find(t => t.id === s.a), b = this.tabs.find(t => t.id === s.b);
-    if (!a || !b) { this.split = null; return null; }
-    if (this.activeId !== a.id && this.activeId !== b.id) return null;
-    return { left: a, right: b };
-  }
-
-  // Показує активну вкладку й вкладку partnerId поруч
-  startSplit(partnerId) {
-    const act = this.active();
-    const p = this.tabs.find(t => t.id === partnerId);
-    if (!act || !p || act === p || this.agent) return false;
-    if (this.split) this.endSplit();
-    this.split = { a: act.id, b: p.id, ratio: 0.5 };
-    if (p.sleep) this.wake(p);
-    this.win.contentView.addChildView(act.view);
-    this.win.contentView.addChildView(p.view);
-    this.layout();
-    this.push();
-    return true;
-  }
-
-  endSplit() {
-    const s = this.split;
-    if (!s) return;
-    if (this.splitDrag) this.exec('splitDragEnd');
-    this.split = null;
-    for (const t of this.tabs) if ((t.id === s.a || t.id === s.b) && t.id !== this.activeId) { try { this.win.contentView.removeChildView(t.view); } catch { /* ignore */ } }
-    this.layout();
-    this.push();
-  }
-
-  splitMenuItems(t) {
-    if (this.agent) return [];
-    if (this.split) return (t.id === this.split.a || t.id === this.split.b) ? [{ label: 'Закрити розділений екран', click: () => this.exec('splitEnd') }] : [];
-    return t.id !== this.activeId ? [{ label: 'Показати поруч з активною вкладкою', click: () => this.exec('splitWith', t.id) }] : [];
-  }
-
-  splitCommands() {
-    if (this.agent) return [];
-    if (!this.split) return [{ label: 'Розділений екран: нова вкладка поруч', cmd: 'splitNew' }];
-    return [
-      { label: 'Закрити розділений екран', cmd: 'splitEnd' },
-      { label: 'Розділений екран: поміняти панелі місцями', cmd: 'splitSwap' },
-      { label: 'Розділений екран: пропорція 50 / 50', cmd: 'splitRatio', arg: 0.5 },
-      { label: 'Розділений екран: ширша ліва панель (60 / 40)', cmd: 'splitRatio', arg: 0.6 },
-      { label: 'Розділений екран: ширша права панель (40 / 60)', cmd: 'splitRatio', arg: 0.4 },
-    ];
-  }
-
-  // Агент керування ШІ живе в основному профілі; null, якщо недоступний
-  ai() { const m = this.ctx.manager; return (m ? m.ctx('default') : this.ctx).agent || null; }
-
-  // Команди палітри для поточної вкладки
-  aiCommands() {
-    const a = this.ai(); const t = this.active();
-    if (!a || !t || this.incognito || this.agent || !a.state.enabled || !isWebUrl(this.tabUrl(t))) return [];
-    const mode = a.shareMode(this, t);
-    return mode ? [{ label: 'ШІ: припинити доступ до цієї вкладки', cmd: 'aiUnshare', arg: t.id }] : [
-      { label: 'ШІ: дозволити читати цю вкладку', cmd: 'aiShare', arg: { id: t.id, mode: 'read' } },
-      { label: 'ШІ: дозволити керувати цією вкладкою', cmd: 'aiShare', arg: { id: t.id, mode: 'control' } },
-    ];
-  }
-
-  agentOn() { const m = this.ctx.manager; const a = m && m.ctx('default').agent; return !!(a && a.state.enabled); }
-
   menuItems() {
     const wc = this.wc();
     const zoom = wc ? Math.round(Math.pow(1.2, wc.getZoomLevel()) * 100) : 100;
@@ -951,20 +870,6 @@ class AppWindow {
       { label: 'Закрити інші', enabled: this.tabs.length > 1, click: () => this.exec('closeOthers', id) },
       { label: 'Закрити вкладки праворуч', enabled: i < this.tabs.length - 1, click: () => this.exec('closeRight', id) },
     ]).popup({ window: this.win });
-  }
-
-  // Пункти «ШІ» у меню вкладки: поділитися (читання/керування) або припинити
-  aiMenuItems(t) {
-    const a = this.ai();
-    if (!a || this.incognito || this.agent || !a.state.enabled || !isWebUrl(this.tabUrl(t))) return [];
-    const mode = a.shareMode(this, t);
-    return [
-      { type: 'separator' },
-      ...(mode ? [{ label: 'ШІ: припинити доступ до цієї вкладки', click: () => this.exec('aiUnshare', t.id) }] : []),
-      ...(mode !== 'read' ? [{ label: 'ШІ: дозволити читати цю вкладку', click: () => this.exec('aiShare', { id: t.id, mode: 'read' }) }] : []),
-      ...(mode !== 'control' ? [{ label: 'ШІ: дозволити керувати цією вкладкою…', click: () => this.exec('aiShare', { id: t.id, mode: 'control' }) }] : []),
-      { type: 'separator' },
-    ];
   }
 
   contextMenu(tab, p) {
@@ -1380,6 +1285,6 @@ class AppWindow {
   }
 }
 
-Object.assign(AppWindow.prototype, tabGroups.methods);
+Object.assign(AppWindow.prototype, tabGroups.methods, splitView.methods, aiTabs.methods);
 
 module.exports = { AppWindow, SIDEBAR_W };

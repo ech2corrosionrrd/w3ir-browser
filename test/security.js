@@ -1314,6 +1314,7 @@ async function agentShareTests(ctx) {
   await agent.share(w, tab, 'control');
   ok(asked[1].danger === true && /керувати/.test(asked[1].title) && /ВАШОМУ сеансі/.test(asked[1].warnings[0]) && w.aiMode(tab) === 'control', 'share: керування — окреме попередження про ваш сеанс; рівень змінено');
   const id2 = JSON.parse(txt(await call('browser_tabs'))).find(t => t.scope === 'shared').id;
+  ok(id2 === sh.id, 'share: при зміні рівня доступу id спільної вкладки лишається тим самим');
   const s2 = JSON.parse(txt(await call('browser_snapshot', { tab: id2 })).split('\n').pop());
   const c = (f) => s2.find(f);
   r = await call('browser_type', { ref: c(i => i.type === 'password').ref, text: 'x', tab: id2 });
@@ -1499,6 +1500,13 @@ async function fullscreenTests(ctx) {
   w.exec('closeTab', w.activeId); await sleep(500);
   w.win.destroy();
   srv.close();
+}
+
+async function guardTests() {
+  const { debugFlag, shouldBlock } = require('../src/launch-guard');
+  ok(['--remote-debugging-port=9222', '--remote-debugging-pipe', '--remote-allow-origins=*', '--inspect=9229', '--inspect-brk', '--remote-debugging-address=0.0.0.0'].every(f => debugFlag(['x.exe', f]) === f), 'guard: параметри налагодження розпізнаються');
+  ok(debugFlag(['x.exe', '--user-data-dir=C:\\t', '--disable-gpu', 'https://example.com', '--updated', '/S']) === null && debugFlag(undefined) === null, 'guard: звичайні параметри не вважаються налагодженням');
+  ok(shouldBlock({ argv: ['x', '--remote-debugging-port=1'], packaged: true, env: {} }) === true && shouldBlock({ argv: ['x', '--remote-debugging-port=1'], packaged: true, env: { W3IR_ALLOW_DEBUG: '1' } }) === false && shouldBlock({ argv: ['x', '--remote-debugging-port=1'], packaged: false, env: {} }) === false && shouldBlock({ argv: ['x'], packaged: true, env: {} }) === false, 'guard: блокування лише в упакованій збірці без явного дозволу');
 }
 
 async function designTests() {
@@ -1740,6 +1748,7 @@ module.exports = async function run(ctx) {
     await dashboardTests(ctx);
     await brandTests();
     await designTests();
+    await guardTests();
     await splitTests(ctx);
     await fullscreenTests(ctx);
   } catch (e) {
