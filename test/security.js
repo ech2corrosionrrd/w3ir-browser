@@ -1509,6 +1509,39 @@ async function guardTests() {
   ok(shouldBlock({ argv: ['x', '--remote-debugging-port=1'], packaged: true, env: {} }) === true && shouldBlock({ argv: ['x', '--remote-debugging-port=1'], packaged: true, env: { W3IR_ALLOW_DEBUG: '1' } }) === false && shouldBlock({ argv: ['x', '--remote-debugging-port=1'], packaged: false, env: {} }) === false && shouldBlock({ argv: ['x'], packaged: true, env: {} }) === false, 'guard: блокування лише в упакованій збірці без явного дозволу');
 }
 
+async function tabCloseTests(ctx) {
+  const w = ctx.openWindow({ urls: ['http://127.0.0.1:1/start'] });
+  await sleep(2500);
+  w.win.setSize(1300, 800);
+  await sleep(500);
+  for (const u of ['http://127.0.0.1:1/a', 'http://127.0.0.1:1/b', 'http://127.0.0.1:1/c', 'w3ir://history', 'w3ir://downloads']) w.createTab(u, { activate: false });
+  await sleep(1500);
+  const rect = (sel) => w.chrome.executeJavaScript(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()`);
+  const slowClick = async (p, hold) => { w.chrome.sendInputEvent({ type: 'mouseMove', x: p.x, y: p.y }); w.chrome.sendInputEvent({ type: 'mouseDown', x: p.x, y: p.y, button: 'left', clickCount: 1 }); await sleep(hold); w.chrome.sendInputEvent({ type: 'mouseUp', x: p.x, y: p.y, button: 'left', clickCount: 1 }); await sleep(700); };
+  // «людський» клік: кнопка утримується 150–300 мс, за цей час приходять оновлення стану
+  let n = w.tabs.length;
+  await slowClick(await rect('.tab:last-of-type .close'), 150);
+  ok(w.tabs.length === n - 1, 'вкладки: хрестик неактивної вкладки закриває її при повільному кліку (було: не працював)');
+  n = w.tabs.length;
+  const activeBefore = w.activeId;
+  await slowClick(await rect('.tab:nth-of-type(2) .close'), 300);
+  ok(w.tabs.length === n - 1 && w.activeId === activeBefore, 'вкладки: хрестик не перемикає на вкладку, яку закриває, і працює при утриманні 300 мс');
+  n = w.tabs.length;
+  await slowClick(await rect('.tab.active .close'), 200);
+  ok(w.tabs.length === n - 1, 'вкладки: хрестик активної вкладки закриває її при повільному кліку');
+  // перемальовування відкладається лише на час натискання й виконується після відпускання
+  const before = await w.chrome.executeJavaScript(`document.querySelectorAll('.tab').length`);
+  w.chrome.sendInputEvent({ type: 'mouseDown', x: 700, y: 300, button: 'left', clickCount: 1 });
+  w.createTab('http://127.0.0.1:1/z', { activate: false });
+  await sleep(300);
+  const during = await w.chrome.executeJavaScript(`document.querySelectorAll('.tab').length`);
+  w.chrome.sendInputEvent({ type: 'mouseUp', x: 700, y: 300, button: 'left', clickCount: 1 });
+  await sleep(300);
+  const after = await w.chrome.executeJavaScript(`document.querySelectorAll('.tab').length`);
+  ok(during === before && after === before + 1, 'вкладки: оновлення панелі відкладається, поки кнопка миші натиснута, і застосовується після відпускання');
+  w.win.destroy();
+}
+
 async function designTests() {
   const root = path.join(__dirname, '..');
   const css = (f) => fs.readFileSync(path.join(root, f), 'utf8');
@@ -1749,6 +1782,7 @@ module.exports = async function run(ctx) {
     await brandTests();
     await designTests();
     await guardTests();
+    await tabCloseTests(ctx);
     await splitTests(ctx);
     await fullscreenTests(ctx);
   } catch (e) {
