@@ -1,8 +1,10 @@
+<p align="center"><img src="build/brand/icon-512.png" width="112" alt="W3IR Browser"></p>
+
 # W3IR Browser
 
 Браузер для Windows на основі Chromium (Electron 41) з упором на приватність, безпеку й зручність. Усі функції працюють локально, без облікових записів і серверів розробника.
 
-- Поточна версія: **1.10.1** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
+- Поточна версія: **1.11.0** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
 - Мова інтерфейсу: українська · Платформа: Windows 10/11 x64
 - Довідка в самому браузері: **F1**
 
@@ -55,6 +57,8 @@ npm run winget:submit          # PR із маніфестами winget
 - [docs/SECURITY.md](docs/SECURITY.md) — модель загроз і криптографія
 - [docs/TESTING.md](docs/TESTING.md) — як запускати й що перевіряють тести
 - [docs/RELEASING.md](docs/RELEASING.md) — випуск, підпис, GitHub, winget
+- [docs/BRANDING.md](docs/BRANDING.md) — фірмовий стиль, палітра, ресурси
+- [docs/BRANDING.md](docs/BRANDING.md) — фірмовий стиль, палітра, ресурси
 - [docs/ROADMAP.md](docs/ROADMAP.md) — поточний стан, відкриті питання, плани
 - [CHANGELOG.md](CHANGELOG.md) — історія версій
 

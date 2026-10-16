@@ -1245,6 +1245,21 @@ async function siteTests(ctx) {
 }
 
 
+async function brandTests() {
+  const root = path.join(__dirname, '..');
+  const png = (f) => { const b = fs.readFileSync(path.join(root, f)); return b.slice(1, 4).toString() === 'PNG' ? { w: b.readUInt32BE(16), h: b.readUInt32BE(20), alpha: b[25] === 6 } : null; };
+  const icon = png('build/icon.png');
+  ok(icon && icon.w === 256 && icon.h === 256 && icon.alpha, 'brand: значок застосунку 256x256 із прозорістю');
+  ok(['pages/brand-mark.png', 'pages/brand-wordmark.png', 'pages/brand-favicon.png', 'build/brand/icon-512.png'].every(f => png(f)), 'brand: знак, вордмарк, фавікон і великий значок на місці');
+  const bmp = (f) => { const b = fs.readFileSync(path.join(root, f)); return b.slice(0, 2).toString() === 'BM' ? { w: b.readInt32LE(18), h: b.readInt32LE(22), bpp: b.readUInt16LE(28) } : null; };
+  const sb = bmp('build/installerSidebar.bmp'), hd = bmp('build/installerHeader.bmp');
+  ok(sb && sb.w === 164 && sb.h === 314 && sb.bpp === 24 && hd && hd.w === 150 && hd.h === 57 && hd.bpp === 24, 'brand: зображення NSIS — 24-бітні BMP потрібних розмірів');
+  const pkg = require('../package.json');
+  ok(pkg.build.nsis.installerSidebar === 'build/installerSidebar.bmp' && pkg.build.nsis.installerHeader === 'build/installerHeader.bmp' && fs.existsSync(path.join(root, 'build/brand/concept-logo.jpg')), 'brand: інсталятор підключає зображення, джерело концепції збережене');
+  const pages = fs.readdirSync(path.join(root, 'pages')).filter(f => f.endsWith('.html'));
+  ok(pages.every(f => fs.readFileSync(path.join(root, 'pages', f), 'utf8').includes('brand-favicon.png')) && fs.readFileSync(path.join(root, 'pages/newtab.js'), 'utf8').includes('brand-wordmark.png'), 'brand: усі внутрішні сторінки мають фавікон, нова вкладка — вордмарк');
+}
+
 async function rpcListTests() {
   const { BUILTIN_NETWORKS, isSafeRpc } = require('../src/wallet');
   ok(BUILTIN_NETWORKS.every(n => isSafeRpc(n.rpc) && n.rpc.startsWith('https://') && !/key|token|\$\{/i.test(n.rpc)), 'wallet: вбудовані RPC — https, без ключів у адресі');
@@ -1422,6 +1437,7 @@ module.exports = async function run(ctx) {
     await siteTests(ctx);
     await agentTests(ctx);
     await rpcListTests();
+    await brandTests();
   } catch (e) {
     failed++;
     console.log('[sec] ERROR', e.stack || e);

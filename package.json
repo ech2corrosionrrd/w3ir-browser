@@ -1,7 +1,7 @@
 {
   "name": "w3ir-browser",
   "productName": "W3IR Browser",
-  "version": "1.10.1",
+  "version": "1.11.0",
   "description": "W3IR Browser — власний браузер на основі Chromium",
   "main": "main.js",
   "author": "W3IR",
@@ -9,7 +9,7 @@
   "scripts": {
     "start": "electron .",
     "smoke": "electron .",
-    "icon": "node build/make-icon.js",
+    "icon": "python build/make-brand.py",
     "pack": "electron-builder --win --dir",
     "dist": "electron-builder --win",
     "keygen": "node build/update-keygen.js",
@@ -47,6 +47,9 @@
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
       "include": "build/installer.nsh",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
       "artifactName": "W3IR-Browser-Setup-${version}.${ext}"
     },
     "electronFuses": {

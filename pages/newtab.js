@@ -2,6 +2,7 @@
 const COLORS = ['#5a8dee', '#e5675f', '#4caf8a', '#d8963a', '#a078f0', '#3aa7c9', '#c8639b', '#7a8a99'];
 
 async function main() {
+  document.documentElement.classList.add('newtab');
   const input = h('input', { type: 'text', placeholder: 'Пошук або адреса', autofocus: true, spellcheck: false });
   const form = h('form', { class: 'search', onsubmit: async (e) => {
     e.preventDefault();
@@ -22,7 +23,10 @@ async function main() {
     h('a', { href: 'w3ir://help', title: 'Опис усіх функцій і гарячих клавіш (F1)' }, 'Довідка'), ' · ',
     h('a', { href: 'w3ir://settings', title: 'Тема, пошук, приватність, синхронізація' }, 'Налаштування'), ' · ',
     h('a', { href: 'w3ir://import', title: 'Перенесіть закладки, історію й паролі з Chrome чи Firefox' }, 'Імпорт даних'), ' · Ctrl+K — палітра команд');
-  app.append(h('div', { class: 'logo' }, 'W3IR', h('span', null, '.')), form, tiles, foot);
+  const brand = h('div', { class: 'brand' },
+    h('img', { class: 'mark', src: 'brand-mark.png', alt: '', draggable: false }),
+    h('img', { class: 'wordmark', src: 'brand-wordmark.png', alt: 'W3IR Browser', draggable: false }));
+  app.append(brand, form, tiles, foot);
   input.focus();
 }
 main();
