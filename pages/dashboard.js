@@ -49,10 +49,13 @@ function cardAgent(st) {
       h('span', { class: 'k' }, 'Порт'), h('span', null, String(a.port)),
       h('span', { class: 'k' }, 'Вікно ШІ'), h('span', null, a.windowOpen ? 'відкрите' : 'закрите'),
       h('span', { class: 'k' }, 'Сайтів дозволено'), h('span', null, String(a.sites)),
+      h('span', { class: 'k' }, 'Клієнт'), h('span', null, a.client ? `${a.client.name} ${a.client.version || ''} · ${ago(a.client.at)}` : 'ще не підключався'),
+      h('span', { class: 'k' }, 'Спільні вкладки'), h('span', null, a.shares.length ? a.shares.map(x => x.site + (x.mode === 'control' ? ' (керування)' : ' (читання)')).join(', ') : 'немає'),
       h('span', { class: 'k' }, 'Остання дія'), h('span', null, ago(a.lastCall))));
   if (a.error) box.append(h('div', { class: 'merr' }, a.error));
   box.append(h('div', { class: 'actions' },
     h('button', { class: a.enabled ? 'danger' : 'primary', onclick: async () => { await call('dashboard:agent', { on: !a.enabled }); render(); } }, a.enabled ? 'Вимкнути' : 'Увімкнути'),
+    a.shares.length ? h('button', { class: 'danger', onclick: async () => { await call('dashboard:unshare'); render(); } }, 'Припинити спільні вкладки') : null,
     h('a', { href: 'w3ir://settings', title: 'Токен і команда підключення Claude Code — у налаштуваннях' }, 'Підключення…')));
   return box;
 }

@@ -153,6 +153,8 @@ async function main() {
     port.addEventListener('change', () => run('agent:setPort', { port: Number(port.value) }));
     agBox.append(
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Стан'), h('div', { class: 'd' }, (st.running ? 'Сервер працює: ' + url : 'Сервер не запущений') + (st.windowOpen ? ' · вікно ШІ відкрито' : ''))), port),
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Підключення клієнта'),
+        h('div', { class: 'd' }, st.client ? `✔ ${st.client.name} ${st.client.version || ''} підключився ${new Date(st.client.at).toLocaleTimeString('uk-UA')}` : 'Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.'))),
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Токен доступу'),
         h('div', { class: 'd' }, 'Секрет: хто його має, може керувати вікном ШІ. Зберігається зашифрованим (DPAPI). Нікому не передавайте.'),
         h('code', { style: 'word-break:break-all;user-select:all' }, agShow ? token : '••••••••••••••••••••••••')),
@@ -169,6 +171,8 @@ async function main() {
         h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Claude Code'), h('code', { style: 'word-break:break-all;user-select:all' }, cmd)), b1),
         h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Інші клієнти MCP (JSON)'), h('pre', { style: 'white-space:pre-wrap;word-break:break-all;margin:4px 0;user-select:all' }, cfg)), b2));
     }
+    agBox.append(h('div', { class: 'row' }, h('div', null, h('div', null, 'Спільні вкладки'), h('div', { class: 'd' }, st.shares.length ? st.shares.map(x => `${x.site} — ${x.mode === 'control' ? 'керування' : 'читання'}, до ${new Date(x.until).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`).join('; ') : 'Немає. Поділитися вкладкою: правий клік по вкладці → «ШІ: дозволити…» або Ctrl+K.')),
+      st.shares.length ? h('button', { class: 'danger', onclick: () => run('agent:unshareAll') }, 'Припинити всі') : null));
     agBox.append(h('div', { class: 'row' }, h('div', null, h('div', null, 'Дозволені сайти цього сеансу'), h('div', { class: 'd' }, st.sites.length ? st.sites.join(', ') : 'Поки жодного. Закриття вікна ШІ скидає сеанс.')),
       h('button', { class: 'danger', onclick: () => run('agent:closeWindow') }, 'Закрити вікно ШІ')));
     if (st.log.length) agBox.append(h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Останні дії ШІ'),
