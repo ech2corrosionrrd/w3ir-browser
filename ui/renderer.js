@@ -70,6 +70,7 @@ function makeChip(g, index) {
 }
 
 function render(s) {
+  renderSplitBar(s.splitGeom);
   state = s;
   window.__updState = s.update && s.update.state;
   document.body.classList.toggle('incog', s.incognito);
@@ -314,6 +315,52 @@ $('findprev').onclick = () => doFind(false, true);
 $('findclose').onclick = closeFind;
 
 // ---------- події від головного процесу ----------
+// ---------- розділений екран: межа, яку можна перетягнути ----------
+let splitGeom = null;
+function renderSplitBar(g) {
+  splitGeom = g;
+  const bar = $('splitbar');
+  bar.hidden = !g;
+  if (!g) return;
+  bar.style.left = Math.round(g.left + (g.width - g.gap) * g.ratio) + 'px';
+  bar.style.top = g.top + 'px';
+  bar.style.height = g.height + 'px';
+}
+(() => {
+  const bar = $('splitbar'), ghost = $('splitghost'), gl = $('sgl'), gr = $('sgr');
+  let drag = false, ratio = 0.5;
+  const place = (x) => {
+    const g = splitGeom;
+    ratio = Math.max(0.25, Math.min(0.75, (x - g.left - g.gap / 2) / (g.width - g.gap)));
+    const lw = Math.round((g.width - g.gap) * ratio);
+    gl.style.width = lw + 'px'; gr.style.width = (g.width - g.gap - lw) + 'px';
+  };
+  const finish = (send) => {
+    if (!drag) return;
+    drag = false;
+    ghost.hidden = true;
+    api.cmd('splitDragEnd', send ? ratio : null);
+  };
+  bar.onpointerdown = (e) => {
+    if (!splitGeom || e.button !== 0) return;
+    drag = true;
+    ratio = splitGeom.ratio;
+    ghost.style.left = splitGeom.left + 'px'; ghost.style.top = splitGeom.top + 'px';
+    ghost.style.width = splitGeom.width + 'px'; ghost.style.height = splitGeom.height + 'px';
+    api.cmd('splitDragStart');
+    place(e.clientX);
+    ghost.hidden = false;
+    ghost.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
+  ghost.onpointermove = (e) => { if (drag) place(e.clientX); };
+  ghost.onpointerup = () => finish(true);
+  ghost.onpointercancel = () => finish(false);
+  window.addEventListener('blur', () => finish(false));
+  window.addEventListener('keydown', (e) => { if (drag && e.key === 'Escape') finish(false); });
+  bar.ondblclick = () => api.cmd('splitRatio', 0.5);
+})();
+
 api.on('state', render);
 api.on('focus-url', () => { url.focus(); url.select(); });
 api.on('savebar', (d) => {

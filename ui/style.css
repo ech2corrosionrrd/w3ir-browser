@@ -71,6 +71,11 @@ button:disabled { opacity: .35; cursor: default; }
 
 #reader { width: 26px; height: 24px; flex: none; font-size: 14px; }
 #reader[hidden] { display: none; }
+#splitbar { position: fixed; width: 6px; z-index: 5; cursor: col-resize; background: linear-gradient(180deg, var(--cyan), var(--accent)); opacity: .55; }
+#splitbar:hover { opacity: 1; }
+#splitbar[hidden], #splitghost[hidden] { display: none; }
+#splitghost { position: fixed; z-index: 6; display: flex; gap: 6px; cursor: col-resize; background: var(--bg1); }
+#splitghost > div { border: 1px dashed var(--accent); border-radius: 8px; background: color-mix(in srgb, var(--accent) 12%, transparent); display: grid; place-items: center; color: var(--dim); font-size: 22px; }
 #toast { position: fixed; left: 50%; top: 86px; transform: translateX(-50%); padding: 8px 16px; border-radius: 8px;
   background: var(--bg3); box-shadow: 0 4px 16px var(--shadow); z-index: 10; pointer-events: none; }
 #toast[hidden] { display: none; }
