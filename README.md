@@ -48,7 +48,7 @@
 npm install
 npm start                      # запуск із вихідного коду
 npm test                       # повний автотест у тимчасовому профілі (код виходу 1 при збоях)
-W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 469 автоматичних перевірок
+W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 471 автоматична перевірка
 npm run release                # збірка + підпис оновлення → dist/release
 npm run check:rpc               # онлайн-перевірка вбудованих RPC гаманця
 npm run icon                   # перегенерація фірмових ресурсів із build/brand (Python, Pillow, numpy, scipy)
@@ -72,3 +72,7 @@ npm run winget:submit          # PR із маніфестами winget
 ## Відомі обмеження
 
 Немає DRM (Widevine: Netflix тощо), розширення Chrome підтримуються частково, Solana/Bitcoin та апаратні гаманці не підтримуються, вхід у Google інколи блокується для Electron-браузерів, код гаманця незалежно не аудитований, інсталятор не підписаний сертифікатом видавця.
+
+## Ліцензія й безпека
+
+Код відкритий за ліцензією [MIT](LICENSE). Вразливості — приватно, див. [SECURITY.md](SECURITY.md); як долучитися — [CONTRIBUTING.md](CONTRIBUTING.md). Збірки, не підписані ключем випускача, встановлені копії не оновлюють.
