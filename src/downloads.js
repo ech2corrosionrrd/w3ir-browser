@@ -25,7 +25,10 @@ class Downloads {
   list() { return this.store.data; }
 
   attach(ses, incognito) {
-    ses.on('will-download', (e, item) => this.onDownload(item, incognito));
+    ses.on('will-download', (e, item) => {
+      if (ses.__w3irAgent) { item.cancel(); return; } // ШІ-агенту завантаження файлів заборонені
+      this.onDownload(item, incognito);
+    });
   }
 
   onDownload(item, incognito) {

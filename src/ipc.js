@@ -143,6 +143,24 @@ async function githubApi(ctx, name, arg) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
+async function agentApi(ctx, name, arg) {
+  const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
+  const a = base.agent;
+  if (!a) return { ok: false, error: 'Недоступно.' };
+  try {
+    switch (name) {
+      case 'agent:status': return { ok: true, ...a.status(), tools: require('./agent').TOOLS.map(t => t.name) };
+      case 'agent:enable': await a.enable(); return { ok: true, ...a.status() };
+      case 'agent:disable': a.disable(); return { ok: true, ...a.status() };
+      case 'agent:token': return { ok: true, token: a.token || '' };
+      case 'agent:regenerate': a.regenerate(); if (a.server) await a.start(); return { ok: true, ...a.status() };
+      case 'agent:setPort': a.setPort(arg.port); return { ok: true, ...a.status() };
+      case 'agent:closeWindow': a.closeWindow(); return { ok: true, ...a.status() };
+      default: throw new Error('unknown');
+    }
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
 async function walletApi(ctx, entry, name, arg) {
   const w = ctx.wallet;
   const v = ctx.vault;
@@ -330,6 +348,7 @@ function registerIpc(resolve) {
     if (!entry || !entry.tab || !frame || frame !== e.sender.mainFrame || !frame.url.startsWith('w3ir://')) {
       throw new Error('forbidden');
     }
+    if (entry.win.agent) throw new Error('forbidden'); // у вікні під керуванням ШІ внутрішні сторінки не мають доступу до даних
     arg = arg || {};
     // Менеджер паролів і синхронізація доступні лише зі своїх сторінок
     const onPasswords = /^w3ir:\/\/passwords\/?$/.test(frame.url);
@@ -362,6 +381,10 @@ function registerIpc(resolve) {
     if (name.startsWith('import:')) return importApi(ctx, entry, name, arg);
     if ((name.startsWith('sync:') || name.startsWith('github:')) && !/^w3ir:\/\/settings\/?$/.test(frame.url)) throw new Error('forbidden');
     if (name.startsWith('github:')) return githubApi(ctx, name, arg);
+    if (name.startsWith('agent:')) {
+      if (!/^w3ir:\/\/settings\/?$/.test(frame.url)) throw new Error('forbidden');
+      return agentApi(ctx, name, arg);
+    }
     if (name.startsWith('vault:')) return vaultApi(ctx, entry, name, arg);
     if (name.startsWith('sync:')) return syncApi(ctx, entry, name, arg);
     switch (name) {
