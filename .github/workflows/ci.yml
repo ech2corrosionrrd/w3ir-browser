@@ -1,0 +1,22 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm audit --omit=dev
+      - name: Секрети не повинні потрапляти в репозиторій
+        shell: bash
+        run: |
+          if git ls-files | grep -iE '\.(pem|key|pfx|p12)$|^build/keys/|vault\.(bin|pepper)$'; then echo "Знайдено файли з секретами"; exit 1; fi
+          if git grep -nIE 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_' -- . ':!.github'; then echo "Знайдено секрет"; exit 1; fi

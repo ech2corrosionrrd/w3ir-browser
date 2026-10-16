@@ -5,3 +5,8 @@ node_modules/
 *.pem
 *.key
 *.blockmap
+.env
+*.pfx
+*.p12
+vault.*
+*.token
