@@ -42,7 +42,7 @@ function state(ctx) {
   const th = ctx.threats ? ctx.threats.status() : null;
   const cfg = ctx.cfg();
   return {
-    agent: a && { enabled: a.enabled, running: a.running, port: a.port, windowOpen: a.windowOpen, sites: a.sites.length, lastCall: a.lastCall, error: a.error },
+    agent: a && { enabled: a.enabled, running: a.running, port: a.port, windowOpen: a.windowOpen, sites: a.sites.length, lastCall: a.lastCall, error: a.error, client: a.client, shares: a.shares.map(x => ({ id: x.id, site: clean(x.site, 80), mode: x.mode, until: x.until })) },
     wallet: { exists: !!w && w.exists(), unlocked, accounts: info ? info.accounts : [], chain: active ? { id: active.chainId, name: clean(active.name, 60), symbol: clean(active.symbol, 10) } : null },
     networks: nets.map(n => ({ chainId: n.chainId, name: clean(n.name, 60) })),
     protection: { safe: cfg.safeBrowsing !== false, adblock: !!cfg.adblock, https: cfg.httpsFirst !== false, lists: th ? th.counts : { malware: 0, phishing: 0 }, updated: th ? th.updated : 0 },
@@ -77,6 +77,11 @@ function createApi(ctx, { fetchFn } = {}) {
           const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
           if (!base.agent) return { ok: false, error: 'Недоступно.' };
           if (arg && arg.on) await base.agent.enable(); else base.agent.disable();
+          return { ok: true };
+        }
+        case 'dashboard:unshare': {
+          const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
+          if (base.agent) base.agent.unshareAll('припинено з панелі');
           return { ok: true };
         }
         default: throw new Error('unknown');

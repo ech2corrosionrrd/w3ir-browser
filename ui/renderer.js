@@ -109,6 +109,11 @@ function render(s) {
       tab.append(img);
     }
     if (t.pinned && !t.favicon && !t.loading) tab.append(el('span', null, '📌'));
+    if (t.ai) {
+      const b = el('span', 'ai' + (t.ai === 'control' ? ' ctl' : ''), t.ai === 'control' ? 'ШІ ✎' : 'ШІ');
+      b.title = t.ai === 'control' ? 'ШІ може керувати цією вкладкою (меню вкладки → припинити)' : 'ШІ може читати цю вкладку (меню вкладки → припинити)';
+      tab.append(b);
+    }
     tab.append(el('span', 'title', t.title));
     if (t.audible || t.muted) {
       const b = el('button', 'ico', t.muted ? '🔇' : '🔊');

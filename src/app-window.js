@@ -180,6 +180,7 @@ class AppWindow {
           pinned: !!t.pinned,
           sleeping: !!sl,
           group: t.group || null,
+          ai: this.aiMode(t),
         };
       }),
       bookmarked: !!curUrl && bookmarks.some(b => b.url === curUrl),
@@ -723,6 +724,7 @@ class AppWindow {
       { label: 'Нова вкладка', hint: 'Ctrl+T', cmd: 'newTab' },
       { label: 'Нове вікно', hint: 'Ctrl+N', cmd: 'newWindow' },
       { label: 'Нове вікно інкогніто', hint: 'Ctrl+Shift+N', cmd: 'newIncognito' },
+      ...this.aiCommands(),
       { label: 'Закрити вкладку', hint: 'Ctrl+W', cmd: 'closeTab', arg: this.activeId },
       { label: 'Відновити закриту вкладку', hint: 'Ctrl+Shift+T', cmd: 'reopenClosed' },
       { label: 'Закріпити / відкріпити вкладку', cmd: 'pinTab', arg: this.activeId },
@@ -754,6 +756,22 @@ class AppWindow {
       { label: 'Довідка', hint: 'F1', cmd: 'openPage', arg: 'help' },
       ...(this.agentOn() ? [{ label: 'Зупинити керування браузером ШІ', cmd: 'agentStop' }] : []),
       { label: 'Вийти', cmd: 'quit' },
+    ];
+  }
+
+  aiMode(tab) { const a = this.ai(); return a && !this.incognito ? a.shareMode(this, tab) : ''; }
+
+  // Агент керування ШІ живе в основному профілі; null, якщо недоступний
+  ai() { const m = this.ctx.manager; return (m ? m.ctx('default') : this.ctx).agent || null; }
+
+  // Команди палітри для поточної вкладки
+  aiCommands() {
+    const a = this.ai(); const t = this.active();
+    if (!a || !t || this.incognito || this.agent || !a.state.enabled || !isWebUrl(this.tabUrl(t))) return [];
+    const mode = a.shareMode(this, t);
+    return mode ? [{ label: 'ШІ: припинити доступ до цієї вкладки', cmd: 'aiUnshare', arg: t.id }] : [
+      { label: 'ШІ: дозволити читати цю вкладку', cmd: 'aiShare', arg: { id: t.id, mode: 'read' } },
+      { label: 'ШІ: дозволити керувати цією вкладкою', cmd: 'aiShare', arg: { id: t.id, mode: 'control' } },
     ];
   }
 
@@ -831,10 +849,25 @@ class AppWindow {
       { label: 'Приспати вкладку', enabled: id !== this.activeId && isWebUrl(this.tabUrl(t)) && !t.sleep, click: () => this.sleepTab(t) },
       { type: 'separator' },
       ...(t.pinned ? [] : [...this.tabGroupMenuItems(t), { type: 'separator' }]),
+      ...this.aiMenuItems(t),
       { label: 'Закрити', click: () => this.closeTab(id) },
       { label: 'Закрити інші', enabled: this.tabs.length > 1, click: () => this.exec('closeOthers', id) },
       { label: 'Закрити вкладки праворуч', enabled: i < this.tabs.length - 1, click: () => this.exec('closeRight', id) },
     ]).popup({ window: this.win });
+  }
+
+  // Пункти «ШІ» у меню вкладки: поділитися (читання/керування) або припинити
+  aiMenuItems(t) {
+    const a = this.ai();
+    if (!a || this.incognito || this.agent || !a.state.enabled || !isWebUrl(this.tabUrl(t))) return [];
+    const mode = a.shareMode(this, t);
+    return [
+      { type: 'separator' },
+      ...(mode ? [{ label: 'ШІ: припинити доступ до цієї вкладки', click: () => this.exec('aiUnshare', t.id) }] : []),
+      ...(mode !== 'read' ? [{ label: 'ШІ: дозволити читати цю вкладку', click: () => this.exec('aiShare', { id: t.id, mode: 'read' }) }] : []),
+      ...(mode !== 'control' ? [{ label: 'ШІ: дозволити керувати цією вкладкою…', click: () => this.exec('aiShare', { id: t.id, mode: 'control' }) }] : []),
+      { type: 'separator' },
+    ];
   }
 
   contextMenu(tab, p) {
@@ -1085,6 +1118,15 @@ class AppWindow {
       case 'newWindow': ctx.openWindow({}); break;
       case 'openProfile': if (ctx.manager && ctx.manager.has(arg)) ctx.manager.open(arg); break;
       case 'newIncognito': ctx.openWindow({ incognito: true }); break;
+      case 'aiShare': {
+        const a = this.ai(); const tb = this.tabs.find(x => x.id === (arg && arg.id));
+        if (!a || !tb) break;
+        a.share(this, tb, arg.mode === 'control' ? 'control' : 'read')
+          .then(() => this.toast(arg.mode === 'control' ? 'ШІ може керувати цією вкладкою' : 'ШІ може читати цю вкладку'))
+          .catch((e) => this.toast(e && e.message ? e.message : 'Не вдалося поділитися вкладкою'));
+        break;
+      }
+      case 'aiUnshare': { const a = this.ai(); const tb = this.tabs.find(x => x.id === arg); if (a && tb) a.unshareTab(this, tb); break; }
       case 'agentStop': { const a = ctx.manager && ctx.manager.ctx('default').agent; if (a) { a.disable(); this.toast('Керування браузером ШІ вимкнено'); } break; }
       case 'uiHeight': this.chromeHeight = Math.max(40, Math.min(400, Math.round(arg))); this.layout(); break;
       case 'zoomIn': if (wc) wc.setZoomLevel(Math.min(5, wc.getZoomLevel() + 0.5)); break;
@@ -1190,6 +1232,7 @@ class AppWindow {
   }
 
   onClosed() {
+    try { const a = this.ai(); if (a) a.onWindowClosed(this); } catch { /* ignore */ }
     clearTimeout(this.pushTimer);
     clearInterval(this.sleepTimer);
     this.ctx.windows.delete(this);
