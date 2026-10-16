@@ -15,23 +15,23 @@ function h(tag, props, ...children) {
 }
 
 function fmtBytes(n) {
-  if (!(n > 0)) return '0 Б';
-  const u = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
+  if (!(n > 0)) return '0 ' + t('Б');
+  const u = [t('Б'), t('КБ'), t('МБ'), t('ГБ'), t('ТБ')];
   const i = Math.min(u.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
   return (n / Math.pow(1024, i)).toFixed(i ? 1 : 0) + ' ' + u[i];
 }
 
 function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+  return new Date(ts).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
 }
 
 function fmtDay(ts) {
   const d = new Date(ts);
   const today = new Date();
   const yest = new Date(Date.now() - 864e5);
-  if (d.toDateString() === today.toDateString()) return 'Сьогодні';
-  if (d.toDateString() === yest.toDateString()) return 'Вчора';
-  return d.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  if (d.toDateString() === today.toDateString()) return t('Сьогодні');
+  if (d.toDateString() === yest.toDateString()) return t('Вчора');
+  return d.toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function debounce(fn, ms) {

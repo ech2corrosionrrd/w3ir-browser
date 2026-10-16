@@ -3,6 +3,17 @@ const { ipcMain, app, dialog, shell } = require('electron');
 const { normOrigin } = require('./vault');
 const { hexChain } = require('./wallet');
 const { queryMatcher } = require('./util');
+const { i18n, LANGS } = require('./i18n');
+
+// Після зміни мови: перезавантажити інтерфейс вікон і відкриті внутрішні сторінки всіх профілів
+function reloadUi(ctx) {
+  const all = ctx.manager ? ctx.manager.all() : [ctx];
+  for (const c of all) for (const w of c.windows) {
+    for (const t of w.tabs) { const wc = t.view.webContents; if (!wc.isDestroyed() && wc.getURL().startsWith('w3ir://')) wc.reload(); }
+    for (const wc of [w.chrome, w.overlay && w.overlay.webContents]) if (wc && !wc.isDestroyed()) wc.reloadIgnoringCache();
+    setTimeout(() => { try { w.push(); } catch { /* вікно закрите */ } }, 700);
+  }
+}
 const path = require('path');
 const fs = require('fs');
 
@@ -76,7 +87,7 @@ async function vaultApi(ctx, entry, name, arg) {
           const d = await require('electron').dialog.showMessageBox(win.win, {
             type: 'warning', buttons: ['Видалити файл безпечно', 'Залишити'], defaultId: 0, cancelId: 1,
             message: 'CSV-файл містить паролі у відкритому вигляді',
-            detail: 'Імпортовано записів: ' + res.added + '. Рекомендуємо одразу видалити файл (його буде перезаписано й видалено).',
+            detail: `Імпортовано записів: ${res.added}. Рекомендуємо одразу видалити файл (його буде перезаписано й видалено).`,
           });
           if (d.response === 0) { try { shred(r.filePaths[0]); res.deleted = true; } catch { res.deleted = false; } }
         }
@@ -391,7 +402,7 @@ function registerIpc(resolve) {
   const SETTING_TYPES = {
     homepage: 'string', searchEngine: 'string', startup: 'string', adblock: 'boolean',
     sendGpc: 'boolean', showBookmarksBar: 'boolean', askDownload: 'boolean', downloadDir: 'string',
-    httpsFirst: 'boolean', stripTracking: 'boolean', sleepTabs: 'boolean', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', keywords: 'string', torrentConfirm: 'boolean',
+    httpsFirst: 'boolean', stripTracking: 'boolean', sleepTabs: 'boolean', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean',
   };
 
   ipcMain.handle('internal', async (e, name, arg) => {
@@ -422,7 +433,7 @@ function registerIpc(resolve) {
     if (name.startsWith('sync:')) return syncApi(ctx, entry, name, arg);
     switch (name) {
       case 'settings:get':
-        return { settings: ctx.cfg(), engines: Object.fromEntries(Object.entries(ctx.ENGINES).map(([k, v]) => [k, v.name])), incognito: entry.win.incognito, theme: (ctx.manager ? ctx.manager.ctx('default') : ctx).cfg().theme, version: app.getVersion(), adblockEngine: !!ctx.blocker, extensions: ctx.extStore.data.items };
+        return { settings: ctx.cfg(), engines: Object.fromEntries(Object.entries(ctx.ENGINES).map(([k, v]) => [k, v.name])), incognito: entry.win.incognito, theme: (ctx.manager ? ctx.manager.ctx('default') : ctx).cfg().theme, language: (ctx.manager ? ctx.manager.ctx('default') : ctx).cfg().language || 'auto', languages: Object.fromEntries(Object.entries(LANGS).map(([k, v]) => [k, v.name])), version: app.getVersion(), adblockEngine: !!ctx.blocker, extensions: ctx.extStore.data.items };
       case 'settings:set': {
         const cfg = ctx.cfg();
         for (const [k, v] of Object.entries(arg)) {
@@ -435,6 +446,15 @@ function registerIpc(resolve) {
             const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
             base.cfg().theme = v; base.settingsStore.save();
             require('electron').nativeTheme.themeSource = v;
+            continue;
+          }
+          if (k === 'language') {
+            if (v !== 'auto' && !LANGS[v]) continue;
+            // мова спільна для всіх профілів (як тема): зберігаємо в основному профілі й перезавантажуємо інтерфейс
+            const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
+            base.cfg().language = v; base.settingsStore.save();
+            i18n.setLang(v, app.getLocale());
+            setImmediate(() => reloadUi(ctx));
             continue;
           }
           cfg[k] = k === 'keywords' ? v.slice(0, 4000) : v;

@@ -67,7 +67,7 @@ function describeCall(data) {
     case 'increaseAllowance': {
       const amount = a[1];
       const unlimited = amount >= (MaxUint256 >> 1n);
-      out.lines.push(['Дія', 'Дозвіл витрачати токени'], ['Отримувач дозволу', getAddress(a[0])], ['Сума дозволу', unlimited ? 'НЕОБМЕЖЕНО' : amount.toString() + ' (у мінімальних одиницях)']);
+      out.lines.push(['Дія', 'Дозвіл витрачати токени'], ['Отримувач дозволу', getAddress(a[0])], ['Сума дозволу', unlimited ? 'НЕОБМЕЖЕНО' : `${amount.toString()} (у мінімальних одиницях)`]);
       if (unlimited) out.warnings.push('Необмежений дозвіл: цей адрес зможе витратити ВСІ ваші токени цього типу, доки ви не скасуєте дозвіл.');
       if (amount === 0n) out.lines.push(['Примітка', 'Нульова сума — це скасування дозволу']);
       break;
@@ -76,7 +76,7 @@ function describeCall(data) {
       out.lines.push(['Дія', a[1] ? 'Дати доступ до ВСІХ NFT колекції' : 'Скасувати доступ до NFT колекції'], ['Оператор', getAddress(a[0])]);
       if (a[1]) out.warnings.push('Оператор зможе забрати ВСІ ваші NFT цієї колекції. Шахраї часто використовують саме цей виклик.');
       break;
-    case 'transfer': out.lines.push(['Дія', 'Переказ токенів'], ['Отримувач', getAddress(a[0])], ['Кількість', a[1].toString() + ' (у мінімальних одиницях)']); break;
+    case 'transfer': out.lines.push(['Дія', 'Переказ токенів'], ['Отримувач', getAddress(a[0])], ['Кількість', `${a[1].toString()} (у мінімальних одиницях)`]); break;
     case 'transferFrom':
     case 'safeTransferFrom':
       out.lines.push(['Дія', 'Переказ токена/NFT'], ['Від', getAddress(a[0])], ['Кому', getAddress(a[1])], ['Токен/кількість', a[2].toString()]);
@@ -318,7 +318,7 @@ class Wallet {
           try { return await this.provider(this.chainOf(origin)).send(method, params); }
           catch (e) { throw e instanceof RpcError ? e : new RpcError(e.code || -32603, clip(e.shortMessage || e.message, 300)); }
         }
-        throw new RpcError(4200, 'Метод не підтримується: ' + clip(method, 40));
+        throw new RpcError(4200, `Метод не підтримується: ${clip(method, 40)}`);
     }
   }
 
@@ -442,7 +442,7 @@ class Wallet {
     delete types.EIP712Domain;
     const chain = this.chainOf(origin);
     if (td.domain.chainId !== undefined && Number(td.domain.chainId) !== chain) throw new RpcError(-32602, `chainId у даних (${td.domain.chainId}) не збігається з поточною мережею (${chain})`);
-    try { TypedDataEncoder.hash(td.domain, types, td.message); } catch (e) { throw new RpcError(-32602, 'Дані не відповідають типам: ' + clip(e.message, 120)); }
+    try { TypedDataEncoder.hash(td.domain, types, td.message); } catch (e) { throw new RpcError(-32602, `Дані не відповідають типам: ${clip(e.message, 120)}`); }
     const warnings = [];
     if (/permit|order|seaport|delegat|approval|listing/i.test(td.primaryType + JSON.stringify(Object.keys(types)))) warnings.push('Цей підпис може дозволити витрату ваших токенів або продаж NFT БЕЗ окремої транзакції. Підписуйте лише на довірених сайтах.');
     await this.approve(win, origin, sameTab, {
@@ -451,7 +451,7 @@ class Wallet {
       warnings,
     });
     const sig = await this.signerFor(a).signTypedData(td.domain, types, td.message);
-    this.log({ origin, action: 'Підпис ' + td.primaryType });
+    this.log({ origin, action: `Підпис ${td.primaryType}` });
     return sig;
   }
 
@@ -465,7 +465,7 @@ class Wallet {
       if (v === undefined || v === null) return undefined;
       if (typeof v === 'string' && /^0x[0-9a-fA-F]*$/.test(v)) return BigInt(v === '0x' ? '0x0' : v);
       if (typeof v === 'number' && Number.isSafeInteger(v) && v >= 0) return BigInt(v);
-      throw new RpcError(-32602, 'Некоректне поле ' + name);
+      throw new RpcError(-32602, `Некоректне поле ${name}`);
     };
     const to = tx.to ? (isAddress(tx.to) ? getAddress(tx.to) : (() => { throw new RpcError(-32602, 'Некоректна адреса отримувача'); })()) : null;
     const data = tx.data || tx.input || '0x';
@@ -481,7 +481,7 @@ class Wallet {
     const signer = this.signerFor(from).connect(this.provider(chain));
     let populated;
     try { populated = await signer.populateTransaction(req); }
-    catch (e) { throw new RpcError(-32000, 'Не вдалося підготувати транзакцію (можливо, вона завершиться помилкою): ' + clip(e.shortMessage || e.message, 200)); }
+    catch (e) { throw new RpcError(-32000, `Не вдалося підготувати транзакцію (можливо, вона завершиться помилкою): ${clip(e.shortMessage || e.message, 200)}`); }
     const fee = (populated.maxFeePerGas || populated.gasPrice || 0n) * (populated.gasLimit || 0n);
     const desc = describeCall(data);
     const warnings = [...desc.warnings];
@@ -497,7 +497,7 @@ class Wallet {
     try {
       const signed = await signer.signTransaction(populated);
       hash = (await signer.provider.broadcastTransaction(signed)).hash;
-    } catch (e) { throw new RpcError(-32000, 'Не вдалося надіслати транзакцію: ' + clip(e.shortMessage || e.message, 200)); }
+    } catch (e) { throw new RpcError(-32000, `Не вдалося надіслати транзакцію: ${clip(e.shortMessage || e.message, 200)}`); }
     this.log({ origin, action: `Транзакція ${formatEther(value)} ${net.symbol}`, hash, chainId: chain });
     return hash;
   }

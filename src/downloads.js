@@ -79,7 +79,7 @@ class Downloads {
     if (cfg.torrentConfirm) {
       const opts = {
         type: 'question', buttons: ['Відкрити в торент-клієнті', 'Залишити файл'], defaultId: 1, cancelId: 1,
-        message: 'Завантажено .torrent-файл', detail: path.basename(file) + '\n\nПід час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам.',
+        message: 'Завантажено .torrent-файл', detail: `${path.basename(file)}\n\nПід час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам.`,
         checkboxLabel: 'Більше не питати',
       };
       const parent = BrowserWindow.getFocusedWindow();

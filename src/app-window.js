@@ -378,9 +378,9 @@ class AppWindow {
     try { name = new URL(url).searchParams.get('dn') || ''; } catch {}
     if (cfg.torrentConfirm) {
       const r = await dialog.showMessageBox(this.win, {
-        type: 'question', buttons: ['Відкрити в ' + client, 'Скасувати'], defaultId: 1, cancelId: 1,
+        type: 'question', buttons: [`Відкрити в ${client}`, 'Скасувати'], defaultId: 1, cancelId: 1,
         message: 'Відкрити magnet-посилання у торент-клієнті?',
-        detail: (name ? name.slice(0, 200) + '\n\n' : '') + 'Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам. Завантажуйте лише те, на що маєте право.',
+        detail: `${name ? name.slice(0, 200) + '\n\n' : ''}Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам. Завантажуйте лише те, на що маєте право.`,
         checkboxLabel: 'Більше не питати',
       });
       if (r.response !== 0) return;

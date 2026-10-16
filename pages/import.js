@@ -22,7 +22,7 @@ async function main() {
       const parts = [];
       if (r.bookmarks) parts.push(`закладок: +${r.bookmarks.added}${r.bookmarks.skipped ? ` (вже були: ${r.bookmarks.skipped})` : ''}`);
       if (r.history) parts.push(`записів історії: +${r.history.added}`);
-      res.textContent = (r.ok ? 'Готово — ' : 'Помилка: ' + r.error + (parts.length ? '. Частково: ' : '')) + parts.join(', ');
+      res.textContent = (r.ok ? 'Готово — ' : `Помилка: ${r.error}${parts.length ? '. Частково: ' : ''}`) + parts.join(', ');
     } }, 'Імпортувати');
     box.append(h('div', { class: 'row' },
       h('div', null,

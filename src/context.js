@@ -17,6 +17,7 @@ const { parse: parseHost } = require('tldts-experimental');
 const { attachCosmetic } = require('./adblock');
 const { stripTracking, upgradeHttps } = require('./urlrules');
 const { queryMatcher } = require('./util');
+const { i18n } = require('./i18n');
 
 const PAGES = path.join(__dirname, '..', 'pages');
 const UI = path.join(__dirname, '..', 'ui');
@@ -36,6 +37,7 @@ const DEFAULT_SETTINGS = {
   verticalTabs: false,
   savePasswords: true,
   theme: 'system',
+  language: 'auto',
   adblockAllow: [],
   safeBrowsing: true,
   safeAllow: [],
@@ -385,6 +387,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       let u;
       try { u = new URL(req.url); } catch { return new Response('Bad request', { status: 400 }); }
       const ext = path.extname(u.pathname);
+      if (path.basename(u.pathname) === 'i18n.js') return new Response(i18n.script(), { headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' } });
       const file = u.hostname === 'ui'
         ? path.join(UI, path.basename(u.pathname))
         : path.join(PAGES, ext ? path.basename(u.pathname) : path.basename(u.hostname) + '.html');

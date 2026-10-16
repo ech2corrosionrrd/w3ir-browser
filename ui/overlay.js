@@ -155,9 +155,9 @@ function renderApprove(p) {
 function ago(ts) {
   const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
   if (m < 1) return 'щойно';
-  if (m < 60) return m + ' хв';
-  if (m < 1440) return Math.round(m / 60) + ' год';
-  return Math.round(m / 1440) + ' дн';
+  if (m < 60) return `${m} хв`;
+  if (m < 1440) return `${Math.round(m / 60)} год`;
+  return `${Math.round(m / 1440)} дн`;
 }
 
 function renderGithub(p) {
@@ -173,7 +173,7 @@ function renderGithub(p) {
       const b = el('button', 'gitem');
       b.append(el('span', 'gt', it.title), el('span', 'gs', mk(it)));
       b.onclick = () => api.cmd('githubOpen', { url: it.url, id: it.id });
-      b.title = it.title + '\n' + it.url + '\nКлік — відкрити у новій вкладці';
+      b.title = `${it.title}\n${it.url}\nКлік — відкрити у новій вкладці`;
       box.append(b);
     }
   };
@@ -299,7 +299,7 @@ function renderPalette(data) {
     items.forEach((it, i) => {
       const row = el('div', 'prow' + (i === sel ? ' sel' : ''));
       row.append(el('span', 'ic', KIND_ICON[it.kind]), el('span', 't', it.title), el('span', 'u', it.sub || ''));
-      row.title = it.kind === 'cmd' ? (it.title + (it.tip ? ' — ' + it.tip : '')) : it.kind === 'tab' ? 'Перейти до вкладки: ' + it.title + (it.sub ? '\n' + it.sub : '') : (it.title || '') + (it.sub ? '\n' + it.sub : '');
+      row.title = it.kind === 'cmd' ? (it.title + (it.tip ? ' — ' + it.tip : '')) : it.kind === 'tab' ? `Перейти до вкладки: ${it.title}${it.sub ? '\n' + it.sub : ''}` : (it.title || '') + (it.sub ? '\n' + it.sub : '');
       row.onmousedown = (e) => { e.preventDefault(); run(it, e.shiftKey); };
       list.append(row);
     });

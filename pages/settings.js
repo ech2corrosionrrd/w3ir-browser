@@ -1,6 +1,6 @@
 'use strict';
 async function main() {
-  const { settings, engines, incognito, version, adblockEngine, extensions, theme } = await w3ir.invoke('settings:get');
+  const { settings, engines, incognito, version, adblockEngine, extensions, theme, language, languages } = await w3ir.invoke('settings:get');
   const save = (patch) => w3ir.invoke('settings:set', patch);
 
   const toggle = (key, title, desc) => {
@@ -66,10 +66,10 @@ async function main() {
   const renderSafe = async () => {
     const st = await w3ir.invoke('safe:status');
     safeBox.textContent = '';
-    const when = st.updated ? new Date(st.updated).toLocaleString('uk-UA') : 'ще не завантажувались';
+    const when = st.updated ? new Date(st.updated).toLocaleString(LOCALE) : 'ще не завантажувались';
     const btn = h('button', { disabled: st.updating, onclick: async () => { btn.disabled = true; btn.textContent = 'Оновлюємо…'; await w3ir.invoke('safe:update'); renderSafe(); } }, 'Оновити списки');
     safeBox.append(h('div', { class: 'row', title: 'Списки зберігаються на вашому комп’ютері у стиснутому вигляді; адреси, які ви відвідуєте, нікуди не надсилаються' },
-      h('div', null, h('div', null, `Списки загроз: шкідливих хостів ${st.counts.malware.toLocaleString('uk-UA')}, фішингових доменів ${st.counts.phishing.toLocaleString('uk-UA')}`),
+      h('div', null, h('div', null, `Списки загроз: шкідливих хостів ${st.counts.malware.toLocaleString(LOCALE)}, фішингових доменів ${st.counts.phishing.toLocaleString(LOCALE)}`),
         h('div', { class: 'd' }, `Оновлено: ${when}. Джерела: ${st.sources.join(', ')}. Оновлення раз на добу.`), st.error ? h('div', { class: 'merr' }, st.error) : ''), btn));
   };
   renderSafe();
@@ -83,7 +83,7 @@ async function main() {
       idle: st.feedValid ? 'Оновлень ще не перевіряли' : 'Джерело оновлень не налаштовано', checking: 'Перевіряємо…', none: 'Встановлено найновішу версію',
       available: `Знайдено версію ${st.version}`, downloading: `Завантажуємо ${st.version || ''}… ${st.percent || 0} %`, ready: `Версію ${st.version} завантажено й перевірено — готово до встановлення`, error: 'Помилка оновлення',
     }[st.state] || st.state;
-    const feed = h('input', { type: 'text', value: st.feed, placeholder: st.defaultFeed ? 'за замовчуванням: ' + st.defaultFeed : 'github:власник/репозиторій  або  https://сайт/оновлення/', style: 'width:340px', spellcheck: false });
+    const feed = h('input', { type: 'text', value: st.feed, placeholder: st.defaultFeed ? `за замовчуванням: ${st.defaultFeed}` : 'github:власник/репозиторій  або  https://сайт/оновлення/', style: 'width:340px', spellcheck: false });
     const feedMsg = h('div', { class: 'merr' });
     feed.addEventListener('change', async () => {
       const r = await w3ir.invoke('update:setFeed', { feed: feed.value });
@@ -92,7 +92,7 @@ async function main() {
     });
     const auto = h('input', { type: 'checkbox', class: 'switch', checked: st.autoUpdate, onchange: () => w3ir.invoke('update:setAuto', { on: auto.checked }) });
     updBox.append(
-      h('div', { class: 'row' }, h('div', null, h('div', null, `Версія ${st.current}`), h('div', { class: 'd' }, text + (st.checkedAt ? ' · перевірено ' + new Date(st.checkedAt).toLocaleString('uk-UA') : '')),
+      h('div', { class: 'row' }, h('div', null, h('div', null, `Версія ${st.current}`), h('div', { class: 'd' }, text + (st.checkedAt ? ` · перевірено ${new Date(st.checkedAt).toLocaleString(LOCALE)}` : '')),
         st.error ? h('div', { class: 'merr' }, st.error) : '', st.notes ? h('div', { class: 'd' }, st.notes) : ''),
         st.state === 'ready'
           ? h('button', { class: 'primary', title: 'Закриє браузер, встановить оновлення й запустить його знову', onclick: async () => { await w3ir.invoke('update:install'); renderUpd(); } }, 'Встановити та перезапустити')
@@ -100,7 +100,7 @@ async function main() {
             ? h('button', { class: 'primary', onclick: async () => { await w3ir.invoke('update:download'); renderUpd(); } }, 'Завантажити оновлення')
             : h('button', { class: 'primary', disabled: st.state === 'checking' || st.state === 'downloading', onclick: async () => { await w3ir.invoke('update:check'); renderUpd(); } }, 'Перевірити оновлення')),
       h('div', { class: 'row', title: 'Нова версія завантажується у фоні; встановлюється після вашого підтвердження або при наступному виході з браузера' }, h('div', null, h('div', null, 'Завантажувати оновлення автоматично'), h('div', { class: 'd' }, 'Перевірка кожні 6 годин. Без цього параметра браузер лише повідомляє про нову версію')), auto),
-      h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Джерело оновлень'), h('div', { class: 'd' }, 'Залиште порожнім, щоб використовувати офіційне джерело. Лише https або github:власник/репозиторій. Кожне оновлення перевіряється підписом випускача (Ed25519, відбиток ключа: ' + st.fingerprint + ') — підроблений файл не буде встановлено.'), feed, feedMsg)),
+      h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Джерело оновлень'), h('div', { class: 'd' }, `Залиште порожнім, щоб використовувати офіційне джерело. Лише https або github:власник/репозиторій. Кожне оновлення перевіряється підписом випускача (Ed25519, відбиток ключа: ${st.fingerprint}) — підроблений файл не буде встановлено.`), feed, feedMsg)),
       st.logFile ? h('div', { class: 'row', title: 'У журнал записуються перевірки, завантаження та спроби встановлення' }, h('div', null, h('div', null, 'Журнал оновлень'), h('div', { class: 'd pw', style: 'user-select:text' }, st.logFile))) : '',
       st.packaged ? '' : h('div', { class: 'row' }, 'Режим розробки: оновлення працюють лише в встановленій версії.'));
   };
@@ -114,7 +114,7 @@ async function main() {
     ghBox.textContent = '';
     if (st.connected) {
       ghBox.append(h('div', { class: 'row' },
-        h('div', null, h('div', null, 'GitHub підключено' + (st.login ? ': ' + st.login : '')),
+        h('div', null, h('div', null, `GitHub підключено${st.login ? ': ' + st.login : ''}`),
           h('div', { class: 'd' }, `Сповіщень: ${st.unread}, запитів на рев’ю: ${st.reviews}`),
           st.error ? h('div', { class: 'merr' }, st.error) : ''),
         h('button', { class: 'danger', onclick: async () => { await w3ir.invoke('github:disconnect'); renderGh(); } }, 'Відключити')));
@@ -155,15 +155,15 @@ async function main() {
     const testBtn = h('button', { onclick: async () => {
       testBtn.disabled = true; testBtn.textContent = 'Перевірка…';
       const r = await w3ir.invoke('agent:test');
-      agTest = r.ok ? `✔ Сервер відповідає (${r.ms} мс), інструментів: ${r.tools}. ` + (r.client ? 'Клієнт підключався: ' + r.client.name + '.' : 'Клієнт ще не підключався: виконайте команду підключення.') : '✘ ' + r.error + ' Перевірте порт, файрвол і чи ввімкнено перемикач.';
+      agTest = r.ok ? `✔ Сервер відповідає (${r.ms} мс), інструментів: ${r.tools}. ` + (r.client ? `Клієнт підключався: ${r.client.name}.` : 'Клієнт ще не підключався: виконайте команду підключення.') : `✘ ${r.error} Перевірте порт, файрвол і чи ввімкнено перемикач.`;
       renderAg();
     } }, 'Перевірити підключення');
     const port = h('input', { type: 'number', min: 1024, max: 65535, value: st.port, style: 'width:90px' });
     port.addEventListener('change', () => run('agent:setPort', { port: Number(port.value) }));
     agBox.append(
-      h('div', { class: 'row' }, h('div', null, h('div', null, 'Стан'), h('div', { class: 'd' }, (st.running ? 'Сервер працює: ' + url : 'Сервер не запущений') + (st.windowOpen ? ' · вікно ШІ відкрито' : ''))), port),
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Стан'), h('div', { class: 'd' }, (st.running ? `Сервер працює: ${url}` : 'Сервер не запущений') + (st.windowOpen ? ' · вікно ШІ відкрито' : ''))), port),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Підключення клієнта'),
-        h('div', { class: 'd' }, st.client ? `✔ ${st.client.name} ${st.client.version || ''} підключився ${new Date(st.client.at).toLocaleTimeString('uk-UA')}` : 'Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.'),
+        h('div', { class: 'd' }, st.client ? `✔ ${st.client.name} ${st.client.version || ''} підключився ${new Date(st.client.at).toLocaleTimeString(LOCALE)}` : 'Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.'),
         testOut),
       testBtn),
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Токен доступу'),
@@ -182,7 +182,7 @@ async function main() {
         h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Claude Code'), h('code', { style: 'word-break:break-all;user-select:all' }, cmd)), b1),
         h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Інші клієнти MCP (JSON)'), h('pre', { style: 'white-space:pre-wrap;word-break:break-all;margin:4px 0;user-select:all' }, cfg)), b2));
     }
-    agBox.append(h('div', { class: 'row' }, h('div', null, h('div', null, 'Спільні вкладки'), h('div', { class: 'd' }, st.shares.length ? st.shares.map(x => `${x.site} — ${x.mode === 'control' ? 'керування' : 'читання'}, до ${new Date(x.until).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`).join('; ') : 'Немає. Поділитися вкладкою: правий клік по вкладці → «ШІ: дозволити…» або Ctrl+K.')),
+    agBox.append(h('div', { class: 'row' }, h('div', null, h('div', null, 'Спільні вкладки'), h('div', { class: 'd' }, st.shares.length ? st.shares.map(x => `${x.site} — ${x.mode === 'control' ? 'керування' : 'читання'}, до ${new Date(x.until).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}`).join('; ') : 'Немає. Поділитися вкладкою: правий клік по вкладці → «ШІ: дозволити…» або Ctrl+K.')),
       st.shares.length ? h('button', { class: 'danger', onclick: () => run('agent:unshareAll') }, 'Припинити всі') : null));
     agBox.append(h('div', { class: 'row' }, h('div', null, h('div', null, 'Дозволені сайти цього сеансу'), h('div', { class: 'd' }, st.sites.length ? st.sites.join(', ') : 'Поки жодного. Закриття вікна ШІ скидає сеанс.')),
       h('button', { class: 'danger', onclick: () => run('agent:closeWindow') }, 'Закрити вікно ШІ')));
@@ -202,9 +202,9 @@ async function main() {
     syncBox.textContent = '';
     if (!st.available) { syncBox.append(h('div', { class: 'row' }, 'Захищене сховище ключів недоступне в цій системі — синхронізація вимкнена.')); return; }
     if (st.enabled) {
-      const when = st.lastSync ? new Date(st.lastSync).toLocaleString('uk-UA') : 'ще не виконувалась';
+      const when = st.lastSync ? new Date(st.lastSync).toLocaleString(LOCALE) : 'ще не виконувалась';
       syncBox.append(h('div', { class: 'row' },
-        h('div', null, h('div', null, 'Синхронізація увімкнена'), h('div', { class: 'd' }, st.folder), h('div', { class: 'd' }, 'Остання синхронізація: ' + when),
+        h('div', null, h('div', null, 'Синхронізація увімкнена'), h('div', { class: 'd' }, st.folder), h('div', { class: 'd' }, `Остання синхронізація: ${when}`),
           st.lastError ? h('div', { class: 'merr' }, st.lastError) : ''),
         h('div', null,
           h('button', { onclick: async () => { await w3ir.invoke('sync:now'); renderSync(); } }, 'Синхронізувати зараз'), ' ',
@@ -239,6 +239,12 @@ async function main() {
         const sel = h('select', { onchange: () => save({ theme: sel.value }) },
           Object.entries({ system: 'Як у системі', light: 'Світла', dark: 'Темна' }).map(([v, l]) => h('option', { value: v, selected: theme === v }, l)));
         return h('div', { class: 'row' }, h('div', null, h('div', null, 'Тема оформлення'), h('div', { class: 'd' }, 'Змінює браузер і сайти, що підтримують світлу/темну тему')), sel);
+      })(),
+      (() => {
+        const sel = h('select', { 'data-notr': '', onchange: () => save({ language: sel.value }) },
+          h('option', { value: 'auto', selected: language === 'auto' }, t('Як у системі')),
+          Object.entries(languages).map(([v, l]) => h('option', { value: v, selected: language === v }, l)));
+        return h('div', { class: 'row' }, h('div', null, h('div', null, 'Мова'), h('div', { class: 'd' }, 'Мова інтерфейсу браузера та внутрішніх сторінок. Сайти не змінюються')), sel);
       })(),
       select('searchEngine', 'Пошукова система', engines, 'Використовується для запитів в адресному рядку'),
       text('homepage', 'Домашня сторінка', 'Кнопка «⌂» та нові вікна', 'w3ir://newtab'),
@@ -292,7 +298,7 @@ async function main() {
         h('label', null, cookies, ' Cookie та дані сайтів'), ' ',
         h('label', null, cache, ' Кеш')),
       h('div', null, clear, status))),
-    h('p', { class: 'note' }, 'W3IR Browser ' + version + ' · на основі Chromium/Electron'));
+    h('p', { class: 'note' }, `W3IR Browser ${version} · на основі Chromium/Electron`));
 }
 function buildRail() {
   const heads = [...document.querySelectorAll('main > h2')];

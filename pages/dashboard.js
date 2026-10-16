@@ -4,12 +4,12 @@ const call = (name, arg) => w3ir.invoke(name, arg);
 const ago = (t) => {
   if (!t) return 'ще не було';
   const s = Math.max(0, Math.round((Date.now() - t) / 1000));
-  if (s < 60) return s + ' с тому';
-  if (s < 3600) return Math.round(s / 60) + ' хв тому';
-  if (s < 86400) return Math.round(s / 3600) + ' год тому';
-  return Math.round(s / 86400) + ' дн тому';
+  if (s < 60) return `${s} с тому`;
+  if (s < 3600) return `${Math.round(s / 60)} хв тому`;
+  if (s < 86400) return `${Math.round(s / 3600)} год тому`;
+  return `${Math.round(s / 86400)} дн тому`;
 };
-const clock = (t) => new Date(t).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const clock = (t) => new Date(t).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 let pings = null;
 
 function cardNetworks(st) {
@@ -26,14 +26,14 @@ function cardNetworks(st) {
     box.append(h('div', { class: 'addr' }, h('code', { title: addr }, addr || '—'),
       h('button', { class: 'primary', disabled: !addr, onclick: async () => {
         const r = await call('dashboard:copy', { address: addr });
-        msg.textContent = r.ok ? 'Скопійовано (буфер очиститься за ' + r.cleared + ' с)' : r.error;
+        msg.textContent = r.ok ? `Скопійовано (буфер очиститься за ${r.cleared} с)` : r.error;
       } }, 'Копіювати'), msg));
   }
   const grid = h('div', { class: 'nets' }, st.networks.map((n) => {
     const p = pings && pings.find(x => x.chainId === n.chainId);
     return h('div', { class: 'net', title: p && p.error ? p.error : '' },
       h('span', { class: 'dot ' + (p ? (p.ok ? 'ok' : 'bad') : '') }), n.name,
-      h('span', { class: 'ms' }, p ? (p.ok ? p.ms + ' мс' : p.error) : ''));
+      h('span', { class: 'ms' }, p ? (p.ok ? `${p.ms} мс` : p.error) : ''));
   }));
   const btn = h('button', { onclick: async () => { btn.disabled = true; btn.textContent = 'Перевірка…'; const r = await call('dashboard:ping'); pings = r.ok ? r.results : null; render(); } }, 'Перевірити вузли');
   box.append(grid, h('div', { class: 'actions' }, btn, h('span', { class: 'sub' }, 'Запит eth_chainId лише до RPC ваших мереж, за натисканням')));
@@ -55,7 +55,7 @@ function cardAgent(st) {
   if (a.error) box.append(h('div', { class: 'merr' }, a.error));
   box.append(h('div', { class: 'actions' },
     h('button', { class: a.enabled ? 'danger' : 'primary', onclick: async () => { await call('dashboard:agent', { on: !a.enabled }); render(); } }, a.enabled ? 'Вимкнути' : 'Увімкнути'),
-    a.enabled ? h('button', { onclick: async (ev) => { const b = ev.target; b.disabled = true; b.textContent = 'Перевірка…'; const r = await call('dashboard:agentTest'); b.disabled = false; b.textContent = r.ok ? '✔ ' + r.ms + ' мс · ' + r.tools + ' інстр.' : '✘ ' + r.error; } }, 'Перевірити підключення') : null,
+    a.enabled ? h('button', { onclick: async (ev) => { const b = ev.target; b.disabled = true; b.textContent = 'Перевірка…'; const r = await call('dashboard:agentTest'); b.disabled = false; b.textContent = r.ok ? `✔ ${r.ms} мс · ${r.tools} інстр.` : '✘ ' + r.error; } }, 'Перевірити підключення') : null,
     a.shares.length ? h('button', { class: 'danger', onclick: async () => { await call('dashboard:unshare'); render(); } }, 'Припинити спільні вкладки') : null,
     h('a', { href: 'w3ir://settings', title: 'Токен і команда підключення Claude Code — у налаштуваннях' }, 'Підключення…')));
   return box;
@@ -66,7 +66,7 @@ function cardProtection(st) {
   const row = (k, on) => [h('span', { class: 'k' }, k), h('span', null, h('span', { class: 'dot ' + (on ? 'on' : '') }), ' ', on ? 'увімкнено' : 'вимкнено')];
   return h('div', { class: 'bcard' }, h('h2', null, 'Захист'),
     h('div', { class: 'kv' }, row('Фішинг і шкідливі сайти', p.safe), row('Блокування реклами', p.adblock), row('HTTPS-first', p.https),
-      h('span', { class: 'k' }, 'У списках'), h('span', null, (p.lists.malware + p.lists.phishing).toLocaleString('uk-UA') + ' доменів'),
+      h('span', { class: 'k' }, 'У списках'), h('span', null, `${(p.lists.malware + p.lists.phishing).toLocaleString(LOCALE)} доменів`),
       h('span', { class: 'k' }, 'Оновлено'), h('span', null, ago(p.updated))),
     h('div', { class: 'actions' }, h('a', { href: 'w3ir://settings' }, 'Налаштування приватності')));
 }

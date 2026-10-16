@@ -83,7 +83,7 @@ class GitHub {
     try {
       const r = await this._api('GET', '/user');
       if (r.status === 401) throw new Error('GitHub відхилив токен (недійсний або прострочений).');
-      if (r.status !== 200 || !r.json || typeof r.json.login !== 'string') throw new Error('Неочікувана відповідь GitHub (код ' + r.status + ').');
+      if (r.status !== 200 || !r.json || typeof r.json.login !== 'string') throw new Error(`Неочікувана відповідь GitHub (код ${r.status}).`);
       this.state = this._empty();
       this.state.login = clean(r.json.login, 80);
       writeAtomic(fs, this.file, safeStorage.encryptString(token));
@@ -139,7 +139,7 @@ class GitHub {
             } : null;
           }).filter(Boolean);
         } else if (n.status !== 304) {
-          this.state.error = 'GitHub повернув помилку ' + n.status;
+          this.state.error = `GitHub повернув помилку ${n.status}`;
           return;
         }
         const q = encodeURIComponent('is:open is:pr review-requested:@me archived:false');
@@ -152,7 +152,7 @@ class GitHub {
         this.state.error = '';
         this.state.updated = Date.now();
       } catch (e) {
-        this.state.error = /abort|timeout/i.test(e.message) ? 'GitHub не відповідає.' : 'Помилка мережі: ' + clean(e.message, 100);
+        this.state.error = /abort|timeout/i.test(e.message) ? 'GitHub не відповідає.' : `Помилка мережі: ${clean(e.message, 100)}`;
       } finally {
         this.running = null;
         this.onChange();

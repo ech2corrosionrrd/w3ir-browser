@@ -84,7 +84,7 @@ function render(s) {
   document.body.classList.toggle('profiled', prof.id !== 'default');
   if (prof.id !== 'default') {
     pr.textContent = '● ' + prof.name;
-    pr.title = 'Профіль «' + prof.name + '»: окремі закладки, історія, паролі та cookie. Клік — керування профілями';
+    pr.title = `Профіль «${prof.name}»: окремі закладки, історія, паролі та cookie. Клік — керування профілями`;
     document.body.style.setProperty('--pcolor', prof.color);
   }
 
@@ -193,7 +193,7 @@ function render(s) {
   bm.textContent = '';
   for (const b of s.bookmarks) {
     const item = el('span', 'bm', b.title || b.url);
-    item.title = (b.title || b.url) + '\n' + b.url + '\n\nКлік — відкрити · Правий клік — видалити закладку';
+    item.title = `${b.title || b.url}\n${b.url}\n\nКлік — відкрити · Правий клік — видалити закладку`;
     item.onclick = () => api.cmd('go', b.url);
     item.onauxclick = (e) => { if (e.button === 1) api.cmd('newTab'), setTimeout(() => api.cmd('go', b.url), 50); };
     item.oncontextmenu = (e) => { e.preventDefault(); api.cmd('removeBookmark', b.url); };
@@ -215,7 +215,7 @@ function renderShield(count) {
 function renderVault(v) {
   const b = $('vault');
   b.textContent = v.status === 'unlocked' ? '🔑' : '🔒';
-  b.title = { none: 'Менеджер паролів: сховища ще немає — клік, щоб створити', locked: 'Менеджер паролів заблоковано — клік, щоб розблокувати', unlocked: 'Менеджер паролів розблоковано' + (v.count ? `. Для цього сайту збережено облікових записів: ${v.count} — клік, щоб заповнити` : '. Клік — заповнити пароль на цій сторінці') }[v.status];
+  b.title = { none: 'Менеджер паролів: сховища ще немає — клік, щоб створити', locked: 'Менеджер паролів заблоковано — клік, щоб розблокувати', unlocked: `Менеджер паролів розблоковано${v.count ? `. Для цього сайту збережено облікових записів: ${v.count} — клік, щоб заповнити` : '. Клік — заповнити пароль на цій сторінці'}` }[v.status];
   if (v.count > 0) b.append(el('span', 'badge', String(v.count)));
 }
 
