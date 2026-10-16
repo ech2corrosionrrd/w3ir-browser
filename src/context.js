@@ -16,6 +16,7 @@ const { Threats } = require('./threats');
 const { parse: parseHost } = require('tldts-experimental');
 const { attachCosmetic } = require('./adblock');
 const { stripTracking, upgradeHttps } = require('./urlrules');
+const { queryMatcher } = require('./util');
 
 const PAGES = path.join(__dirname, '..', 'pages');
 const UI = path.join(__dirname, '..', 'ui');
@@ -336,10 +337,10 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   ctx.suggest = (text) => {
     const q = String(text || '').trim();
     if (!q) return [];
-    const ql = q.toLowerCase();
+    const matches = queryMatcher(q);
     const items = [{ type: ctx.looksLikeUrl(q) ? 'url' : 'search', title: q, url: q }];
     const seen = new Set();
-    const match = (e) => (e.title || '').toLowerCase().includes(ql) || e.url.toLowerCase().includes(ql);
+    const match = (e) => matches(e.title, e.url);
     for (const b of ctx.bookmarks()) {
       if (items.length >= 7) break;
       if (match(b) && !seen.has(b.url)) { seen.add(b.url); items.push({ type: 'bookmark', title: b.title, url: b.url }); }

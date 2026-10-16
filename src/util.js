@@ -12,4 +12,14 @@ const cleanStrict = (s, n = 200) => String(s == null ? '' : s).replace(INVISIBLE
 
 const isWebUrl = (u) => /^https?:/i.test(u || '');
 
-module.exports = { stripCtl, cleanStrict, isWebUrl };
+// Пошук за кількома словами: усі слова мають бути в назві або адресі, у будь-якому порядку й регістрі
+const queryMatcher = (q) => {
+  const words = String(q == null ? '' : q).toLowerCase().split(/\s+/).filter(Boolean).slice(0, 8);
+  return (title, url) => {
+    if (!words.length) return true;
+    const hay = ((title || '') + ' ' + (url || '')).toLowerCase();
+    return words.every(w => hay.includes(w));
+  };
+};
+
+module.exports = { stripCtl, cleanStrict, isWebUrl, queryMatcher };

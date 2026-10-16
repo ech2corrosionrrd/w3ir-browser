@@ -2,6 +2,7 @@
 const { ipcMain, app, dialog, shell } = require('electron');
 const { normOrigin } = require('./vault');
 const { hexChain } = require('./wallet');
+const { queryMatcher } = require('./util');
 const path = require('path');
 const fs = require('fs');
 
@@ -468,12 +469,12 @@ function registerIpc(resolve) {
       case 'resolve': return ctx.resolveInput(arg.text);
       case 'topsites': return ctx.topSites(8);
       case 'history:get': {
-        const q = String(arg.query || '').toLowerCase();
+        const match = queryMatcher(arg.query);
         const out = [];
         const h = ctx.history();
         for (let i = h.length - 1; i >= 0 && out.length < 500; i--) {
           const x = h[i];
-          if (!q || x.title.toLowerCase().includes(q) || x.url.toLowerCase().includes(q)) out.push(x);
+          if (match(x.title, x.url)) out.push(x);
         }
         return out;
       }
