@@ -33,6 +33,7 @@ class AppWindow {
     if (this.agent) this.ses.__w3irAgent = true;
     this.tabs = [];
     this.initGroups();
+    this.userFs = false; // користувач сам ввімкнув повний екран вікна (F11 / меню); сайт на весь екран цього не змінює
     this.split = null; // розділений екран: { a, b, ratio } — id двох вкладок поруч
     this.activeId = null;
     this.nextTabId = 1;
@@ -74,7 +75,7 @@ class AppWindow {
 
     this.win.on('resize', () => this.layout());
     this.win.on('enter-full-screen', () => this.layout());
-    this.win.on('leave-full-screen', () => this.layout());
+    this.win.on('leave-full-screen', () => { this.userFs = false; if (this.htmlFullscreen) this.exitHtmlFullscreen(false); else this.layout(); });
     this.win.on('close', () => this.onClose());
     this.win.on('closed', () => this.onClosed());
     this.win.once('ready-to-show', () => {
@@ -312,8 +313,8 @@ class AppWindow {
     });
     wc.on('did-create-window', (w) => { w.setMenuBarVisibility(false); });
 
-    wc.on('enter-html-full-screen', () => { this.htmlFullscreen = true; this.win.setFullScreen(true); this.layout(); });
-    wc.on('leave-html-full-screen', () => { this.htmlFullscreen = false; this.win.setFullScreen(false); this.layout(); });
+    wc.on('enter-html-full-screen', () => { this.htmlFullscreen = true; if (!this.win.isFullScreen()) this.win.setFullScreen(true); this.layout(); });
+    wc.on('leave-html-full-screen', () => { if (!this.htmlFullscreen) return; this.htmlFullscreen = false; if (!this.userFs) this.win.setFullScreen(false); this.layout(); });
     wc.on('found-in-page', (e, r) => {
       this.chrome.send('find-result', { active: r.activeMatchOrdinal, total: r.matches });
     });
@@ -364,6 +365,7 @@ class AppWindow {
     const t = this.tabs.find(t => t.id === id);
     if (!t) return;
     this.closeOverlay();
+    if (this.htmlFullscreen && t.id !== this.activeId) this.exitHtmlFullscreen();
     const prev = this.active();
     const inPair = (x) => !!(this.split && x && (x.id === this.split.a || x.id === this.split.b));
     if (prev && prev !== t) {
@@ -401,6 +403,7 @@ class AppWindow {
     }
     if (this.tabs.length === 1) { this.win.close(); return; }
     if (this.split && (id === this.split.a || id === this.split.b)) this.endSplit();
+    if (this.htmlFullscreen && id === this.activeId) this.exitHtmlFullscreen();
     this.tabs.splice(i, 1);
     this.enforceGroups();
     if (id === this.activeId) {
@@ -782,6 +785,18 @@ class AppWindow {
 
   aiMode(tab) { const a = this.ai(); return a && !this.incognito ? a.shareMode(this, tab) : ''; }
 
+  // Вихід із повноекранного режиму сайту (відео тощо): скидає прапорець, закриває його в усіх вкладках і повертає інтерфейс
+  exitHtmlFullscreen(leaveWindow = true) {
+    const was = this.htmlFullscreen;
+    this.htmlFullscreen = false;
+    for (const t of this.tabs) {
+      try { if (!t.view.webContents.isDestroyed()) t.view.webContents.executeJavaScript('document.fullscreenElement && document.exitFullscreen && document.exitFullscreen()', true).catch(() => {}); } catch { /* ignore */ }
+    }
+    if (was && leaveWindow && !this.userFs && this.win.isFullScreen()) this.win.setFullScreen(false);
+    this.layout();
+    this.push();
+  }
+
   // ---------- розділений екран ----------
   splitPair() {
     const s = this.split;
@@ -1041,6 +1056,7 @@ class AppWindow {
     if (key === 'f11') return run('fullscreen');
     if (key === 'f12') return run('devtools');
     if (key === 'escape' && this.overlayType) return run('closeOverlay');
+    if (key === 'escape' && this.htmlFullscreen) return run('fullscreen');
   }
 
   // ---------- команди ----------
@@ -1219,7 +1235,7 @@ class AppWindow {
       case 'zoomReset': if (wc) wc.setZoomLevel(0); break;
       case 'print': if (wc) wc.print(); break;
       case 'devtools': if (wc) wc.toggleDevTools(); break;
-      case 'fullscreen': this.win.setFullScreen(!this.win.isFullScreen()); break;
+      case 'fullscreen': if (this.htmlFullscreen) this.exitHtmlFullscreen(); else { this.userFs = !this.win.isFullScreen(); this.win.setFullScreen(this.userFs); } break;
       case 'quit': app.quit(); break;
       case 'find': this.chrome.focus(); this.chrome.send('find-open'); break;
       case 'findText':

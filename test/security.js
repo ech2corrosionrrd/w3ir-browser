@@ -1432,6 +1432,61 @@ async function splitTests(ctx) {
   w.win.destroy();
 }
 
+async function fullscreenTests(ctx) {
+  const srv = http.createServer((q, r) => { r.setHeader('content-type', 'text/html'); r.end('<!doctype html><title>fs</title><p>fs</p>'); });
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${srv.address().port}/`;
+  const w = ctx.openWindow({ urls: [base] });
+  await sleep(2800);
+  w.win.setSize(1200, 800);
+  await sleep(500);
+  const wc = () => w.wc();
+  const reqFs = () => wc().executeJavaScript(`document.documentElement.requestFullscreen().then(() => 'ok', e => String(e))`, true);
+  const key = (k) => { wc().sendInputEvent({ type: 'keyDown', keyCode: k }); wc().sendInputEvent({ type: 'keyUp', keyCode: k }); };
+  const normal = () => !w.htmlFullscreen && !w.win.isFullScreen() && w.active().view.getBounds().y === w.chromeHeight;
+
+  await reqFs(); await sleep(1200);
+  ok(w.htmlFullscreen && w.win.isFullScreen() && w.active().view.getBounds().y === 0, 'fullscreen: повноекранний режим сайту ховає інтерфейс');
+  key('F11'); await sleep(1500);
+  ok(normal(), 'fullscreen: F11 під час повного екрана сайту повертає звичайний вигляд з панеллю вкладок (було: лишався без інтерфейсу)');
+  ok(await wc().executeJavaScript('String(document.fullscreenElement)') === 'null', 'fullscreen: сайт теж вийшов із повноекранного режиму');
+
+  await reqFs(); await sleep(1200);
+  key('Escape'); await sleep(1500);
+  ok(normal(), 'fullscreen: Esc виходить із повного екрана сайту');
+
+  await reqFs(); await sleep(1200);
+  w.exec('fullscreen'); await sleep(1500);
+  ok(normal(), 'fullscreen: пункт меню «На весь екран» під час повного екрана сайту теж повертає інтерфейс');
+
+  // закриття вкладки в повноекранному режимі сайту
+  const t2 = w.createTab(base, { activate: true });
+  await sleep(1800);
+  await reqFs(); await sleep(1200);
+  const n = w.tabs.length;
+  w.closeTab(t2.id); await sleep(1500);
+  ok(w.tabs.length === n - 1 && normal(), 'fullscreen: закриття вкладки в повноекранному режимі сайту повертає інтерфейс');
+
+  // перемикання вкладки
+  const t3 = w.createTab(base, { activate: false });
+  await sleep(1500);
+  await reqFs(); await sleep(1200);
+  w.switchTab(t3.id); await sleep(1200);
+  ok(normal(), 'fullscreen: перемикання вкладки скидає повний екран сайту');
+
+  // вікно вже на весь екран (F11), потім відео: Esc повертає лише з відео
+  w.exec('fullscreen'); await sleep(1300);
+  ok(w.win.isFullScreen() && !w.htmlFullscreen, 'fullscreen: звичайний повний екран вікна вмикається');
+  await reqFs(); await sleep(1200);
+  key('Escape'); await sleep(1500);
+  ok(w.win.isFullScreen() && !w.htmlFullscreen && w.active().view.getBounds().y === w.chromeHeight, 'fullscreen: вікно на весь екран + відео: Esc виходить лише з відео, вікно лишається на весь екран, інтерфейс видно');
+  w.exec('fullscreen'); await sleep(1300);
+  ok(normal(), 'fullscreen: повторне «На весь екран» повертає звичайний вигляд');
+  w.exec('closeTab', w.activeId); await sleep(500);
+  w.win.destroy();
+  srv.close();
+}
+
 async function designTests() {
   const root = path.join(__dirname, '..');
   const css = (f) => fs.readFileSync(path.join(root, f), 'utf8');
@@ -1672,6 +1727,7 @@ module.exports = async function run(ctx) {
     await brandTests();
     await designTests();
     await splitTests(ctx);
+    await fullscreenTests(ctx);
   } catch (e) {
     failed++;
     console.log('[sec] ERROR', e.stack || e);
