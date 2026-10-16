@@ -27,8 +27,10 @@ class AppWindow {
   constructor(ctx, opts = {}) {
     this.ctx = ctx;
     this.id = ++counter;
-    this.incognito = !!opts.incognito;
+    this.agent = !!opts.agent; // вікно під керуванням ШІ (src/agent.js): завжди тимчасове й ізольоване
+    this.incognito = !!opts.incognito || this.agent;
     this.ses = this.incognito ? ctx.getIncognitoSession(this.id) : ctx.session;
+    if (this.agent) this.ses.__w3irAgent = true;
     this.tabs = [];
     this.initGroups();
     this.activeId = null;
@@ -197,7 +199,7 @@ class AppWindow {
     if (protect !== this.protected) { this.protected = protect; try { this.win.setContentProtection(protect); } catch {} }
     const at = a ? state.tabs.find(t => t.id === a.id) : null;
     const prof = ctx.profile();
-    this.win.setTitle((at && at.title ? at.title + ' — ' : '') + 'W3IR Browser' + (prof.id !== 'default' ? ` [${prof.name}]` : '') + (this.incognito ? ' (Інкогніто)' : ''));
+    this.win.setTitle((at && at.title ? at.title + ' — ' : '') + 'W3IR Browser' + (prof.id !== 'default' ? ` [${prof.name}]` : '') + (this.agent ? ' (Керує ШІ)' : this.incognito ? ' (Інкогніто)' : ''));
   }
 
   // ---------- вкладки ----------
@@ -277,11 +279,18 @@ class AppWindow {
     });
     wc.on('before-input-event', (e, input) => this.onKey(e, input));
 
+    if (this.agent) {
+      // у вікні ШІ кожен перехід, ініційований сторінкою, перевіряється: лише http(s) і лише підтверджені сайти
+      const gate = (e, url) => { if (!this.ctx.agent.pageNavigation(this, tab, url, 'nav')) e.preventDefault(); };
+      wc.on('will-navigate', gate);
+      wc.on('will-redirect', gate);
+    }
     wc.on('will-navigate', (e, url) => {
       if (EXTERNAL_SCHEME.test(url)) { e.preventDefault(); this.openExternal(url); }
       else if (!/^(https?|w3ir|file|about|blob|data|view-source):/i.test(url)) e.preventDefault();
     });
     wc.setWindowOpenHandler((d) => {
+      if (this.agent) { this.ctx.agent.pageNavigation(this, tab, d.url, 'popup'); return { action: 'deny' }; }
       if (EXTERNAL_SCHEME.test(d.url)) { this.openExternal(d.url); return { action: 'deny' }; }
       if (d.disposition === 'new-window') {
         return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true, icon: ICON, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } } };
@@ -538,6 +547,7 @@ class AppWindow {
   approvalPayload(item) {
     const v = this.ctx.vault;
     const st = v.status();
+    if (item.spec.agent) return { id: item.id, ...item.spec, needsUnlock: false, needsAuth: false }; // підтвердження сайту для ШІ не потребує майстер-пароля
     return { id: item.id, ...item.spec, needsUnlock: st !== 'unlocked', needsAuth: st === 'unlocked' && !v.recentlyAuthed() };
   }
 
@@ -556,6 +566,7 @@ class AppWindow {
     const item = this.approval;
     if (!item || item.id !== id) return { ok: false, error: 'Запит застарів.' };
     if (!approve) { this.finishApproval(false); return { ok: true }; }
+    if (item.spec.agent) { this.finishApproval(true); return { ok: true }; }
     const v = this.ctx.vault;
     master = String(master || '').slice(0, 256);
     if (v.status() !== 'unlocked') {
@@ -595,7 +606,7 @@ class AppWindow {
   }
 
   sleepIdle() {
-    if (!this.ctx.cfg().sleepTabs) return;
+    if (!this.ctx.cfg().sleepTabs || this.agent) return;
     const now = Date.now();
     for (const t of this.tabs) {
       if (!t.sleep && t.id !== this.activeId && now - t.lastActive > SLEEP_AFTER) this.sleepTab(t);
@@ -739,9 +750,12 @@ class AppWindow {
       { label: 'На весь екран', hint: 'F11', cmd: 'fullscreen' },
       { label: 'Інструменти розробника', hint: 'F12', cmd: 'devtools' },
       { label: 'Довідка', hint: 'F1', cmd: 'openPage', arg: 'help' },
+      ...(this.agentOn() ? [{ label: 'Зупинити керування браузером ШІ', cmd: 'agentStop' }] : []),
       { label: 'Вийти', cmd: 'quit' },
     ];
   }
+
+  agentOn() { const m = this.ctx.manager; const a = m && m.ctx('default').agent; return !!(a && a.state.enabled); }
 
   menuItems() {
     const wc = this.wc();
@@ -1068,6 +1082,7 @@ class AppWindow {
       case 'newWindow': ctx.openWindow({}); break;
       case 'openProfile': if (ctx.manager && ctx.manager.has(arg)) ctx.manager.open(arg); break;
       case 'newIncognito': ctx.openWindow({ incognito: true }); break;
+      case 'agentStop': { const a = ctx.manager && ctx.manager.ctx('default').agent; if (a) { a.disable(); this.toast('Керування браузером ШІ вимкнено'); } break; }
       case 'uiHeight': this.chromeHeight = Math.max(40, Math.min(400, Math.round(arg))); this.layout(); break;
       case 'zoomIn': if (wc) wc.setZoomLevel(Math.min(5, wc.getZoomLevel() + 0.5)); break;
       case 'zoomOut': if (wc) wc.setZoomLevel(Math.max(-4, wc.getZoomLevel() - 0.5)); break;

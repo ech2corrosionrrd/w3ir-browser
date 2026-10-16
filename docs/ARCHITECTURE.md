@@ -28,6 +28,7 @@ Electron 41 (Chromium + Node 24). Увесь код головного проц�
 | `wallet.js` | EVM-гаманець, EIP-1193 запити, розшифровка викликів, підтвердження |
 | `sync.js` | зашифрована синхронізація закладок через теку |
 | `github.js` | сповіщення й запити на рев'ю GitHub (токен у DPAPI) |
+| `agent.js` | керування браузером ШІ: сервер MCP на 127.0.0.1, токен у DPAPI, ізольоване вікно агента, інструменти (клік, ввід, читання, скріншот), підтвердження сайтів |
 | `threats.js` | списки загроз (хеші, бінарний пошук) та евристики адрес |
 | `adblock.js`, `blocklist.js` | рушій Ghostery (EasyList тощо) + резервний список доменів |
 | `urlrules.js` | очищення трекінгових параметрів, HTTPS-first |
@@ -57,6 +58,7 @@ Electron 41 (Chromium + Node 24). Увесь код головного проц�
 | `cmd` | інтерфейс/оверлей → `AppWindow.exec` | лише вікно інтерфейсу й оверлей цього вікна |
 | `suggest` | інтерфейс → підказки адреси | вікно інтерфейсу |
 | `internal` | внутрішні сторінки → `ipc.js` | лише головний кадр вкладки з адресою `w3ir://…`; кожна група імен прив'язана до конкретної сторінки (`vault:*` ← passwords; `wallet:*` ← wallet; `sync:*`, `github:*`, `update:*`, `sites:*`, `safe:status/update` ← settings; `safe:proceed/trust` ← warning; `import:*` ← import; `profiles:*` ← profiles) |
+| `agent:*` | сторінка налаштувань → `agent.js` | лише `w3ir://settings`, не з вікна агента |
 | `wallet:init` (sync), `wallet:request` | preload вкладки → гаманець | головний кадр звичайної (не приватної) вкладки на https/localhost |
 | `vault:captured` | preload вкладки → пропозиція зберегти пароль | головний кадр, не інкогніто |
 | події в інтерфейс | `state`, `toast`, `savebar`, `find-*`, `group-edit`, `overlay`, `url-blur`, `focus-url` | дозволені списком у `preload.js` |

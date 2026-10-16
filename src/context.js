@@ -10,6 +10,7 @@ const { Downloads } = require('./downloads');
 const { Vault } = require('./vault');
 const { Sync } = require('./sync');
 const { GitHub } = require('./github');
+const { Agent } = require('./agent');
 const { Wallet } = require('./wallet');
 const { Threats } = require('./threats');
 const { parse: parseHost } = require('tldts-experimental');
@@ -122,6 +123,11 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     onChange: () => { ctx.pushAll(); for (const w of ctx.windows) w.refreshGithubOverlay(); },
   });
   if (ctx.github.connected()) setTimeout(() => ctx.github.start(), 5000);
+  if (id === 'default') {
+    // керування браузером ШІ (MCP): вимкнено, доки користувач не ввімкне в налаштуваннях
+    ctx.agent = new Agent({ ctx, dir: userData, onChange: () => { for (const w of ctx.windows) w.push(); } });
+    if (ctx.agent.state.enabled) setTimeout(() => ctx.agent.start(), 3000);
+  }
   if (ctx.sync.state.data.enabled) { ctx.sync.start(); setTimeout(() => ctx.sync.syncNow(), 4000); }
 
   // Усі зміни закладок проходять тут — потрібні мітки часу та надгробки для синхронізації.
@@ -440,7 +446,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
 
     ses.setPermissionRequestHandler((wc, permission, cb, details) => {
       if (ALWAYS_ALLOW.has(permission)) return cb(true);
-      if (!ASK[permission]) return cb(false);
+      if (!ASK[permission] || ses.__w3irAgent) return cb(false); // ШІ-агент не отримує дозволів (камера, геолокація…)
       const origin = originOf(details.requestingUrl || wc.getURL());
       if (!origin || origin === 'null') return cb(false);
       const key = origin + '|' + permission;

@@ -133,6 +133,49 @@ async function main() {
       } }, 'Підключити')));
   };
   renderGh();
+  // ---------- керування браузером ШІ (MCP) ----------
+  const agBox = h('div', { class: 'list' });
+  let agShow = false;
+  const renderAg = async () => {
+    const st = await w3ir.invoke('agent:status');
+    agBox.textContent = '';
+    const run = async (name, arg) => { const r = await w3ir.invoke(name, arg); if (r && r.ok === false) alert(r.error || 'Помилка'); renderAg(); };
+    agBox.append(h('div', { class: 'row' },
+      h('div', null, h('div', null, 'Дозволити ШІ керувати браузером'),
+        h('div', { class: 'd' }, 'Локальний сервер MCP на 127.0.0.1 (ззовні недоступний). ШІ працює в окремому тимчасовому вікні без ваших входів, паролів і гаманця; кожен новий сайт ви підтверджуєте самі.')),
+      h('input', { type: 'checkbox', class: 'switch', checked: st.enabled, onchange: (ev) => run(ev.target.checked ? 'agent:enable' : 'agent:disable') })));
+    if (st.error) agBox.append(h('div', { class: 'row' }, h('div', { class: 'merr' }, st.error)));
+    if (!st.enabled) return;
+    const token = agShow ? (await w3ir.invoke('agent:token')).token : '';
+    const url = `http://127.0.0.1:${st.port}/mcp`;
+    const copy = (txt, btn) => { navigator.clipboard.writeText(txt).then(() => { const o = btn.textContent; btn.textContent = 'Скопійовано'; setTimeout(() => { btn.textContent = o; }, 1500); }); };
+    const port = h('input', { type: 'number', min: 1024, max: 65535, value: st.port, style: 'width:90px' });
+    port.addEventListener('change', () => run('agent:setPort', { port: Number(port.value) }));
+    agBox.append(
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Стан'), h('div', { class: 'd' }, (st.running ? 'Сервер працює: ' + url : 'Сервер не запущений') + (st.windowOpen ? ' · вікно ШІ відкрито' : ''))), port),
+      h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Токен доступу'),
+        h('div', { class: 'd' }, 'Секрет: хто його має, може керувати вікном ШІ. Зберігається зашифрованим (DPAPI). Нікому не передавайте.'),
+        h('code', { style: 'word-break:break-all;user-select:all' }, agShow ? token : '••••••••••••••••••••••••')),
+        h('button', { onclick: () => { agShow = !agShow; renderAg(); } }, agShow ? 'Сховати' : 'Показати'),
+        h('button', { class: 'danger', title: 'Старий токен перестане працювати', onclick: () => run('agent:regenerate') }, 'Новий токен')));
+    if (agShow && token) {
+      const cmd = `claude mcp add --transport http w3ir-browser ${url} --header "Authorization: Bearer ${token}"`;
+      const cfg = JSON.stringify({ mcpServers: { 'w3ir-browser': { type: 'http', url, headers: { Authorization: 'Bearer ' + token } } } }, null, 2);
+      const b1 = h('button', null, 'Копіювати');
+      const b2 = h('button', null, 'Копіювати');
+      b1.addEventListener('click', () => copy(cmd, b1));
+      b2.addEventListener('click', () => copy(cfg, b2));
+      agBox.append(
+        h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Claude Code'), h('code', { style: 'word-break:break-all;user-select:all' }, cmd)), b1),
+        h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Інші клієнти MCP (JSON)'), h('pre', { style: 'white-space:pre-wrap;word-break:break-all;margin:4px 0;user-select:all' }, cfg)), b2));
+    }
+    agBox.append(h('div', { class: 'row' }, h('div', null, h('div', null, 'Дозволені сайти цього сеансу'), h('div', { class: 'd' }, st.sites.length ? st.sites.join(', ') : 'Поки жодного. Закриття вікна ШІ скидає сеанс.')),
+      h('button', { class: 'danger', onclick: () => run('agent:closeWindow') }, 'Закрити вікно ШІ')));
+    if (st.log.length) agBox.append(h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Останні дії ШІ'),
+      h('div', { class: 'd', style: 'white-space:pre-wrap' }, st.log.slice(-12).reverse().map(l => `${l.t.slice(11, 19)}  ${l.tool}  ${l.detail}`).join('\n')))));
+  };
+  renderAg();
+  setInterval(() => { if (document.visibilityState === 'visible' && !document.activeElement.matches('input')) renderAg(); }, 5000);
   const kw = h('textarea', { rows: 4, spellcheck: false, placeholder: 'rust = https://doc.rust-lang.org/std/?search=%s' });
   kw.value = settings.keywords || '';
   kw.addEventListener('change', () => save({ keywords: kw.value }));
@@ -215,6 +258,8 @@ async function main() {
     updBox,
     h('h2', null, 'GitHub'),
     ghBox,
+    h('h2', null, 'Керування браузером ШІ (MCP)'),
+    agBox,
     h('h2', null, 'Ключові слова адресного рядка'),
     h('div', { class: 'list' }, h('div', { class: 'row' }, h('div', { style: 'flex:1' },
       h('div', null, 'Вбудовані: gh owner/repo, ghi, ghp, gha, ghc, npm, mdn, yt, wiki, crates, pypi'),
