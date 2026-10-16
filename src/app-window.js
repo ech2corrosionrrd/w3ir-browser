@@ -1,5 +1,5 @@
 'use strict';
-const { BrowserWindow, WebContentsView, Menu, clipboard, shell, dialog, app, session } = require('electron');
+const { BrowserWindow, WebContentsView, Menu, clipboard, shell, dialog, app } = require('electron');
 const { normOrigin } = require('./vault');
 const { githubRepo, HTML_URL } = require('./github');
 const { ASK } = require('./context');

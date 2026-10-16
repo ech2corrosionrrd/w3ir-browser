@@ -1,11 +1,9 @@
 'use strict';
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const http = require('http');
 const { app } = require('electron');
 const { Vault } = require('../../src/vault');
-const { Sync, FILE_NAME } = require('../../src/sync');
 const { ok, sleep, tmp } = require('../lib');
 
 async function githubTests(ctx) {
