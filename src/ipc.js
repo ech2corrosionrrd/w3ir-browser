@@ -143,6 +143,16 @@ async function githubApi(ctx, name, arg) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
+// Яка внутрішня сторінка (w3ir://<назва>) має право викликати яку команду
+const PAGE_ONLY = {
+  'settings:get': ['settings', 'help'], 'settings:set': ['settings'], defaultbrowser: ['settings'],
+  'ext:add': ['settings'], 'ext:remove': ['settings'], clear: ['settings'],
+  'reader:get': ['reader'], resolve: ['newtab'], topsites: ['newtab'],
+  'history:get': ['history'], 'history:remove': ['history'], 'history:clear': ['history'],
+  'bookmarks:get': ['bookmarks'], 'bookmarks:remove': ['bookmarks'],
+  'downloads:get': ['downloads'], 'downloads:action': ['downloads'],
+};
+
 async function agentApi(ctx, name, arg) {
   const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
   const a = base.agent;
@@ -394,6 +404,10 @@ function registerIpc(resolve) {
     }
     if (name.startsWith('vault:')) return vaultApi(ctx, entry, name, arg);
     if (name.startsWith('sync:')) return syncApi(ctx, entry, name, arg);
+    // Спільні команди внутрішніх сторінок доступні лише тим сторінкам, яким потрібні (захист у глибину: помилка в одній
+    // внутрішній сторінці не дає доступу до налаштувань, розширень чи очищення даних)
+    const only = PAGE_ONLY[name];
+    if (only && !only.some(p => new RegExp('^w3ir://' + p + '/?(\\?.*)?$').test(frame.url))) throw new Error('forbidden');
     switch (name) {
       case 'settings:get':
         return { settings: ctx.cfg(), engines: Object.fromEntries(Object.entries(ctx.ENGINES).map(([k, v]) => [k, v.name])), incognito: entry.win.incognito, theme: (ctx.manager ? ctx.manager.ctx('default') : ctx).cfg().theme, version: app.getVersion(), adblockEngine: !!ctx.blocker, extensions: ctx.extStore.data.items };
@@ -424,7 +438,7 @@ function registerIpc(resolve) {
         if (r.canceled || !r.filePaths[0]) return ctx.extStore.data.items;
         const dir = r.filePaths[0];
         if (!fs.existsSync(path.join(dir, 'manifest.json'))) throw new Error('У папці немає manifest.json');
-        const ext = await ctx.session.extensions.loadExtension(dir, { allowFileAccess: true });
+        const ext = await ctx.session.extensions.loadExtension(dir, { allowFileAccess: false });
         const items = ctx.extStore.data.items;
         if (!items.some(i => i.path === dir)) items.push({ path: dir, name: ext.name, id: ext.id });
         ctx.extStore.save();

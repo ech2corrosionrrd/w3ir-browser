@@ -162,6 +162,21 @@ const TOOLS = [
   { name: 'browser_wait', description: 'Зачекати (до 10 с), наприклад поки сторінка завантажиться.', inputSchema: { type: 'object', properties: { seconds: { type: 'number', minimum: 0.1, maximum: 10 } }, required: ['seconds'], additionalProperties: false } },
 ];
 
+// Чи є IP-адреса локальною/приватною (IPv4 і IPv6, зокрема відображена ::ffff:a.b.c.d)
+function isPrivateAddress(ip) {
+  const a = String(ip || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (!a) return true;
+  if (a.includes(':')) {
+    if (a === '::1' || a === '::') return true;
+    const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(a);
+    if (mapped) return PRIVATE_V4.test(mapped[1]);
+    const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(a);
+    if (hex) { const hi = parseInt(hex[1], 16), lo = parseInt(hex[2], 16); return PRIVATE_V4.test(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`); }
+    return /^f[cd][0-9a-f]{2}:/.test(a) || /^fe[89ab][0-9a-f]:/.test(a);
+  }
+  return PRIVATE_V4.test(a);
+}
+
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const text = (s, isError = false) => ({ content: [{ type: 'text', text: String(s) }], isError });
 const json = (o) => text(JSON.stringify(o));
@@ -516,10 +531,22 @@ class Agent {
     return { tab: t.tab, wc, url: u };
   }
 
+  // Чи вказує ім'я сайту (через DNS) на локальну або приватну мережу: перевірка лише за ім'ям пропускає «публічні» домени
+  // з адресою 127.0.0.1 (захист від SSRF). Не повна гарантія (адреса може змінитися після перевірки), але закриває очевидний обхід.
+  async resolvesToPrivate(host) {
+    if (this.allowLocal) return false;
+    if (/^[\d.]+$/.test(host) || String(host).includes(':')) return false; // IP-адреси вже перевірено isPrivateHost
+    try {
+      const list = await (this.resolver ? this.resolver(host) : require('dns').promises.lookup(host, { all: true }));
+      return list.some(x => isPrivateAddress(x.address));
+    } catch { return false; } // не резолвиться — браузер сам покаже помилку
+  }
+
   // Підтвердження нового сайту користувачем у довіреному вікні (set — сайти цього сеансу або цієї спільної вкладки)
   async ensureSite(w, host, why, set = this.allowed) {
     const key = siteKey(host);
     if (set.has(key)) return true;
+    if (await this.resolvesToPrivate(host)) { this.log('block-dns', key); throw new Error('Адреса сайту через DNS вказує на локальну чи приватну мережу: відкриття заборонено.'); }
     if (set.size >= MAX_SITES) throw new Error('Досягнуто ліміт сайтів за сеанс. Закрийте вікно агента, щоб почати новий сеанс.');
     const r = await w.requestApproval({
       agent: true, title: 'ШІ просить відкрити сайт', origin: key,
@@ -748,4 +775,4 @@ class Agent {
   }
 }
 
-module.exports = { Agent, INSTRUCTIONS, SHARE_BASE, TOOLS, DEFAULT_PORT, checkUrl, siteKey, isPrivateHost, bearerOk, hostHeaderOk, clean, KEYS };
+module.exports = { Agent, isPrivateAddress, INSTRUCTIONS, SHARE_BASE, TOOLS, DEFAULT_PORT, checkUrl, siteKey, isPrivateHost, bearerOk, hostHeaderOk, clean, KEYS };

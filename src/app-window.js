@@ -320,7 +320,22 @@ class AppWindow {
       if (/^(https?|w3ir|file|about):/i.test(d.url)) this.createTab(d.url, { activate: d.disposition !== 'background-tab', opener: tab });
       return { action: 'deny' };
     });
-    wc.on('did-create-window', (w) => { w.setMenuBarVisibility(false); });
+    wc.on('did-create-window', (w) => {
+      w.setMenuBarVisibility(false);
+      // Спливаюче вікно (window.open з параметрами) не має адресного рядка, тож у заголовок завжди виводимо справжнє
+      // походження сторінки (сайт не може його підробити), а навігацію обмежуємо http(s): захист від фішингу у «безадресному» вікні.
+      const pc = w.webContents;
+      const retitle = (title) => {
+        if (w.isDestroyed()) return;
+        let origin = '';
+        try { origin = new URL(pc.getURL()).host; } catch { /* about:blank */ }
+        w.setTitle((origin ? origin + ' — ' : '') + String(title || '').slice(0, 100));
+      };
+      pc.on('page-title-updated', (e, title) => { e.preventDefault(); retitle(title); });
+      pc.on('did-navigate', () => retitle(pc.getTitle()));
+      pc.on('will-navigate', (e, u) => { if (!/^https?:/i.test(u)) e.preventDefault(); });
+      pc.setWindowOpenHandler((d) => { if (/^https?:/i.test(d.url)) this.createTab(d.url, { activate: true, opener: tab }); return { action: 'deny' }; });
+    });
 
     wc.on('enter-html-full-screen', () => { this.htmlFullscreen = true; if (!this.win.isFullScreen()) this.win.setFullScreen(true); this.layout(); });
     wc.on('leave-html-full-screen', () => { if (!this.htmlFullscreen) return; this.htmlFullscreen = false; if (!this.userFs) this.win.setFullScreen(false); this.layout(); });
@@ -364,10 +379,12 @@ class AppWindow {
   openExternal(url) {
     if (/^magnet:/i.test(url)) { this.openMagnet(url); return; }
     if (!SAFE_EXTERNAL.test(url)) return; // символи на кшталт " або пробілів можуть зламати командний рядок обробника
+    if (this._extAsk) return; // одне вікно підтвердження за раз: сторінка не може засипати діалогами
+    this._extAsk = true;
     dialog.showMessageBox(this.win, {
       type: 'question', buttons: ['Відкрити', 'Скасувати'], defaultId: 1, cancelId: 1,
       message: 'Відкрити зовнішню програму?', detail: url.slice(0, 200),
-    }).then(r => { if (r.response === 0) shell.openExternal(url); }).catch(() => {});
+    }).then(r => { if (r.response === 0) shell.openExternal(url); }).catch(() => {}).finally(() => { this._extAsk = false; });
   }
 
   switchTab(id) {

@@ -86,7 +86,7 @@ class Vault {
     }
     if (create) {
       const raw = crypto.randomBytes(32);
-      writeAtomic(fs, this.pepperFile, safeStorage.encryptString(b64(raw)));
+      writeAtomic(fs, this.pepperFile, safeStorage.encryptString(b64(raw)), { backup: true });
       return { buf: raw, used: true };
     }
     if (!this.header.pepper) return { buf: Buffer.alloc(0), used: false };
@@ -101,7 +101,7 @@ class Vault {
   _persist() {
     const h = this.header;
     const env = encrypt(this.key, Buffer.from(JSON.stringify(this.data), 'utf8'), this._aad(h));
-    writeAtomic(fs, this.file, JSON.stringify({ ...h, iv: b64(env.iv), tag: b64(env.tag), ct: b64(env.ct) }));
+    writeAtomic(fs, this.file, JSON.stringify({ ...h, iv: b64(env.iv), tag: b64(env.tag), ct: b64(env.ct) }), { backup: true });
   }
 
   async create(master) {
@@ -126,11 +126,25 @@ class Vault {
     const now = Date.now();
     if (now < this.nextAllowed) return { ok: false, error: `Забагато спроб. Зачекайте ${Math.ceil((this.nextAllowed - now) / 1000)} с.` };
     let raw;
+    const readHeader = (f) => {
+      const r = JSON.parse(fs.readFileSync(f, 'utf8'));
+      if (r.v !== 1 || !validKdf(r.kdf)) throw new Error('format');
+      return r;
+    };
     try {
-      raw = JSON.parse(fs.readFileSync(this.file, 'utf8'));
-      if (raw.v !== 1 || !validKdf(raw.kdf)) throw new Error('format');
-      this.header = { v: raw.v, kdf: raw.kdf, pepper: !!raw.pepper };
-    } catch { return { ok: false, error: 'Файл сховища пошкоджено.' }; }
+      raw = readHeader(this.file);
+    } catch (e) {
+      // Лише файл, що не розбирається як JSON (обрізаний запис, збій диска), відновлюється з резервної копії; пошкоджений
+      // файл зберігаємо окремо. Файл із хибною структурою чи небезпечними параметрами KDF (підміна) відхиляється, а не «лікується».
+      if (!(e instanceof SyntaxError)) return { ok: false, error: 'Файл сховища пошкоджено.' };
+      try {
+        raw = readHeader(this.file + '.bak');
+        try { fs.renameSync(this.file, `${this.file}.corrupt-${Date.now()}`); } catch { /* ignore */ }
+        fs.copyFileSync(this.file + '.bak', this.file);
+        this.recoveredFromBackup = true;
+      } catch { return { ok: false, error: 'Файл сховища пошкоджено.' }; }
+    }
+    this.header = { v: raw.v, kdf: raw.kdf, pepper: !!raw.pepper };
     let key, plain;
     try {
       const pepper = this._pepper(false);
