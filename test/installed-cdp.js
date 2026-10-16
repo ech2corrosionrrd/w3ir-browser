@@ -34,6 +34,15 @@ async function shot(t, name) {
   c.close();
   if (r.result) fs.writeFileSync(path.join(OUT, name + '.png'), Buffer.from(r.result.data, 'base64'));
 }
+// Справжній клік мишею з паузою між натисканням і відпусканням (як у людини; миттєві програмні кліки приховують помилки)
+async function slowClick(t, x, y, hold = 150) {
+  const c = await cdp(t.webSocketDebuggerUrl);
+  await c.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+  await c.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 });
+  await sleep(hold);
+  await c.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
+  c.close();
+}
 async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); while (Date.now() - t0 < ms) { try { const v = await fn(); if (v) return v; } catch { /* retry */ } await sleep(step); } return null; }
 
 (async () => {
@@ -201,6 +210,19 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   const bgUi = await ev(ui, `getComputedStyle(document.body).backgroundColor`);
   ok(bgUi === 'rgb(20, 18, 47)', 'дизайн: темна тема — фон інтерфейсу індиго (#14122F)', bgUi);
   await shot(ui, 'i-dark-ui');
+
+  // ---- вкладки: закриття повільним кліком і вигляд закріпленої вкладки ----
+  await ev(ui, `api.cmd('newTab')`); await sleep(500);
+  await ev(ui, `api.cmd('newTab')`); await sleep(900);
+  const pos = await ev(ui, `(() => { const e = document.querySelector('.tab:last-of-type .close'); const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, n: document.querySelectorAll('.tab').length }; })()`);
+  await slowClick(ui, pos.x, pos.y, 150); await sleep(800);
+  const nAfter = await ev(ui, `document.querySelectorAll('.tab').length`);
+  ok(nAfter === pos.n - 1, 'вкладки: хрестик закриває вкладку при звичайному (повільному) кліку миші', { було: pos.n, стало: nAfter });
+  const pinId = await ev(ui, `Number(document.querySelector('.tab:last-of-type').dataset.id)`);
+  await ev(ui, `api.cmd('pinTab', ${pinId})`); await sleep(900);
+  const pinStyle = await ev(ui, `(() => { const e = document.querySelector('.tab.pinned'); if (!e) return null; const s = getComputedStyle(e); return { bg: s.backgroundColor, img: s.backgroundImage, shadow: s.boxShadow }; })()`);
+  ok(pinStyle && (pinStyle.bg !== 'rgba(0, 0, 0, 0)' || pinStyle.img !== 'none') && pinStyle.shadow !== 'none', 'вкладки: закріплена вкладка помітна (має фон і рамку, не зливається з тлом)', pinStyle);
+  await shot(ui, 'i-pinned');
   await sleep(500);
   stop = true;
   const mainUi = (await find(t => t.url === 'w3ir://ui/index.html'))[0];

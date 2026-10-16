@@ -1546,6 +1546,7 @@ async function designTests() {
   const root = path.join(__dirname, '..');
   const css = (f) => fs.readFileSync(path.join(root, f), 'utf8');
   ok(['ui/style.css', 'ui/overlay.css', 'pages/pages.css'].every(f => css(f).includes('Фірмовий стиль W3IR')) && /--bg2: #1c1947/.test(css('ui/style.css')) && /--panel: #1c1947/.test(css('ui/overlay.css')) && /--bg: #0e0d24/.test(css('pages/pages.css')), 'design: інтерфейс, меню й сторінки в фірмових кольорах (індиго)');
+  ok(/\.tab\.pinned \{[^}]*box-shadow: inset 0 0 0 1px/.test(css('ui/style.css')) && /\.tab\.pinned::after/.test(css('ui/style.css')) && /\.tab\.pinned:hover \.close/.test(css('ui/style.css')) && /pinletter/.test(css('ui/renderer.js')), 'design: закріплені вкладки помітні (фон, рамка, індикатор, літера-значок, хрестик при наведенні)');
   ok(/body\.incog \{[^}]*--accent: #d946ef/.test(css('ui/style.css')) && /\.rail \{/.test(css('pages/pages.css')) && css('pages/settings.js').includes('buildRail'), 'design: інкогніто лишається окремим; налаштування мають бічну навігацію');
 }
 
