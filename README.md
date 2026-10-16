@@ -4,7 +4,7 @@
 
 Браузер для Windows на основі Chromium (Electron 41) з упором на приватність, безпеку й зручність. Усі функції працюють локально, без облікових записів і серверів розробника.
 
-- Поточна версія: **1.16.1** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
+- Поточна версія: **1.16.2** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
 - Мова інтерфейсу: українська · Платформа: Windows 10/11 x64
 - Довідка в самому браузері: **F1**
 
@@ -47,7 +47,7 @@
 ```
 npm install
 npm start                      # запуск із вихідного коду
-W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 422 автоматичних перевірок
+W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 423 автоматичних перевірок
 npm run release                # збірка + підпис оновлення → dist/release
 npm run check:rpc               # онлайн-перевірка вбудованих RPC гаманця
 npm run icon                   # перегенерація фірмових ресурсів із build/brand (Python, Pillow, numpy, scipy)

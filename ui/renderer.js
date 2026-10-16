@@ -103,14 +103,19 @@ function render(s) {
     tab.oncontextmenu = (e) => { e.preventDefault(); api.cmd('tabMenu', t.id); };
     tab.draggable = true;
     if (grp) { tab.classList.add('ingroup'); tab.style.setProperty('--gc', grp.hex); tab.title = `Група${grp.name ? ' «' + grp.name + '»' : ''}\n` + tab.title; }
+    // літера-значок для закріпленої вкладки без фавікона (або якщо він не завантажився)
+    const pinLetter = () => {
+      let host = ''; try { host = new URL(t.url).hostname.replace(/^www\./, ''); } catch { /* ignore */ }
+      return el('span', 'pinletter', ((host || t.title || '?').trim()[0] || '?').toUpperCase());
+    };
     if (t.loading) tab.append(el('span', 'spin'));
     else if (t.favicon) {
       const img = el('img', 'fav');
       img.src = t.favicon;
-      img.onerror = () => img.remove();
+      img.onerror = () => { if (t.pinned) img.replaceWith(pinLetter()); else img.remove(); };
       tab.append(img);
     }
-    if (t.pinned && !t.favicon && !t.loading) tab.append(el('span', null, '📌'));
+    if (t.pinned && !t.favicon && !t.loading) tab.append(pinLetter());
     if (t.ai) {
       const b = el('span', 'ai' + (t.ai === 'control' ? ' ctl' : ''), t.ai === 'control' ? 'ШІ ✎' : 'ШІ');
       b.title = t.ai === 'control' ? 'ШІ може керувати цією вкладкою (меню вкладки → припинити)' : 'ШІ може читати цю вкладку (меню вкладки → припинити)';
