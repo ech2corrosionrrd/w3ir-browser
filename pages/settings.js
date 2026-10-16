@@ -1,0 +1,237 @@
+'use strict';
+async function main() {
+  const { settings, engines, incognito, version, adblockEngine, extensions, theme } = await w3ir.invoke('settings:get');
+  const save = (patch) => w3ir.invoke('settings:set', patch);
+
+  const toggle = (key, title, desc) => {
+    const cb = h('input', { type: 'checkbox', class: 'switch', checked: !!settings[key], onchange: () => save({ [key]: cb.checked }) });
+    return h('div', { class: 'row', title: desc || title }, h('div', null, h('div', null, title), desc && h('div', { class: 'd' }, desc)), cb);
+  };
+  const select = (key, title, options, desc) => {
+    const s = h('select', { onchange: () => save({ [key]: s.value }) },
+      Object.entries(options).map(([v, label]) => h('option', { value: v, selected: settings[key] === v }, label)));
+    return h('div', { class: 'row', title: desc || title }, h('div', null, h('div', null, title), desc && h('div', { class: 'd' }, desc)), s);
+  };
+  const text = (key, title, desc, placeholder) => {
+    const i = h('input', { type: 'text', value: settings[key] || '', placeholder, style: 'width:280px', spellcheck: false });
+    i.addEventListener('change', () => save({ [key]: i.value.trim() }));
+    return h('div', { class: 'row', title: desc || title }, h('div', null, h('div', null, title), desc && h('div', { class: 'd' }, desc)), i);
+  };
+
+  const cookies = h('input', { type: 'checkbox', checked: true });
+  const cache = h('input', { type: 'checkbox', checked: true });
+  const hist = h('input', { type: 'checkbox', checked: true });
+  const status = h('span', { class: 'note' });
+  const clear = h('button', { class: 'danger', onclick: async () => {
+    await w3ir.invoke('clear', { cookies: cookies.checked, cache: cache.checked, history: hist.checked });
+    status.textContent = ' Готово.';
+  } }, 'Очистити');
+
+  const extBox = h('div', { class: 'list' });
+  const renderExt = (items) => {
+    extBox.textContent = '';
+    for (const x of items) {
+      extBox.append(h('div', { class: 'row' }, h('div', null, h('div', null, x.name || x.path), h('div', { class: 'd' }, x.path)),
+        h('button', { class: 'danger', onclick: async () => renderExt(await w3ir.invoke('ext:remove', { path: x.path })) }, 'Видалити')));
+    }
+    const err = h('span', { class: 'note' });
+    extBox.append(h('div', { class: 'row' }, h('div', null, 'Підтримується частина API Chrome (контентні скрипти, прості розширення). Завантажте розпаковану папку з manifest.json.', err),
+      h('button', { onclick: async () => {
+        try { renderExt(await w3ir.invoke('ext:add')); } catch (e) { err.textContent = ' ' + String(e.message).replace(/^.*Error: /, ''); }
+      } }, 'Додати розширення…')));
+  };
+  renderExt(extensions || []);
+
+  // ---------- дозволи та винятки сайтів ----------
+  const sitesBox = h('div', { class: 'list' });
+  const PERM_NAMES = { media: 'Камера/мікрофон', geolocation: 'Геолокація', notifications: 'Сповіщення', 'clipboard-read': 'Читання буфера обміну' };
+  const renderSites = async () => {
+    const r = await w3ir.invoke('sites:list');
+    sitesBox.textContent = '';
+    if (!r.perms.length && !r.adblockAllow.length) sitesBox.append(h('div', { class: 'row' }, 'Збережених дозволів і винятків немає. Їх можна змінити кліком на замок в адресному рядку.'));
+    for (const p of r.perms) {
+      sitesBox.append(h('div', { class: 'row' }, h('div', null, h('div', null, p.origin), h('div', { class: 'd' }, `${PERM_NAMES[p.perm] || p.perm}: ${p.value ? 'дозволено' : 'заблоковано'}`)),
+        h('button', { onclick: async () => { await w3ir.invoke('sites:resetPerm', { origin: p.origin, perm: p.perm }); renderSites(); } }, 'Скинути')));
+    }
+    for (const d of r.adblockAllow) {
+      sitesBox.append(h('div', { class: 'row' }, h('div', null, h('div', null, d), h('div', { class: 'd' }, 'Блокування реклами вимкнено для цього сайту')),
+        h('button', { onclick: async () => { await w3ir.invoke('sites:adblockRemove', { domain: d }); renderSites(); } }, 'Увімкнути блокування')));
+    }
+    if (r.perms.length) sitesBox.append(h('div', { class: 'row' }, h('div', { class: 'd' }, 'Скинути всі збережені дозволи сайтів'), h('button', { class: 'danger', onclick: async () => { if (confirm('Скинути всі збережені дозволи?')) { await w3ir.invoke('sites:resetAllPerms'); renderSites(); } } }, 'Скинути всі')));
+  };
+  renderSites();
+
+  // ---------- захист від шахрайських сайтів ----------
+  const safeBox = h('div', { class: 'list' });
+  const renderSafe = async () => {
+    const st = await w3ir.invoke('safe:status');
+    safeBox.textContent = '';
+    const when = st.updated ? new Date(st.updated).toLocaleString('uk-UA') : 'ще не завантажувались';
+    const btn = h('button', { disabled: st.updating, onclick: async () => { btn.disabled = true; btn.textContent = 'Оновлюємо…'; await w3ir.invoke('safe:update'); renderSafe(); } }, 'Оновити списки');
+    safeBox.append(h('div', { class: 'row', title: 'Списки зберігаються на вашому комп’ютері у стиснутому вигляді; адреси, які ви відвідуєте, нікуди не надсилаються' },
+      h('div', null, h('div', null, `Списки загроз: шкідливих хостів ${st.counts.malware.toLocaleString('uk-UA')}, фішингових доменів ${st.counts.phishing.toLocaleString('uk-UA')}`),
+        h('div', { class: 'd' }, `Оновлено: ${when}. Джерела: ${st.sources.join(', ')}. Оновлення раз на добу.`), st.error ? h('div', { class: 'merr' }, st.error) : ''), btn));
+  };
+  renderSafe();
+
+  // ---------- оновлення ----------
+  const updBox = h('div', { class: 'list' });
+  const renderUpd = async () => {
+    const st = await w3ir.invoke('update:status');
+    updBox.textContent = '';
+    const text = {
+      idle: st.feedValid ? 'Оновлень ще не перевіряли' : 'Джерело оновлень не налаштовано', checking: 'Перевіряємо…', none: 'Встановлено найновішу версію',
+      available: `Знайдено версію ${st.version}`, downloading: `Завантажуємо ${st.version || ''}… ${st.percent || 0} %`, ready: `Версію ${st.version} завантажено й перевірено — готово до встановлення`, error: 'Помилка оновлення',
+    }[st.state] || st.state;
+    const feed = h('input', { type: 'text', value: st.feed, placeholder: st.defaultFeed ? 'за замовчуванням: ' + st.defaultFeed : 'github:власник/репозиторій  або  https://сайт/оновлення/', style: 'width:340px', spellcheck: false });
+    const feedMsg = h('div', { class: 'merr' });
+    feed.addEventListener('change', async () => {
+      const r = await w3ir.invoke('update:setFeed', { feed: feed.value });
+      feedMsg.textContent = r.ok ? '' : r.error;
+      if (r.ok) renderUpd();
+    });
+    const auto = h('input', { type: 'checkbox', class: 'switch', checked: st.autoUpdate, onchange: () => w3ir.invoke('update:setAuto', { on: auto.checked }) });
+    updBox.append(
+      h('div', { class: 'row' }, h('div', null, h('div', null, `Версія ${st.current}`), h('div', { class: 'd' }, text + (st.checkedAt ? ' · перевірено ' + new Date(st.checkedAt).toLocaleString('uk-UA') : '')),
+        st.error ? h('div', { class: 'merr' }, st.error) : '', st.notes ? h('div', { class: 'd' }, st.notes) : ''),
+        st.state === 'ready'
+          ? h('button', { class: 'primary', title: 'Закриє браузер, встановить оновлення й запустить його знову', onclick: async () => { await w3ir.invoke('update:install'); renderUpd(); } }, 'Встановити та перезапустити')
+          : st.state === 'available'
+            ? h('button', { class: 'primary', onclick: async () => { await w3ir.invoke('update:download'); renderUpd(); } }, 'Завантажити оновлення')
+            : h('button', { class: 'primary', disabled: st.state === 'checking' || st.state === 'downloading', onclick: async () => { await w3ir.invoke('update:check'); renderUpd(); } }, 'Перевірити оновлення')),
+      h('div', { class: 'row', title: 'Нова версія завантажується у фоні; встановлюється після вашого підтвердження або при наступному виході з браузера' }, h('div', null, h('div', null, 'Завантажувати оновлення автоматично'), h('div', { class: 'd' }, 'Перевірка кожні 6 годин. Без цього параметра браузер лише повідомляє про нову версію')), auto),
+      h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Джерело оновлень'), h('div', { class: 'd' }, 'Залиште порожнім, щоб використовувати офіційне джерело. Лише https або github:власник/репозиторій. Кожне оновлення перевіряється підписом випускача (Ed25519, відбиток ключа: ' + st.fingerprint + ') — підроблений файл не буде встановлено.'), feed, feedMsg)),
+      st.logFile ? h('div', { class: 'row', title: 'У журнал записуються перевірки, завантаження та спроби встановлення' }, h('div', null, h('div', null, 'Журнал оновлень'), h('div', { class: 'd pw', style: 'user-select:text' }, st.logFile))) : '',
+      st.packaged ? '' : h('div', { class: 'row' }, 'Режим розробки: оновлення працюють лише в встановленій версії.'));
+  };
+  renderUpd();
+  setInterval(() => { if (document.visibilityState === 'visible') renderUpd(); }, 4000);
+
+  // ---------- GitHub ----------
+  const ghBox = h('div', { class: 'list' });
+  const renderGh = async () => {
+    const st = await w3ir.invoke('github:status');
+    ghBox.textContent = '';
+    if (st.connected) {
+      ghBox.append(h('div', { class: 'row' },
+        h('div', null, h('div', null, 'GitHub підключено' + (st.login ? ': ' + st.login : '')),
+          h('div', { class: 'd' }, `Сповіщень: ${st.unread}, запитів на рев’ю: ${st.reviews}`),
+          st.error ? h('div', { class: 'merr' }, st.error) : ''),
+        h('button', { class: 'danger', onclick: async () => { await w3ir.invoke('github:disconnect'); renderGh(); } }, 'Відключити')));
+      return;
+    }
+    const tok = h('input', { type: 'password', placeholder: 'ghp_… (classic token)', autocomplete: 'off', style: 'width:280px' });
+    const err = h('div', { class: 'merr' });
+    ghBox.append(
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Токен доступу'), h('div', { class: 'd' }, 'Потрібен classic personal access token зі scope «notifications» (для приватних репозиторіїв — також «repo»). Токен шифрується захистом Windows і недоступний сайтам.'),
+        h('a', { href: 'https://github.com/settings/tokens/new?scopes=notifications&description=W3IR%20Browser' }, 'Створити токен на GitHub')), tok),
+      h('div', { class: 'row' }, err, h('button', { class: 'primary', onclick: async () => {
+        err.textContent = '';
+        const r = await w3ir.invoke('github:connect', { token: tok.value });
+        tok.value = '';
+        if (!r.ok) err.textContent = r.error; else renderGh();
+      } }, 'Підключити')));
+  };
+  renderGh();
+  const kw = h('textarea', { rows: 4, spellcheck: false, placeholder: 'rust = https://doc.rust-lang.org/std/?search=%s' });
+  kw.value = settings.keywords || '';
+  kw.addEventListener('change', () => save({ keywords: kw.value }));
+
+  // ---------- синхронізація закладок ----------
+  const syncBox = h('div', { class: 'list' });
+  const renderSync = async () => {
+    const st = await w3ir.invoke('sync:status');
+    syncBox.textContent = '';
+    if (!st.available) { syncBox.append(h('div', { class: 'row' }, 'Захищене сховище ключів недоступне в цій системі — синхронізація вимкнена.')); return; }
+    if (st.enabled) {
+      const when = st.lastSync ? new Date(st.lastSync).toLocaleString('uk-UA') : 'ще не виконувалась';
+      syncBox.append(h('div', { class: 'row' },
+        h('div', null, h('div', null, 'Синхронізація увімкнена'), h('div', { class: 'd' }, st.folder), h('div', { class: 'd' }, 'Остання синхронізація: ' + when),
+          st.lastError ? h('div', { class: 'merr' }, st.lastError) : ''),
+        h('div', null,
+          h('button', { onclick: async () => { await w3ir.invoke('sync:now'); renderSync(); } }, 'Синхронізувати зараз'), ' ',
+          h('button', { class: 'danger', onclick: async () => { await w3ir.invoke('sync:disable'); renderSync(); } }, 'Вимкнути'))));
+      return;
+    }
+    let folder = '';
+    const folderLbl = h('div', { class: 'd' }, 'Папку не вибрано');
+    const pass = h('input', { type: 'password', placeholder: 'Парольна фраза (мін. 12 символів)', autocomplete: 'off', style: 'width:280px' });
+    const err = h('div', { class: 'merr' });
+    syncBox.append(
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Папка синхронізації'), folderLbl, h('div', { class: 'd' }, 'Виберіть папку, яку синхронізує OneDrive, Dropbox, Google Drive чи Syncthing. У ній буде лише зашифрований файл.')),
+        h('button', { onclick: async () => { const f = await w3ir.invoke('sync:pickFolder'); if (f) { folder = f; folderLbl.textContent = f; } } }, 'Вибрати папку…')),
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Парольна фраза'), h('div', { class: 'd' }, 'Однакова на всіх ваших пристроях. Її неможливо відновити. Не зберігається на диску — лише ключ, захищений вашим акаунтом Windows.')), pass),
+      h('div', { class: 'row' }, err, h('button', { class: 'primary', onclick: async () => {
+        err.textContent = '';
+        if (!folder) { err.textContent = 'Спершу виберіть папку.'; return; }
+        const r = await w3ir.invoke('sync:enable', { folder, passphrase: pass.value });
+        pass.value = '';
+        if (!r.ok) err.textContent = r.error; else renderSync();
+      } }, 'Увімкнути синхронізацію')));
+  };
+  renderSync();
+
+  app.append(
+    h('h1', null, 'Налаштування'),
+    h('p', { class: 'note' }, 'Потрібна допомога? Відкрийте ', h('a', { href: 'w3ir://help' }, 'довідку'), ' (F1). Наведіть курсор на параметр, щоб побачити пояснення.'),
+    incognito ? h('div', { class: 'note' }, 'Ви в режимі інкогніто: історія та cookie не зберігаються.') : '',
+    h('h2', null, 'Загальні'),
+    h('div', { class: 'list' },
+      (() => {
+        const sel = h('select', { onchange: () => save({ theme: sel.value }) },
+          Object.entries({ system: 'Як у системі', light: 'Світла', dark: 'Темна' }).map(([v, l]) => h('option', { value: v, selected: theme === v }, l)));
+        return h('div', { class: 'row' }, h('div', null, h('div', null, 'Тема оформлення'), h('div', { class: 'd' }, 'Змінює браузер і сайти, що підтримують світлу/темну тему')), sel);
+      })(),
+      select('searchEngine', 'Пошукова система', engines, 'Використовується для запитів в адресному рядку'),
+      text('homepage', 'Домашня сторінка', 'Кнопка «⌂» та нові вікна', 'w3ir://newtab'),
+      select('startup', 'При запуску', { newtab: 'Відкрити нову вкладку', restore: 'Відновити попередню сесію' }),
+      toggle('showBookmarksBar', 'Панель закладок', 'Показувати закладки під адресним рядком'),
+      toggle('verticalTabs', 'Вертикальні вкладки', 'Список вкладок збоку (також у меню та через Ctrl+K)'),
+      toggle('sleepTabs', 'Приспляти неактивні вкладки', 'Вкладки, які не використовуються 15 хвилин, звільняють оперативну пам’ять і оновлюються при поверненні')),
+    h('h2', null, 'Приватність'),
+    h('div', { class: 'list' },
+      toggle('adblock', 'Блокувати рекламу та трекери', adblockEngine ? 'Активні фільтри EasyList / EasyPrivacy / uBlock + приховування рекламних блоків' : 'Завантаження фільтрів… тимчасово діє базовий список доменів'),
+      toggle('httpsFirst', 'Спершу HTTPS', 'Автоматично відкривати http-сайти через https, якщо це можливо'),
+      toggle('stripTracking', 'Прибирати трекінгові параметри з адрес', 'utm_*, fbclid, gclid та подібні'),
+      toggle('safeBrowsing', 'Захист від шахрайських сайтів', 'Блокує відомі фішингові та шкідливі сайти й попереджає про підробні адреси (двійники банків, бірж, гаманців). Перевірка локальна'),
+      toggle('sendGpc', 'Надсилати «Не відстежувати» (DNT / GPC)', 'Сайти отримують сигнал, що ви не хочете персоналізації')),
+    safeBox,
+    h('h2', null, 'Дозволи та винятки сайтів'),
+    sitesBox,
+    h('h2', null, 'Завантаження'),
+    h('div', { class: 'list' },
+      text('downloadDir', 'Папка завантажень', 'Порожньо — стандартна папка «Завантаження»', 'Стандартна'),
+      toggle('askDownload', 'Питати, куди зберегти кожен файл'),
+      toggle('torrentConfirm', 'Питати перед відкриттям торентів', 'magnet-посилання та .torrent-файли відкриваються у вашому зовнішньому торент-клієнті')),
+    h('div', { class: 'list', style: 'margin-bottom:10px' }, h('div', { class: 'row' }, h('div', null, h('div', null, 'Імпорт із Chrome, Edge, Firefox'), h('div', { class: 'd' }, 'Закладки, історія та паролі')), h('a', { href: 'w3ir://import' }, 'Відкрити'))),
+    h('h2', null, 'Паролі'),
+    h('div', { class: 'list' },
+      toggle('savePasswords', 'Пропонувати зберігати паролі', 'Після входу на сайті браузер запитає, чи зберегти пароль'),
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Менеджер паролів'), h('div', { class: 'd' }, 'Шифроване сховище: AES-256-GCM + scrypt + захист акаунтом Windows')),
+        h('a', { href: 'w3ir://passwords' }, 'Відкрити'))),
+    h('h2', null, 'Синхронізація закладок (наскрізне шифрування)'),
+    syncBox,
+    h('h2', null, 'Оновлення браузера'),
+    updBox,
+    h('h2', null, 'GitHub'),
+    ghBox,
+    h('h2', null, 'Ключові слова адресного рядка'),
+    h('div', { class: 'list' }, h('div', { class: 'row' }, h('div', { style: 'flex:1' },
+      h('div', null, 'Вбудовані: gh owner/repo, ghi, ghp, gha, ghc, npm, mdn, yt, wiki, crates, pypi'),
+      h('div', { class: 'd' }, 'Власні: по одному в рядку, формат «слово = https://сайт/?q=%s»'), kw))),
+    h('h2', null, 'Браузер за замовчуванням'),
+    h('div', { class: 'list' }, h('div', { class: 'row' },
+      h('div', null, h('div', null, 'Зробити W3IR Browser основним'), h('div', { class: 'd' }, 'Відкриє системні налаштування «Програми за замовчуванням» (працює для встановленої версії)')),
+      h('button', { onclick: () => w3ir.invoke('defaultbrowser') }, 'Відкрити налаштування'))),
+    h('h2', null, 'Розширення (експериментально)'),
+    extBox,
+    h('h2', null, 'Очистити дані перегляду'),
+    h('div', { class: 'list' }, h('div', { class: 'row' },
+      h('div', null,
+        h('label', null, hist, ' Історія'), ' ',
+        h('label', null, cookies, ' Cookie та дані сайтів'), ' ',
+        h('label', null, cache, ' Кеш')),
+      h('div', null, clear, status))),
+    h('p', { class: 'note' }, 'W3IR Browser ' + version + ' · на основі Chromium/Electron'));
+}
+main();

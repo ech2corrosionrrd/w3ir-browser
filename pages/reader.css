@@ -1,0 +1,17 @@
+body.reader { --size: 19px; background: #1e1f22; }
+body.reader.light { background: #fbfbf8; color: #222; --fg: #222; }
+body.reader.sepia { background: #f3ead8; color: #4a3b27; --fg: #4a3b27; }
+body.reader.light a, body.reader.sepia a { color: #1a5fd0; }
+#tools { position: sticky; top: 0; display: flex; justify-content: center; gap: 6px; padding: 8px; background: rgba(30,31,34,.92); z-index: 2; }
+body.reader.light #tools { background: rgba(251,251,248,.94); }
+body.reader.sepia #tools { background: rgba(243,234,216,.94); }
+#tools button { padding: 4px 12px; color: inherit; }
+body.reader main { max-width: 700px; padding-top: 24px; font-size: var(--size); line-height: 1.7; font-family: Georgia, "Times New Roman", serif; }
+body.reader.sans main { font-family: "Segoe UI", system-ui, sans-serif; }
+body.reader h1 { font-size: 2em; line-height: 1.25; font-family: inherit; }
+body.reader .meta { color: var(--dim); font-size: .7em; margin: -8px 0 28px; font-family: "Segoe UI", sans-serif; }
+body.reader main img, body.reader main video { max-width: 100%; height: auto; border-radius: 6px; }
+body.reader main pre, body.reader main code { background: rgba(127,127,127,.15); border-radius: 4px; padding: 2px 5px; overflow-x: auto; font-size: .85em; }
+body.reader main blockquote { margin: 1em 0; padding-left: 1em; border-left: 3px solid var(--dim); color: var(--dim); }
+body.reader main table { border-collapse: collapse; }
+body.reader main td, body.reader main th { border: 1px solid var(--dim); padding: 4px 8px; }

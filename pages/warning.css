@@ -1,0 +1,14 @@
+body.warning { background: #3a1015; --fg: #fbeaea; color: var(--fg); }
+@media (prefers-color-scheme: light) { body.warning { background: #fdecea; --fg: #3b0d0d; --dim: #7a3b3b; --card: #fff5f4; --line: #f0b9b3; } }
+body.warning main { max-width: 640px; padding-top: 12vh; }
+body.warning .shield { font-size: 64px; line-height: 1; }
+body.warning h1 { margin: 14px 0 10px; font-size: 26px; }
+body.warning p { line-height: 1.6; }
+body.warning .url { margin: 16px 0; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,.25); font: 13px Consolas, monospace; word-break: break-all; user-select: text; }
+body.warning .url b { color: #ff8a80; }
+@media (prefers-color-scheme: light) { body.warning .url { background: rgba(0,0,0,.07); } body.warning .url b { color: #c5221f; } }
+body.warning .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; align-items: center; }
+body.warning .danger-link { margin-left: auto; font-size: 12px; background: none; border: 0; color: var(--dim); text-decoration: underline; cursor: pointer; }
+body.warning details { margin-top: 18px; color: var(--dim); font-size: 13px; line-height: 1.6; }
+body.warning button.primary { padding: 10px 20px; }
+body.warning { min-height: 100vh; }
