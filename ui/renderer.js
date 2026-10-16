@@ -121,11 +121,13 @@ function render(s) {
     if (t.audible || t.muted) {
       const b = el('button', 'ico', t.muted ? '🔇' : '🔊');
       b.title = t.muted ? 'Вкладку приглушено. Клік — увімкнути звук' : 'Вкладка відтворює звук. Клік — вимкнути';
+      b.onmousedown = (e) => e.stopPropagation();
       b.onclick = (e) => { e.stopPropagation(); api.cmd('muteTab', t.id); };
       tab.append(b);
     }
     const close = el('button', 'close', '✕');
     close.title = 'Закрити вкладку (Ctrl+W)';
+    close.onmousedown = (e) => e.stopPropagation(); // клік по хрестику не повинен спершу перемикати на цю вкладку
     close.onclick = (e) => { e.stopPropagation(); api.cmd('closeTab', t.id); };
     tab.append(close);
     tab.onmousedown = (e) => { if (e.button === 0) api.cmd('switchTab', t.id); };
@@ -362,7 +364,17 @@ function renderSplitBar(g) {
   bar.ondblclick = () => api.cmd('splitRatio', 0.5);
 })();
 
-api.on('state', render);
+// Поки кнопка миші натиснута, панель не перемальовується: інакше елемент під курсором замінюється між натисканням і відпусканням,
+// подія click не виникає, і хрестик вкладки (та інші кнопки) «не працюють» при звичайному, не миттєвому кліку.
+let mouseDownAt = 0, pendingState = null;
+const releaseState = () => { mouseDownAt = 0; if (pendingState) { const s = pendingState; pendingState = null; render(s); } };
+window.addEventListener('mousedown', () => { mouseDownAt = Date.now(); }, true);
+for (const ev of ['mouseup', 'dragend', 'drop', 'blur']) window.addEventListener(ev, releaseState, true);
+api.on('state', (s) => {
+  if (mouseDownAt && Date.now() - mouseDownAt < 3000) { pendingState = s; return; } // запобіжник: втрачене відпускання не блокує інтерфейс
+  mouseDownAt = 0; pendingState = null;
+  render(s);
+});
 api.on('focus-url', () => { url.focus(); url.select(); });
 api.on('savebar', (d) => {
   const bar = $('savebar');
