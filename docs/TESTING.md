@@ -2,7 +2,7 @@
 
 Статичний аналіз: `npm run lint` (запускати перед випуском).
 
-Автоматичний набір — `test/security.js` (запускач) і області в `test/areas/*.js` (storage, web3, updates-threats, tabs, ai, misc; спільні помічники — `test/lib.js`) (**471 перевірка**, повний прогін ≈ 3–5 хв). Запускається всередині Electron, тому використовує справжні вікна, вкладки, сеанси й IPC.
+Автоматичний набір — `test/security.js` (запускач) і області в `test/areas/*.js` (storage, web3, updates-threats, tabs, ai, misc; спільні помічники — `test/lib.js`) (**490 перевірок**, повний прогін ≈ 3–5 хв). Запускається всередині Electron, тому використовує справжні вікна, вкладки, сеанси й IPC.
 
 ```
 set W3IR_USER_DATA=%TEMP%\w3ir-test-data
@@ -57,7 +57,7 @@ npx electron .
 
 Окремий сценарій `test/installed-cdp.js` перевіряє **справжню встановлену** збірку (не dev-режим):
 
-0. Встановлена збірка **не запускається з параметрами налагодження** без змінної середовища `W3IR_ALLOW_DEBUG=1` (див. `src/launch-guard.js`): задайте її в тому ж PowerShell перед запуском (`$env:W3IR_ALLOW_DEBUG='1'`) і приберіть після (`Remove-Item Env:W3IR_ALLOW_DEBUG`). `W3IR_NO_DIALOG=1` вимикає діалог про блокування.
+0. Встановлена збірка **не запускається з параметрами налагодження** без змінної середовища `W3IR_ALLOW_DEBUG=1` (див. `src/launch-guard.js`): задайте її в тому ж PowerShell перед запуском (`$env:W3IR_ALLOW_DEBUG='1'`) і приберіть після (`Remove-Item Env:W3IR_ALLOW_DEBUG`). `W3IR_NO_DIALOG=1` вимикає діалог про блокування. Тест шукає українські рядки, тому запускайте з `W3IR_LANG=uk` (інакше мова піде за мовою Windows).
 1. Запустіть другий екземпляр у **тимчасовому профілі** (ваш браузер і дані не чіпаються): PowerShell — `Start-Process "C:\Program Files\W3IR Browser\W3IR Browser.exe" -ArgumentList '--user-data-dir="<тека>"','--remote-debugging-port=9333','--remote-allow-origins=*'` (з Bash цей запуск не працює).
 2. Запустіть клієнт CDP: `set ELECTRON_RUN_AS_NODE=1` і `node_modules\electron\dist\electron.exe test\installed-cdp.js` (Node 24 із Electron має `WebSocket`; зовнішніх залежностей немає). `SHOTS=<тека>` — зберегти скриншоти.
 3. Сценарій перевіряє: версію й User-Agent, нову вкладку (бренд), усі внутрішні сторінки, HTTPS-first, ізоляцію вебсторінок від API браузера, завантаження списків загроз і пінг RPC, розділений екран, сервер MCP (401/403, `initialize`, інструменти, справжнє вікно підтвердження, заборону введення в поле пароля на `github.com/login`) і наприкінці закриває екземпляр командою `Browser.close`.

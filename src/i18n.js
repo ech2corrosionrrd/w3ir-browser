@@ -10,6 +10,10 @@ const LOCALES_DIR = path.join(__dirname, '..', 'locales');
 const LANGS = {
   uk: { name: 'Українська', locale: 'uk-UA' },
   en: { name: 'English', locale: 'en-GB' },
+  pl: { name: 'Polski', locale: 'pl-PL' },
+  de: { name: 'Deutsch', locale: 'de-DE' },
+  es: { name: 'Español', locale: 'es-ES' },
+  fr: { name: 'Français', locale: 'fr-FR' },
 };
 
 const fmt = (s, args) => String(s).replace(/\{(\d+)\}/g, (m, i) => (args[i] !== undefined ? String(args[i]) : m));
