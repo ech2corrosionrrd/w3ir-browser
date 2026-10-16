@@ -75,6 +75,8 @@ function render(s) {
   document.body.classList.toggle('incog', s.incognito);
   document.body.classList.toggle('vertical', !!s.vertical);
   $('incog').hidden = !s.incognito;
+  $('incog').textContent = s.agent ? 'Керує ШІ' : 'Інкогніто';
+  $('incog').title = s.agent ? 'Це вікно під керуванням ШІ: тимчасове, без ваших входів. Зупинити: Налаштування → Керування браузером ШІ' : 'Приватне вікно: історія, cookie та паролі не зберігаються і стираються після закриття';
   const pr = $('profile');
   const prof = s.profile || { id: 'default' };
   pr.hidden = prof.id === 'default';

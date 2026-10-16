@@ -1,7 +1,7 @@
 {
   "name": "w3ir-browser",
   "productName": "W3IR Browser",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "description": "W3IR Browser — власний браузер на основі Chromium",
   "main": "main.js",
   "author": "W3IR",
@@ -15,6 +15,7 @@
     "keygen": "node build/update-keygen.js",
     "release": "npm run dist && node build/release.js",
     "release:github": "npm run dist && node build/release.js --github",
+    "check:rpc": "node build/check-rpc.js",
     "winget": "node build/winget.js",
     "winget:submit": "node build/winget.js --submit"
   },

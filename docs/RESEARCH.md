@@ -8,7 +8,7 @@ _Складено 2026-10-16 (версія 1.9.0) за даними GitHub: зі
 |---|---|---|---|
 | ✅ Зроблено | MetaMask/eth-phishing-detect | DBAD (SPDX: NOASSERTION) | Список web3-фішингу (~107 тис. доменів). Додано джерелом `ethphish` у `src/threats.js`; береться лише `blacklist`, дані завантажуються під час роботи, у збірку не входять |
 | ⏭ Далі | castlabs/electron-releases | MIT | Форк Electron із Widevine (DRM). Є збірки для Electron 41 (`v41.10.7+wvcus`). Потрібні акаунт EVS (безкоштовний, на ім'я власника) для підпису VMP, тест на справжніх сервісах і перевірка fuses/asar. Без підпису частина сервісів відмовить |
-| ⏭ Далі | ethereum-lists/chains | MIT | Метадані EVM-мереж (RPC, chainId): замінити ручний список мереж гаманця |
+| ✅ Використано | ethereum-lists/chains | MIT | Джерело робочих публічних RPC: 3 несправні вбудовані адреси замінено (1.10.1), перевірка `npm run check:rpc`. Повна заміна списку мереж не потрібна |
 | ⏭ Далі | vedantmgoyal9/winget-releaser | AGPL-3.0 | GitHub Action для автоподачі PR у winget-pkgs (лише в CI, на код браузера не впливає). Після схвалення першого пакета |
 | ⏸ Рішення власника | SignPath Foundation | — | Безкоштовний підпис для відкритих проєктів; вимагає відкрити код |
 | ⏸ Рішення власника | samuelmaddock/electron-browser-shell (`electron-chrome-extensions`) | GPL-3.0 | Найповніша підтримка розширень Chrome. Як залежність заразить код GPL: або відкривати код під GPL, або лише читати як еталон |

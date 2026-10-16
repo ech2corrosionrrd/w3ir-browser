@@ -348,6 +348,12 @@ class Agent {
     return w;
   }
 
+  // Вкладка має бути активною, а вікно — не згорнутим (інакше Chromium не малює й не доставляє події); фокус не крадемо
+  focusTab(w, tab) {
+    if (w.win.isMinimized()) w.win.showInactive();
+    if (tab.id !== w.activeId) w.switchTab(tab.id);
+  }
+
   tabFor(w, id) {
     const tab = id == null ? w.active() : w.tabs.find(t => t.id === Number(id));
     if (!tab) throw new Error('Вкладку не знайдено.');
@@ -422,7 +428,7 @@ class Agent {
           if (w.tabs.length >= 15 && !blank) return text('Забагато вкладок (максимум 15). Закрийте непотрібні.', true);
           tab = blank || w.createTab('about:blank', { activate: true });
         } else tab = this.tabFor(w, a.tab);
-        if (tab.id !== w.activeId) w.switchTab(tab.id);
+        this.focusTab(w, tab);
         tab.view.webContents.loadURL(c.url).catch(() => {});
         await this.waitLoad(tab.view.webContents);
         return json({ tab: tab.id, url: this.safeUrl(tab), title: clean(tab.view.webContents.getTitle(), 120), loading: tab.view.webContents.isLoading() });
@@ -469,7 +475,7 @@ class Agent {
         const t = await this.inPage(wc, TARGET_JS(a.ref));
         if (t.error) return text(t.error, true);
         if (t.disabled) return text('Елемент вимкнений.', true);
-        if (tab.id !== w.activeId) w.switchTab(tab.id);
+        this.focusTab(w, tab);
         wc.sendInputEvent({ type: 'mouseMove', x: t.x, y: t.y });
         wc.sendInputEvent({ type: 'mouseDown', x: t.x, y: t.y, button: 'left', clickCount: 1 });
         wc.sendInputEvent({ type: 'mouseUp', x: t.x, y: t.y, button: 'left', clickCount: 1 });
@@ -484,7 +490,7 @@ class Agent {
         if (t.error) return text(t.error, true);
         if (t.sensitive) return text('У поля паролів, платіжних карток і одноразових кодів агент вводити не може: користувач заповнює їх сам.', true);
         if (!t.typable || t.disabled) return text('У цей елемент вводити текст не можна.', true);
-        if (tab.id !== w.activeId) w.switchTab(tab.id);
+        this.focusTab(w, tab);
         wc.sendInputEvent({ type: 'mouseDown', x: t.x, y: t.y, button: 'left', clickCount: 1 });
         wc.sendInputEvent({ type: 'mouseUp', x: t.x, y: t.y, button: 'left', clickCount: 1 });
         await this.inPage(wc, FOCUS_JS(a.ref));
@@ -502,7 +508,7 @@ class Agent {
         const { tab, wc } = this.webTab(w, a.tab);
         const key = KEYS[a.key];
         if (!key) return text('Непідтримувана клавіша.', true);
-        if (tab.id !== w.activeId) w.switchTab(tab.id);
+        this.focusTab(w, tab);
         wc.sendInputEvent({ type: 'keyDown', keyCode: key });
         if (key === 'Enter') wc.sendInputEvent({ type: 'char', keyCode: '\r' });
         wc.sendInputEvent({ type: 'keyUp', keyCode: key });
@@ -520,7 +526,7 @@ class Agent {
 
       case 'browser_screenshot': {
         const { tab, wc } = this.webTab(w, a.tab);
-        if (tab.id !== w.activeId) w.switchTab(tab.id);
+        this.focusTab(w, tab);
         if (w.win.isMinimized()) w.win.showInactive();
         await sleep(150);
         let img = await wc.capturePage();
