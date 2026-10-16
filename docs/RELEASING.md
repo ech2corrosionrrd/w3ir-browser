@@ -19,7 +19,8 @@
    6. очікування, поки GitHub почне віддавати реліз як «останній» (кеш `releases/latest` триває кілька хвилин — клієнти бачать нову версію лише після цього).
    Уже існуючий тег **не перезаписується**; виправлення = нова версія.
 4. winget (після схвалення першого пакета, PR [#454063](https://github.com/microsoft/winget-pkgs/pull/454063)): `npm run winget:submit` — маніфести схеми 1.12.0, форк `microsoft/winget-pkgs`, гілка, PR. Один PR на версію; не відкривайте другий, поки не схвалено попередній.
-5. Після випуску й оновлення встановленої копії: прогнати `test/installed-cdp.js` (див. `docs/TESTING.md`) і переглянути `updater.log`. Перша збірка після зміни зображень інсталятора (`build/installerSidebar.bmp`, `installerHeader.bmp`) може показати помилку NSIS ще до публікації — виправляється перегенерацією `npm run icon`.
+5. Примітка: `publish.url` у `package.json` (`https://invalid.invalid/`) — свідома заглушка: `electron-builder` вимагає секцію `publish` для `latest.yml`, а справжнє джерело оновлень (`github:ech2corrosionrrd/w3ir-browser`) задається в коді; заглушка не дає опублікувати не туди.
+6. Після випуску й оновлення встановленої копії: прогнати `test/installed-cdp.js` (див. `docs/TESTING.md`) і переглянути `updater.log`. Перша збірка після зміни зображень інсталятора (`build/installerSidebar.bmp`, `installerHeader.bmp`) може показати помилку NSIS ще до публікації — виправляється перегенерацією `npm run icon`.
 
 ## Як клієнти оновлюються
 

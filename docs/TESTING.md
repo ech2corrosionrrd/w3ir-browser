@@ -8,7 +8,7 @@ set W3IR_SMOKE=security
 npx electron .
 ```
 
-(у bash: `W3IR_USER_DATA="$(mktemp -d)/d" W3IR_SMOKE=security npx electron .`). Результат — рядки `[sec] PASS|FAIL …` і підсумок `[sec] RESULT: N passed, M failed`; код виходу 0.
+(у bash: `W3IR_USER_DATA="$(mktemp -d)/d" W3IR_SMOKE=security npx electron .`). Коротко: **`npm test`** — те саме в тимчасовому профілі з виведенням лише збоїв і підсумку; код виходу 1, якщо є збої (`build/run-tests.js`). Результат — рядки `[sec] PASS|FAIL …` і підсумок `[sec] RESULT: N passed, M failed`; код виходу 0.
 
 ## Ізоляція
 
