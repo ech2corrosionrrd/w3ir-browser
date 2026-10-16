@@ -1,5 +1,6 @@
 'use strict';
 const { ipcMain, app, dialog, shell } = require('electron');
+const { t: tr } = require('./i18n');
 const { normOrigin } = require('./vault');
 const { hexChain } = require('./wallet');
 const { queryMatcher } = require('./util');
@@ -69,25 +70,25 @@ async function vaultApi(ctx, entry, name, arg) {
       }
       case 'vault:export': {
         if (!v.recentlyAuthed() && !(await v.reauth(str(arg.master, 256)))) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
-        const r = await require('electron').dialog.showSaveDialog(win.win, { title: 'Зашифрована резервна копія', defaultPath: 'w3ir-passwords-backup.w3irvault', filters: [{ name: 'W3IR vault', extensions: ['w3irvault'] }] });
+        const r = await require('electron').dialog.showSaveDialog(win.win, { title: tr('Зашифрована резервна копія'), defaultPath: 'w3ir-passwords-backup.w3irvault', filters: [{ name: 'W3IR vault', extensions: ['w3irvault'] }] });
         if (r.canceled || !r.filePath) return { ok: false, error: '' };
         return await v.exportBackup(r.filePath, str(arg.backupPassword, 256));
       }
       case 'vault:import': {
-        const r = await require('electron').dialog.showOpenDialog(win.win, { title: 'Резервна копія', filters: [{ name: 'W3IR vault', extensions: ['w3irvault'] }], properties: ['openFile'] });
+        const r = await require('electron').dialog.showOpenDialog(win.win, { title: tr('Резервна копія'), filters: [{ name: 'W3IR vault', extensions: ['w3irvault'] }], properties: ['openFile'] });
         if (r.canceled || !r.filePaths[0]) return { ok: false, error: '' };
         return await v.importBackup(r.filePaths[0], str(arg.backupPassword, 256));
       }
       case 'vault:importCsv': {
-        const r = await require('electron').dialog.showOpenDialog(win.win, { title: 'CSV з паролями (Chrome, Edge, Firefox)', filters: [{ name: 'CSV', extensions: ['csv'] }], properties: ['openFile'] });
+        const r = await require('electron').dialog.showOpenDialog(win.win, { title: tr('CSV з паролями (Chrome, Edge, Firefox)'), filters: [{ name: 'CSV', extensions: ['csv'] }], properties: ['openFile'] });
         if (r.canceled || !r.filePaths[0]) return { ok: false, error: '' };
         if (fs.statSync(r.filePaths[0]).size > MAX_CSV) return { ok: false, error: 'Файл надто великий.' };
         const res = v.importCsv(fs.readFileSync(r.filePaths[0], 'utf8'));
         if (res.ok) {
           const d = await require('electron').dialog.showMessageBox(win.win, {
-            type: 'warning', buttons: ['Видалити файл безпечно', 'Залишити'], defaultId: 0, cancelId: 1,
-            message: 'CSV-файл містить паролі у відкритому вигляді',
-            detail: `Імпортовано записів: ${res.added}. Рекомендуємо одразу видалити файл (його буде перезаписано й видалено).`,
+            type: 'warning', buttons: [tr('Видалити файл безпечно'), tr('Залишити')], defaultId: 0, cancelId: 1,
+            message: tr('CSV-файл містить паролі у відкритому вигляді'),
+            detail: tr('Імпортовано записів: {0}. Рекомендуємо одразу видалити файл (його буде перезаписано й видалено).', res.added),
           });
           if (d.response === 0) { try { shred(r.filePaths[0]); res.deleted = true; } catch { res.deleted = false; } }
         }
@@ -130,9 +131,9 @@ async function profilesApi(ctx, entry, name, arg) {
         if (arg.id === ctx.id) throw new Error('Не можна видалити профіль із його власного вікна. Відкрийте цю сторінку з іншого профілю.');
         const p = m.info(arg.id);
         const r = await dialog.showMessageBox(entry.win.win, {
-          type: 'warning', buttons: ['Видалити назавжди', 'Скасувати'], defaultId: 1, cancelId: 1,
-          message: `Видалити профіль «${p.name}»?`,
-          detail: 'Буде видалено закладки, історію, паролі, cookie та всі інші дані цього профілю. Дію неможливо скасувати.',
+          type: 'warning', buttons: [tr('Видалити назавжди'), tr('Скасувати')], defaultId: 1, cancelId: 1,
+          message: tr('Видалити профіль «{0}»?', p.name),
+          detail: tr('Буде видалено закладки, історію, паролі, cookie та всі інші дані цього профілю. Дію неможливо скасувати.'),
         });
         if (r.response !== 0) return { ok: false, error: '' };
         await m.remove(arg.id);
@@ -231,8 +232,8 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:remove': {
         if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
         const r = await dialog.showMessageBox(entry.win.win, {
-          type: 'warning', buttons: ['Видалити гаманець', 'Скасувати'], defaultId: 1, cancelId: 1, message: 'Видалити гаманець із цього пристрою?',
-          detail: 'Без фрази відновлення доступ до коштів буде втрачено назавжди. Переконайтеся, що фразу збережено.',
+          type: 'warning', buttons: [tr('Видалити гаманець'), tr('Скасувати')], defaultId: 1, cancelId: 1, message: tr('Видалити гаманець із цього пристрою?'),
+          detail: tr('Без фрази відновлення доступ до коштів буде втрачено назавжди. Переконайтеся, що фразу збережено.'),
         });
         if (r.response !== 0) return { ok: false, error: '' };
         w.remove();
@@ -318,7 +319,7 @@ async function syncApi(ctx, entry, name, arg) {
   switch (name) {
     case 'sync:status': return S.status();
     case 'sync:pickFolder': {
-      const r = await dialog.showOpenDialog(entry.win.win, { title: 'Папка синхронізації (наприклад, у OneDrive або Dropbox)', properties: ['openDirectory', 'createDirectory'] });
+      const r = await dialog.showOpenDialog(entry.win.win, { title: tr('Папка синхронізації (наприклад, у OneDrive або Dropbox)'), properties: ['openDirectory', 'createDirectory'] });
       return r.canceled ? null : r.filePaths[0];
     }
     case 'sync:enable':
@@ -466,7 +467,7 @@ function registerIpc(resolve) {
       case 'reader:get': return entry.tab.reader || null;
       case 'defaultbrowser': shell.openExternal('ms-settings:defaultapps'); return true;
       case 'ext:add': {
-        const r = await dialog.showOpenDialog(entry.win.win, { title: 'Папка розпакованого розширення', properties: ['openDirectory'] });
+        const r = await dialog.showOpenDialog(entry.win.win, { title: tr('Папка розпакованого розширення'), properties: ['openDirectory'] });
         if (r.canceled || !r.filePaths[0]) return ctx.extStore.data.items;
         const dir = r.filePaths[0];
         if (!fs.existsSync(path.join(dir, 'manifest.json'))) throw new Error('У папці немає manifest.json');

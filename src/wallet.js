@@ -1,4 +1,5 @@
 'use strict';
+const { t: tr } = require('./i18n');
 // Вбудований EVM-гаманець (EIP-1193 / EIP-6963). Фраза відновлення зберігається всередині зашифрованого сховища паролів
 // (AES-256-GCM + scrypt + DPAPI); приватні ключі виводяться лише на мить підпису й ніколи не кешуються.
 // Кожен підпис і транзакція потребують явного підтвердження у довіреному вікні браузера, яке сторінка підробити не може.
@@ -303,7 +304,7 @@ class Wallet {
       case 'wallet_watchAsset': {
         const a = params[0] && params[0].options ? params[0].options : {};
         const ok = await this.approve(win, origin, sameTab, {
-          kind: 'asset', title: 'Додати токен', lines: [['Символ', clip(a.symbol, 20)], ['Контракт', clip(a.address, 60)]],
+          kind: 'asset', title: tr('Додати токен'), lines: [['Символ', clip(a.symbol, 20)], ['Контракт', clip(a.address, 60)]],
           warnings: ['Сайт просить показати токен у гаманці. Це не дає йому доступу до коштів.'],
         });
         return ok;
@@ -343,7 +344,7 @@ class Wallet {
     const have = this.accountsFor(origin);
     if (have.length) return have;
     await this.approve(win, origin, sameTab, {
-      kind: 'connect', title: 'Підключення до сайту',
+      kind: 'connect', title: tr('Підключення до сайту'),
       lines: [['Сайт отримає', 'доступ до адреси вашого рахунку та право пропонувати транзакції'], ['Рахунок', this.unlocked() ? this.section().addresses[0] : 'буде показано після розблокування'], ['Мережа', (this.network(this.activeChain()) || {}).name || String(this.activeChain())]],
       warnings: ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'],
     });
@@ -361,7 +362,7 @@ class Wallet {
     const net = this.network(id);
     if (!net) throw new RpcError(4902, 'Мережа не додана до гаманця');
     if (this.chainOf(origin) === id) return null;
-    await this.approve(win, origin, sameTab, { kind: 'switch', title: 'Зміна мережі', lines: [['Нова мережа', `${net.name} (chainId ${id})`]], warnings: [] });
+    await this.approve(win, origin, sameTab, { kind: 'switch', title: tr('Зміна мережі'), lines: [['Нова мережа', `${net.name} (chainId ${id})`]], warnings: [] });
     const s = this.section();
     if (s.connections[origin]) s.connections[origin].chainId = id;
     this.vault.persist();
@@ -380,7 +381,7 @@ class Wallet {
     if (existing) return this.switchChain(win, origin, { chainId: hexChain(id) }, sameTab);
     const explorer = Array.isArray(p.blockExplorerUrls) && typeof p.blockExplorerUrls[0] === 'string' && /^https:\/\//.test(p.blockExplorerUrls[0]) ? p.blockExplorerUrls[0].slice(0, 200) : '';
     await this.approve(win, origin, sameTab, {
-      kind: 'addChain', title: 'Додати мережу',
+      kind: 'addChain', title: tr('Додати мережу'),
       lines: [['Назва', name], ['chainId', String(id)], ['Валюта', sym], ['RPC', clip(rpc, 120)]],
       warnings: ['Через RPC-сервер мережі проходять усі ваші запити (адреси, баланси). Додавайте мережі лише з надійних джерел.'],
     });
@@ -422,7 +423,7 @@ class Wallet {
     let text = null;
     try { const t = toUtf8String(bytes); if (/^[\P{C}\n\r\t]*$/u.test(t)) text = t; } catch { /* не текст */ }
     await this.approve(win, origin, sameTab, {
-      kind: 'sign', title: 'Підпис повідомлення',
+      kind: 'sign', title: tr('Підпис повідомлення'),
       lines: [['Рахунок', a], ['Повідомлення', text !== null ? clip(text, 1500) : hexlify(bytes).slice(0, 300)]],
       warnings: text === null ? ['Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.'] : [],
     });
@@ -446,7 +447,7 @@ class Wallet {
     const warnings = [];
     if (/permit|order|seaport|delegat|approval|listing/i.test(td.primaryType + JSON.stringify(Object.keys(types)))) warnings.push('Цей підпис може дозволити витрату ваших токенів або продаж NFT БЕЗ окремої транзакції. Підписуйте лише на довірених сайтах.');
     await this.approve(win, origin, sameTab, {
-      kind: 'typed', title: 'Підпис структурованих даних', danger: warnings.length > 0,
+      kind: 'typed', title: tr('Підпис структурованих даних'), danger: warnings.length > 0,
       lines: [['Рахунок', a], ['Тип', clip(td.primaryType, 80)], ['Контракт (verifyingContract)', clip(td.domain.verifyingContract || '—', 60)], ['Мережа', String(chain)], ['Дані', clip(JSON.stringify(td.message, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 1), 2500)]],
       warnings,
     });
@@ -492,7 +493,7 @@ class Wallet {
       ['Сума', `${formatEther(value)} ${net.symbol}`], ...desc.lines,
       ['Ліміт газу', String(populated.gasLimit)], ['Макс. комісія', `${formatEther(fee)} ${net.symbol}`], ['Макс. разом', `${formatEther(fee + value)} ${net.symbol}`],
     ];
-    await this.approve(win, origin, sameTab, { kind: 'tx', title: 'Підтвердження транзакції', danger: warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings });
+    await this.approve(win, origin, sameTab, { kind: 'tx', title: tr('Підтвердження транзакції'), danger: warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings });
     let hash;
     try {
       const signed = await signer.signTransaction(populated);

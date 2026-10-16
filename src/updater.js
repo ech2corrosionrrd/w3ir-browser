@@ -1,6 +1,7 @@
 'use strict';
 // Автооновлення: перевірка, завантаження у фоні, перевірка підпису випускача та встановлення при виході/за кліком.
 const { app, Notification, dialog, shell } = require('electron');
+const { t: tr } = require('./i18n');
 const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -155,7 +156,7 @@ class Updater {
     this.log('install', `quitAndInstall (версія ${this.state.version})`);
     this.writeAttempt();
     try {
-      new Notification({ title: 'W3IR Browser', body: `Встановлюється оновлення ${this.state.version}. Браузер закриється й сам запуститься приблизно за 30 секунд — не відкривайте його вручну.` }).show();
+      new Notification({ title: 'W3IR Browser', body: tr('Встановлюється оновлення {0}. Браузер закриється й сам запуститься приблизно за 30 секунд — не відкривайте його вручну.', this.state.version) }).show();
     } catch { /* сповіщення необов'язкове */ }
     autoUpdater.quitAndInstall(true, true);
     // Якщо браузер не завершився за 20 с — встановлення не розпочалося: повідомляємо й лишаємо автовстановлення при виході
@@ -206,9 +207,9 @@ class Updater {
     if (cur !== a.from || Date.now() - a.time > 6 * 3600 * 1000) return 'stale';
     this.log('error', `встановлення ${a.to} не відбулося (досі ${cur})`);
     const r = await dialog.showMessageBox(parent || undefined, {
-      type: 'warning', buttons: ['Відкрити інсталятор', 'Пізніше'], defaultId: 0, cancelId: 1,
-      message: `Не вдалося автоматично встановити оновлення ${a.to}`,
-      detail: 'Можна встановити його вручну: відкриється інсталятор оновлення (натисніть «Далі» й «Встановити»). Файл перевірено підписом випускача.',
+      type: 'warning', buttons: [tr('Відкрити інсталятор'), tr('Пізніше')], defaultId: 0, cancelId: 1,
+      message: tr('Не вдалося автоматично встановити оновлення {0}', a.to),
+      detail: tr('Можна встановити його вручну: відкриється інсталятор оновлення (натисніть «Далі» й «Встановити»). Файл перевірено підписом випускача.'),
     }).catch(() => ({ response: 1 }));
     if (r.response !== 0) return 'failed';
     if (!a.installer || !fs.existsSync(a.installer)) { toast('Файл оновлення не знайдено — перевірте оновлення в налаштуваннях'); return 'failed'; }

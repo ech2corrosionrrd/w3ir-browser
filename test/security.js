@@ -7,6 +7,7 @@ const { githubTests, walletTests } = require('./areas/web3');
 const { helpTests, updateTests, threatTests } = require('./areas/updates-threats');
 const { groupTests, siteTests, splitTests, fullscreenTests, guardTests, tabCloseTests, tabFeatureTests } = require('./areas/tabs');
 const { agentShareTests, agentTests } = require('./areas/ai');
+const { i18nTests } = require('./areas/i18n');
 const { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests } = require('./areas/misc');
 
 module.exports = async function run(ctx) {
@@ -38,6 +39,7 @@ module.exports = async function run(ctx) {
     await webauthnTests(ctx);
     await ipcPolicyTests();
     await historySearchTests(ctx);
+    await i18nTests();
     await tabFeatureTests(ctx);
     await splitTests(ctx);
     await fullscreenTests(ctx);

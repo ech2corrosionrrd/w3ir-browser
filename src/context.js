@@ -1,5 +1,6 @@
 'use strict';
 const { app, session, dialog, BrowserWindow, net } = require('electron');
+const { t: tr } = require('./i18n');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -459,11 +460,11 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       const parent = (ctx.winFor(wc) || {}).win || BrowserWindow.getFocusedWindow();
       dialog.showMessageBox(parent, {
         type: 'question',
-        buttons: ['Дозволити', 'Заблокувати'],
+        buttons: [tr('Дозволити'), tr('Заблокувати')],
         defaultId: 1, cancelId: 1,
-        title: 'Запит дозволу',
-        message: `${origin} запитує доступ до ${ASK[permission]}`,
-        checkboxLabel: 'Запам\'ятати вибір для цього сайту',
+        title: tr('Запит дозволу'),
+        message: tr('{0} запитує доступ до {1}', origin, ASK[permission]),
+        checkboxLabel: tr('Запам\'ятати вибір для цього сайту'),
       }).then(r => {
         const allow = r.response === 0;
         if (r.checkboxChecked) remember(key, allow);

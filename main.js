@@ -1,5 +1,6 @@
 'use strict';
 const { app, protocol, Menu, BrowserWindow, powerMonitor, nativeTheme } = require('electron');
+const { t: tr } = require('./src/i18n');
 const path = require('path');
 
 app.enableSandbox(); // усі рендерери — в пісочниці
@@ -58,14 +59,15 @@ app.whenReady().then(async () => {
     let to = '';
     try { to = JSON.parse(require('fs').readFileSync(f, 'utf8')).to; } catch { /* немає спроби */ }
     if (to && to !== app.getVersion()) {
-      require('electron').dialog.showMessageBoxSync({ type: 'info', buttons: ['OK'], message: 'Триває встановлення оновлення', detail: 'Зачекайте приблизно 30 секунд — браузер запуститься сам після завершення.' });
+      require('electron').dialog.showMessageBoxSync({ type: 'info', buttons: ['OK'], message: tr('Триває встановлення оновлення'), detail: tr('Зачекайте приблизно 30 секунд — браузер запуститься сам після завершення.') });
       app.exit(0);
       return;
     }
   }
   manager = new ProfileManager();
   ctx = manager.ctx('default');
-  require('./src/i18n').i18n.setLang(ctx.cfg().language, app.getLocale());
+  // W3IR_LANG (uk|en|…) перекриває мову — для тестів; у режимі автотестів завжди українська (рядки тестів українські)
+  require('./src/i18n').i18n.setLang(process.env.W3IR_LANG || (process.env.W3IR_SMOKE === 'security' ? 'uk' : ctx.cfg().language), app.getLocale());
   nativeTheme.themeSource = ['system', 'light', 'dark'].includes(ctx.cfg().theme) ? ctx.cfg().theme : 'system';
   // Автооновлення (спільне для всіх профілів; налаштування беруться з основного)
   manager.updater = new Updater({

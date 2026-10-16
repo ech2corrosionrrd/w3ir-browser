@@ -1,6 +1,7 @@
 'use strict';
 // Групи вкладок із кольорами. Вкладки групи завжди йдуть підряд; закріплені вкладки в групи не входять.
 const { Menu } = require('electron');
+const { t: tr } = require('./i18n');
 
 const GROUP_COLORS = [
   { key: 'blue', name: 'синій', hex: '#5a8dee', dot: '🔵' },
@@ -211,24 +212,24 @@ const methods = {
     const g = this.groups.get(groupId);
     if (!g) return;
     Menu.buildFromTemplate([
-      { label: 'Перейменувати групу', click: () => this.chrome.send('group-edit', { id: groupId }) },
-      { label: 'Колір групи', submenu: GROUP_COLORS.map(c => ({ label: `${c.dot} ${c.name}`, type: 'radio', checked: c.key === g.color, click: () => this.setGroupColor(groupId, c.key) })) },
-      { label: g.collapsed ? 'Розгорнути групу' : 'Згорнути групу', click: () => this.setGroupCollapsed(groupId, !g.collapsed) },
-      { label: 'Нова вкладка в групі', click: () => this.exec('groupNewTab', groupId) },
+      { label: tr('Перейменувати групу'), click: () => this.chrome.send('group-edit', { id: groupId }) },
+      { label: tr('Колір групи'), submenu: GROUP_COLORS.map(c => ({ label: `${c.dot} ${tr(c.name)}`, type: 'radio', checked: c.key === g.color, click: () => this.setGroupColor(groupId, c.key) })) },
+      { label: g.collapsed ? tr('Розгорнути групу') : tr('Згорнути групу'), click: () => this.setGroupCollapsed(groupId, !g.collapsed) },
+      { label: tr('Нова вкладка в групі'), click: () => this.exec('groupNewTab', groupId) },
       { type: 'separator' },
-      { label: 'Розгрупувати', click: () => this.ungroup(groupId) },
-      { label: 'Закрити групу', click: () => this.closeGroup(groupId) },
+      { label: tr('Розгрупувати'), click: () => this.ungroup(groupId) },
+      { label: tr('Закрити групу'), click: () => this.closeGroup(groupId) },
     ]).popup({ window: this.win });
   },
 
   // пункти групової частини меню вкладки
   tabGroupMenuItems(tab) {
     if (tab.pinned) return [];
-    const items = [{ label: 'Додати до нової групи', click: () => { const id = this.newGroup([tab.id]); if (id) this.chrome.send('group-edit', { id }); } }];
+    const items = [{ label: tr('Додати до нової групи'), click: () => { const id = this.newGroup([tab.id]); if (id) this.chrome.send('group-edit', { id }); } }];
     const others = this.groupList().filter(g => g.id !== tab.group);
     if (others.length) {
       items.push({
-        label: 'Додати до групи',
+        label: tr('Додати до групи'),
         submenu: others.map(g => {
           const c = GROUP_COLORS.find(x => x.key === g.color) || GROUP_COLORS[0];
           return { label: `${c.dot} ${g.name || 'Без назви'} (${g.count})`, click: () => this.addToGroup(tab.id, g.id) };
@@ -236,8 +237,8 @@ const methods = {
       });
     }
     if (tab.group) {
-      items.push({ label: 'Видалити з групи', click: () => this.removeFromGroup(tab.id) });
-      items.push({ label: 'Закрити інші вкладки групи', enabled: this.groupTabs(tab.group).length > 1, click: () => this.exec('closeOthersInGroup', tab.id) });
+      items.push({ label: tr('Видалити з групи'), click: () => this.removeFromGroup(tab.id) });
+      items.push({ label: tr('Закрити інші вкладки групи'), enabled: this.groupTabs(tab.group).length > 1, click: () => this.exec('closeOthersInGroup', tab.id) });
     }
     return items;
   },

@@ -17,7 +17,7 @@ const keys = new Map(); // ключ → [файл:рядок]
 const concat = [];
 const add = (k, loc) => {
   const key = k.replace(/\s+/g, ' ').trim();
-  if (!key || !CYR.test(key)) return;
+  if (!key || !CYR.test(key) || key.includes('navigator.credentials')) return;
   if (!keys.has(key)) keys.set(key, []);
   keys.get(key).push(loc);
 };
