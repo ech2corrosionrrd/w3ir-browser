@@ -1,3 +1,7 @@
 build/keys/
 dist/
 node_modules/
+# секрети й артефакти збірки (ключі підпису ніколи не комітити)
+*.pem
+*.key
+*.blockmap

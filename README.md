@@ -47,6 +47,7 @@
 ```
 npm install
 npm start                      # запуск із вихідного коду
+npm test                       # повний автотест у тимчасовому профілі (код виходу 1 при збоях)
 W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 423 автоматичних перевірок
 npm run release                # збірка + підпис оновлення → dist/release
 npm run check:rpc               # онлайн-перевірка вбудованих RPC гаманця

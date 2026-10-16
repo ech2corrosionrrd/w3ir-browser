@@ -8,6 +8,7 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
+    "test": "node build/run-tests.js",
     "smoke": "electron .",
     "icon": "python build/make-brand.py",
     "pack": "electron-builder --win --dir",
