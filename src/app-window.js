@@ -23,7 +23,7 @@ const isBlankUrl = (u) => !u || u === 'about:blank' || /^w3ir:\/\/newtab\/?$/.te
 const SAFE_EXTERNAL = /^[A-Za-z0-9\-._~:\/?#\[\]@!$&()*+,;=%]+$/;
 const EXTERNAL_SCHEME = /^(mailto|tel|magnet|x-github-client|vscode|vscode-insiders):/i;
 const ANCHORED_OVERLAYS = new Set(['menu', 'vault', 'github', 'site']); // панелі під панеллю інструментів
-const isWebUrl = (u) => /^https?:/i.test(u || '');
+const { isWebUrl } = require('./util');
 
 class AppWindow {
   constructor(ctx, opts = {}) {
@@ -93,6 +93,14 @@ class AppWindow {
       const urls = (opts.urls && opts.urls.length) ? opts.urls : [NEWTAB];
       const gids = this.restoreGroups(opts.groups);
       urls.forEach((u, i) => this.createTab(u, { activate: i === (opts.activeIndex || 0), pinned: !!(opts.pinned && opts.pinned[i]), group: opts.groupOf && gids[opts.groupOf[i]] ? gids[opts.groupOf[i]] : null }));
+      // пара розділеного екрана з попереднього сеансу (індекси перевіряються: сеанс міг бути пошкоджений)
+      const sp = opts.split;
+      if (sp && Number.isInteger(sp.a) && Number.isInteger(sp.b) && sp.a !== sp.b && this.tabs[sp.a] && this.tabs[sp.b]) {
+        const keep = this.activeId;
+        this.switchTab(this.tabs[sp.a].id);
+        if (this.startSplit(this.tabs[sp.b].id)) this.split.ratio = Math.max(0.25, Math.min(0.75, Number(sp.ratio) || 0.5));
+        if (keep != null) this.switchTab(keep);
+      }
       if (urls.length === 1 && urls[0] === NEWTAB) this.focusUrlBar();
     });
     this.win.loadURL('w3ir://ui/index.html');
@@ -122,7 +130,12 @@ class AppWindow {
       pinned.push(!!t.pinned);
       included.push(t);
     });
-    return { urls, activeIndex: active, pinned, ...this.snapshotGroups(included) };
+    let split = null;
+    if (this.split) {
+      const ia = included.findIndex(t => t.id === this.split.a), ib = included.findIndex(t => t.id === this.split.b);
+      if (ia >= 0 && ib >= 0) split = { a: ia, b: ib, ratio: this.split.ratio };
+    }
+    return { urls, activeIndex: active, pinned, ...this.snapshotGroups(included), split };
   }
   focusUrlBar() {
     this.chrome.focus();
@@ -779,6 +792,8 @@ class AppWindow {
       { label: 'Відновити закриту вкладку', hint: 'Ctrl+Shift+T', cmd: 'reopenClosed' },
       { label: 'Закріпити / відкріпити вкладку', cmd: 'pinTab', arg: this.activeId },
       { label: 'Дублювати вкладку', cmd: 'duplicateTab', arg: this.activeId },
+      ...(this.tabs.length > 1 && !this.incognito && !this.agent ? [{ label: 'Перемістити вкладку в нове вікно', cmd: 'tabToWindow', arg: { id: this.activeId } }] : []),
+      ...(this.active() && this.active().group && this.groupTabs(this.active().group).length > 1 ? [{ label: 'Закрити інші вкладки групи', cmd: 'closeOthersInGroup', arg: this.activeId }] : []),
       { label: 'Нова група з поточної вкладки', cmd: 'groupNew', arg: this.activeId },
       ...this.groupList().map(g => ({ label: `Перейти до групи «${g.name || 'Без назви'}»`, cmd: 'groupFocus', arg: g.id })),
       { label: 'Режим читання', hint: 'Ctrl+Shift+R', cmd: 'reader' },
@@ -878,6 +893,7 @@ class AppWindow {
       { label: t.pinned ? 'Відкріпити вкладку' : 'Закріпити вкладку', click: () => this.exec('pinTab', id) },
       { label: t.view.webContents.isAudioMuted() ? 'Увімкнути звук' : 'Вимкнути звук', click: () => this.exec('muteTab', id) },
       { label: 'Дублювати', click: () => this.exec('duplicateTab', id) },
+      { label: 'Перемістити в нове вікно', enabled: this.tabs.length > 1 && !this.incognito && !this.agent, click: () => this.exec('tabToWindow', { id }) },
       { label: 'Приспати вкладку', enabled: id !== this.activeId && isWebUrl(this.tabUrl(t)) && !t.sleep, click: () => this.sleepTab(t) },
       { type: 'separator' },
       ...(t.pinned ? [] : [...this.tabGroupMenuItems(t), { type: 'separator' }]),
@@ -1138,6 +1154,28 @@ class AppWindow {
       case 'newWindow': ctx.openWindow({}); break;
       case 'openProfile': if (ctx.manager && ctx.manager.has(arg)) ctx.manager.open(arg); break;
       case 'newIncognito': ctx.openWindow({ incognito: true }); break;
+      case 'tabToWindow': {
+        // Вкладку можна витягнути в нове вікно (меню, палітра, перетягування за межі панелі). Перезавантажується за адресою;
+        // у приватних вікнах вимкнено: нове приватне вікно мало б інший тимчасовий сеанс (входи б зникли).
+        if (this.agent || this.incognito || this.tabs.length < 2) break;
+        const tb = this.tabs.find(x => x.id === (arg && arg.id));
+        if (!tb) break;
+        const u = this.tabUrl(tb);
+        if (!u || u === 'about:blank') break;
+        const b = this.win.getBounds();
+        let pos = { x: b.x + 40, y: b.y + 40 };
+        if (arg.drag) { const p = require('electron').screen.getCursorScreenPoint(); pos = { x: p.x - 120, y: p.y - 20 }; }
+        ctx.openWindow({ urls: [u], bounds: { x: Math.round(pos.x), y: Math.round(pos.y), width: b.width, height: b.height } });
+        this.closeTab(tb.id);
+        break;
+      }
+      case 'closeOthersInGroup': {
+        const tb = this.tabs.find(x => x.id === arg);
+        if (!tb || !tb.group) break;
+        for (const x of this.groupTabs(tb.group)) if (x.id !== tb.id) this.closeTab(x.id);
+        this.switchTab(tb.id);
+        break;
+      }
       case 'splitWith': this.startSplit(arg); break;
       case 'splitNew': {
         if (this.agent) break;

@@ -10,7 +10,8 @@ const { writeAtomic } = require('./crypto-util');
 const API = 'https://api.github.com';
 const HTML_URL = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(\/[^\s"'<>\\^`{|}]*)?$/;
 const TOKEN_RE = /^[A-Za-z0-9_\-]{20,255}$/;
-const clean = (s, n = 200) => String(s == null ? '' : s).replace(/[\u0000-\u001f]/g, ' ').slice(0, n);
+const { stripCtl } = require('./util');
+const clean = (s, n = 200) => stripCtl(s, n);
 
 // api.github.com/repos/o/r/pulls/5  ->  github.com/o/r/pull/5
 function htmlFromApi(apiUrl, repoHtml) {

@@ -114,7 +114,7 @@ class ProfileManager {
       let first;
       saved.forEach((s, i) => {
         if (!s.urls || !s.urls.length) return;
-        const w = c.openWindow({ urls: s.urls, activeIndex: s.activeIndex, pinned: s.pinned, groups: s.groups, groupOf: s.groupOf, bounds: i === 0 ? bounds : undefined, maximized: i === 0 && ws.maximized });
+        const w = c.openWindow({ urls: s.urls, activeIndex: s.activeIndex, pinned: s.pinned, groups: s.groups, groupOf: s.groupOf, split: s.split, bounds: i === 0 ? bounds : undefined, maximized: i === 0 && ws.maximized });
         first = first || w;
       });
       if (first) return first;
