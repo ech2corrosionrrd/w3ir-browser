@@ -1,6 +1,6 @@
 'use strict';
 // Захист від шахрайських сайтів — повністю локальний, без надсилання ваших адрес комусь:
-//  1) відкриті списки (URLhaus — шкідливі хости, Phishing.Database — фішингові домени) завантажуються на пристрій і зберігаються
+//  1) відкриті списки (URLhaus — шкідливі хости, Phishing.Database і MetaMask eth-phishing-detect — фішингові домени) завантажуються на пристрій і зберігаються
 //     компактно (8-байтові хеші, бінарний пошук);
 //  2) евристики: підміна символів (омогліфи, IDN), схожість із відомими брендами, «paypal.com.evil.net», user@host-обман.
 const fs = require('fs');
@@ -16,6 +16,8 @@ const UPDATE_EVERY = 24 * 60 * 60 * 1000;
 const SOURCES = [
   { id: 'urlhaus', kind: 'malware', title: 'URLhaus (abuse.ch)', url: 'https://urlhaus.abuse.ch/downloads/hostfile/' },
   { id: 'phishdb', kind: 'phishing', title: 'Phishing.Database', url: 'https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/phishing-domains-ACTIVE.txt' },
+  // web3-фішинг (підроблені OpenSea/Uniswap/MetaMask тощо): JSON {blacklist:[домени]}
+  { id: 'ethphish', kind: 'phishing', title: 'MetaMask eth-phishing-detect', format: 'json-blacklist', url: 'https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json' },
 ];
 
 // ---------- бренди: назва → легітимні домени ----------
@@ -149,7 +151,7 @@ class Threats {
           if (len > MAX_LIST_BYTES) throw new Error(`${src.id}: список надто великий`);
           const text = await res.text();
           if (text.length > MAX_LIST_BYTES) throw new Error(`${src.id}: список надто великий`);
-          const set = parseList(text);
+          const set = src.format === 'json-blacklist' ? parseBlacklistJson(text) : parseList(text);
           if (set.size < 1) throw new Error(`${src.id}: порожній список`);
           const target = (fresh[src.kind] = fresh[src.kind] || new Set());
           for (const d of set) target.add(hash8(d));
@@ -262,4 +264,11 @@ class Threats {
   }
 }
 
-module.exports = { Threats, SOURCES, parseList, BRANDS };
+// JSON-конфіг eth-phishing-detect: беремо лише blacklist (whitelist і fuzzylist ігноруємо)
+function parseBlacklistJson(text) {
+  let j;
+  try { j = JSON.parse(text); } catch { return new Set(); }
+  return parseList(Array.isArray(j && j.blacklist) ? j.blacklist.filter(x => typeof x === 'string').join('\n') : '');
+}
+
+module.exports = { Threats, SOURCES, parseList, parseBlacklistJson, BRANDS };
