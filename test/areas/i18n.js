@@ -19,11 +19,16 @@ async function i18nTests() {
   ok(i.resolve('en', 'uk') === 'en' && i.resolve('xx', 'en') === 'uk' && i.resolve('ru', 'en') === 'uk', 'i18n: явний вибір; невідомий код або ru → українська');
   ok(fmt('Привіт, {0} і {1}', ['A']) === 'Привіт, A і {1}', 'i18n: підстановка {n}, відсутній аргумент лишається як є');
 
-  // англійський каталог: усі ключі, однакові підстановки та розмітка
-  const cat = JSON.parse(fs.readFileSync(path.join(root, 'locales', 'en.json'), 'utf8'));
-  let badPh = 0, badMk = 0;
-  for (const [k, v] of Object.entries(cat)) { if (placeholders(k) !== placeholders(v)) badPh++; if (markup(k) !== markup(v)) badMk++; }
-  ok(Object.keys(cat).length > 1000 && badPh === 0 && badMk === 0, `i18n: en.json — підстановки {n} і розмітка збігаються з оригіналом (${Object.keys(cat).length} рядків, розбіжностей ${badPh + badMk})`);
+  // усі каталоги: ті самі ключі, однакові підстановки {n} та розмітка, автовибір для кожної мови
+  const codes = Object.keys(LANGS).filter(c => c !== 'uk');
+  ok(codes.length >= 5 && codes.every(c => fs.existsSync(path.join(root, 'locales', c + '.json'))) && fs.readdirSync(path.join(root, 'locales')).filter(f => /^[a-z]{2}\.json$/.test(f)).length === codes.length, `i18n: мови з каталогами (${codes.join(', ')}), зайвих каталогів немає`);
+  let total = 0, badPh = 0, badMk = 0;
+  for (const c of codes) {
+    const cat = JSON.parse(fs.readFileSync(path.join(root, 'locales', c + '.json'), 'utf8'));
+    for (const [k, v] of Object.entries(cat)) { total++; if (placeholders(k) !== placeholders(v)) badPh++; if (markup(k) !== markup(v)) badMk++; }
+    ok(i.resolve('auto', c + '-XX') === c && i.resolve(c, 'uk') === c && LANGS[c].name && LANGS[c].locale.startsWith(c), `i18n: ${c} — автовибір, назва й локаль`);
+  }
+  ok(total > 5000 && badPh === 0 && badMk === 0, `i18n: підстановки {n} і розмітка збігаються з оригіналом у всіх мовах (${total} рядків, розбіжностей ${badPh + badMk})`);
   const r = spawnSync(process.execPath, ['build/i18n-extract.js', '--check'], { cwd: root, env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, encoding: 'utf8' });
   ok(r.status === 0, 'i18n: усі українські рядки коду мають переклад у кожній мові' + (r.status === 0 ? '' : ' :: ' + String(r.stdout).slice(0, 300)));
 

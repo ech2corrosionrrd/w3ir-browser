@@ -5,7 +5,7 @@
 Браузер для Windows на основі Chromium (Electron 41) з упором на приватність, безпеку й зручність. Усі функції працюють локально, без облікових записів і серверів розробника.
 
 - Поточна версія: **1.20.0** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
-- Мова інтерфейсу: українська · Платформа: Windows 10/11 x64
+- Мова інтерфейсу: українська, English, Polski, Deutsch, Español, Français (вибір у налаштуваннях) · Платформа: Windows 10/11 x64
 - Довідка в самому браузері: **F1**
 
 ## Можливості
@@ -48,7 +48,7 @@
 npm install
 npm start                      # запуск із вихідного коду
 npm test                       # повний автотест у тимчасовому профілі (код виходу 1 при збоях)
-W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 471 автоматична перевірка
+W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 490 автоматичних перевірок
 npm run release                # збірка + підпис оновлення → dist/release
 npm run check:rpc               # онлайн-перевірка вбудованих RPC гаманця
 npm run icon                   # перегенерація фірмових ресурсів із build/brand (Python, Pillow, numpy, scipy)
@@ -64,6 +64,7 @@ npm run winget:submit          # PR із маніфестами winget
 - [docs/TESTING.md](docs/TESTING.md) — як запускати й що перевіряють тести
 - [docs/RELEASING.md](docs/RELEASING.md) — випуск, підпис, GitHub, winget
 - [docs/AI-MCP.md](docs/AI-MCP.md) — Claude Code керує браузером: підключення, зони, приклади
+- [docs/I18N.md](docs/I18N.md) — багатомовність: каталоги, нові рядки, нова мова
 - [docs/PLAN.md](docs/PLAN.md) — план розвитку по етапах
 - [docs/BRANDING.md](docs/BRANDING.md) — фірмовий стиль, палітра, ресурси
 - [docs/ROADMAP.md](docs/ROADMAP.md) — поточний стан, відкриті питання, плани
