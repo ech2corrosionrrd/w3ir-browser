@@ -1,6 +1,6 @@
-:root { color-scheme: dark; --bg: #1e1f22; --card: #2b2d31; --line: #3a3c41; --fg: #e6e6e6; --dim: #9aa0a8; --accent: #8b7cf6; --danger: #e5675f; --link: #8fb0f5; --ok: #8fd48f; --warnbg: #3b2f1a; }
+:root { color-scheme: dark; --bg: #0e0d24; --card: #1a1743; --line: #2f2b66; --fg: #eeedff; --dim: #a09dd2; --accent: #8b7cf6; --danger: #e5675f; --link: #a5b4fc; --ok: #8fd48f; --warnbg: #3b2f1a; --h1a: #ffffff; --h1b: #b6adff; --glow1: rgba(244,114,182,.10); --glow2: rgba(56,189,248,.09); }
 @media (prefers-color-scheme: light) {
-  :root { color-scheme: light; --bg: #f6f7f9; --card: #ffffff; --line: #d7dade; --fg: #202124; --dim: #5f6368; --accent: #5b3fd0; --danger: #c5221f; --link: #1a5fd0; --ok: #1e7e34; --warnbg: #fff4d6; }
+  :root { color-scheme: light; --bg: #f3f2fb; --card: #ffffff; --line: #dedcf2; --fg: #1e1b3a; --dim: #5c5a85; --accent: #5b3fd0; --danger: #c5221f; --link: #4b2fa0; --ok: #1e7e34; --warnbg: #fff4d6; --h1a: #1e1b4b; --h1b: #5b3fd0; --glow1: rgba(244,114,182,.12); --glow2: rgba(56,189,248,.12); }
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font: 14px "Segoe UI", system-ui, sans-serif; }
@@ -104,3 +104,22 @@ code { background: rgba(127,127,127,.2); padding: 1px 6px; border-radius: 4px; f
 .card textarea { width: 100%; margin: 6px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: inherit; font: inherit; }
 
 [hidden] { display: none !important; }
+
+/* ===== Фірмовий стиль W3IR: м'які неонові відблиски, градієнтні заголовки, «скляні» блоки ===== */
+html { background: radial-gradient(900px 420px at 100% -6%, var(--glow1), transparent 62%), radial-gradient(800px 520px at 0% 106%, var(--glow2), transparent 62%), var(--bg) fixed; }
+body { background: transparent; }
+h1 { background: linear-gradient(90deg, var(--h1a), var(--h1b)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+main > h2 { display: flex; align-items: center; gap: 8px; }
+main > h2::before { content: ''; width: 4px; height: 14px; border-radius: 2px; background: linear-gradient(#00f2fe, var(--accent)); flex: none; }
+.list { border-radius: 14px; box-shadow: 0 6px 24px rgba(20,10,60,.16); border-color: color-mix(in srgb, var(--accent) 22%, var(--line)); }
+button:hover { background: color-mix(in srgb, var(--accent) 20%, var(--card)); }
+input[type=text]:focus, select:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+progress { accent-color: #00f2fe; }
+.switch { accent-color: #8b7cf6; }
+
+/* навігація розділами налаштувань (лише на широких вікнах) */
+.rail { position: fixed; top: 100px; left: max(12px, calc(50vw - 430px - 224px)); width: 200px; max-height: calc(100vh - 130px); overflow: auto; display: flex; flex-direction: column; gap: 2px; }
+.rail a { display: block; padding: 7px 12px; border-radius: 10px; color: var(--dim); font-size: 13px; border-left: 3px solid transparent; }
+.rail a:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--fg); text-decoration: none; }
+.rail a.on { color: var(--fg); border-left-color: #00f2fe; background: color-mix(in srgb, var(--accent) 18%, transparent); }
+@media (max-width: 1320px) { .rail { display: none; } }

@@ -1385,6 +1385,13 @@ async function agentShareTests(ctx) {
   srv.close(); srv2.close();
 }
 
+async function designTests() {
+  const root = path.join(__dirname, '..');
+  const css = (f) => fs.readFileSync(path.join(root, f), 'utf8');
+  ok(['ui/style.css', 'ui/overlay.css', 'pages/pages.css'].every(f => css(f).includes('Фірмовий стиль W3IR')) && /--bg2: #1c1947/.test(css('ui/style.css')) && /--panel: #1c1947/.test(css('ui/overlay.css')) && /--bg: #0e0d24/.test(css('pages/pages.css')), 'design: інтерфейс, меню й сторінки в фірмових кольорах (індиго)');
+  ok(/body\.incog \{[^}]*--accent: #d946ef/.test(css('ui/style.css')) && /\.rail \{/.test(css('pages/pages.css')) && css('pages/settings.js').includes('buildRail'), 'design: інкогніто лишається окремим; налаштування мають бічну навігацію');
+}
+
 async function brandTests() {
   const root = path.join(__dirname, '..');
   const png = (f) => { const b = fs.readFileSync(path.join(root, f)); return b.slice(1, 4).toString() === 'PNG' ? { w: b.readUInt32BE(16), h: b.readUInt32BE(20), alpha: b[25] === 6 } : null; };
@@ -1616,6 +1623,7 @@ module.exports = async function run(ctx) {
     await rpcListTests();
     await dashboardTests(ctx);
     await brandTests();
+    await designTests();
   } catch (e) {
     failed++;
     console.log('[sec] ERROR', e.stack || e);
