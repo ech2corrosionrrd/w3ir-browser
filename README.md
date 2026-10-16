@@ -57,7 +57,7 @@ npm run winget:submit          # PR із маніфестами winget
 - [docs/SECURITY.md](docs/SECURITY.md) — модель загроз і криптографія
 - [docs/TESTING.md](docs/TESTING.md) — як запускати й що перевіряють тести
 - [docs/RELEASING.md](docs/RELEASING.md) — випуск, підпис, GitHub, winget
-- [docs/BRANDING.md](docs/BRANDING.md) — фірмовий стиль, палітра, ресурси
+- [docs/PLAN.md](docs/PLAN.md) — план розвитку по етапах
 - [docs/BRANDING.md](docs/BRANDING.md) — фірмовий стиль, палітра, ресурси
 - [docs/ROADMAP.md](docs/ROADMAP.md) — поточний стан, відкриті питання, плани
 - [CHANGELOG.md](CHANGELOG.md) — історія версій
