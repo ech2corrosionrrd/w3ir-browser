@@ -1678,6 +1678,66 @@ async function auditTests(ctx) {
   ok(/allowFileAccess: false/.test(ipcSrc) && !/allowFileAccess: true/.test(ipcSrc), 'audit: розпаковані розширення не отримують доступ до файлової системи');
 }
 
+async function webauthnTests(ctx) {
+  const srv = http.createServer((q, r) => { r.setHeader('content-type', 'text/html; charset=utf-8'); r.end('<!doctype html><title>wa</title><p>x</p>'); });
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const w = [...ctx.windows].find(x => !x.incognito && !x.agent);
+  const tab = w.createTab(`http://localhost:${srv.address().port}/`, { activate: true });
+  await sleep(2200);
+  const wc = tab.view.webContents;
+  const toasts = [];
+  const origToast = w.toast.bind(w);
+  w.toast = (t) => { toasts.push(t); };
+  w._waToast = 0;
+  const attempt = () => wc.executeJavaScript(`navigator.credentials.create({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), rp: { id: 'localhost', name: 't' }, user: { id: new Uint8Array([1]), name: 'u', displayName: 'U' }, pubKeyCredParams: [{ type: 'public-key', alg: -7 }], timeout: 5000 } }).then(() => 'ok', (e) => e.name)`, true);
+  const t0 = Date.now();
+  const r1 = await attempt();
+  const took = Date.now() - t0;
+  await sleep(600);
+  ok(r1 === 'NotAllowedError' && took < 1500, 'webauthn: запит passkey відхиляється одразу (а не висить до таймауту сайту) з NotAllowedError, тож сайт швидко пропонує пароль', { r1, took });
+  {
+    ok(toasts.length === 1 && /Passkeys/.test(toasts[0]), 'webauthn: користувач бачить пояснення замість мовчазної помилки сайту', toasts);
+    await attempt(); await sleep(800);
+    ok(toasts.length === 1, 'webauthn: підказка не повторюється частіше, ніж раз на 30 с');
+  }
+  const api = await wc.executeJavaScript(`typeof PublicKeyCredential + '|' + typeof navigator.credentials.get `);
+  ok(api === 'function|function', 'webauthn: API на сторінці лишається на місці (обгортка не ламає навігатор)', api);
+  w.toast = origToast;
+  w.closeTab(tab.id);
+  srv.close();
+}
+
+async function ipcPolicyTests() {
+  const { permitted } = require('../src/ipc');
+  const cases = [
+    // [команда, адреса, очікується]
+    ['wallet:status', 'w3ir://wallet', true], ['wallet:status', 'w3ir://wallet/', true], ['wallet:status', 'w3ir://passwords', false], ['wallet:reveal', 'w3ir://settings', false],
+    ['wallet:status', 'w3ir://wallet?x=1', false], ['wallet:status', 'http://wallet/', false], ['wallet:status', 'w3ir://wallet.evil', false], ['wallet:status', 'w3ir://wallet/../settings', false],
+    ['vault:list', 'w3ir://passwords', true], ['vault:reveal', 'w3ir://wallet', false], ['vault:status', 'w3ir://wallet', true], ['vault:unlock', 'w3ir://wallet', true],
+    ['vault:importCsv', 'w3ir://import', true], ['vault:list', 'w3ir://import', false], ['vault:status', 'w3ir://settings', false],
+    ['safe:proceed', 'w3ir://warning?url=http%3A%2F%2Fx', true], ['safe:trust', 'w3ir://warning', true], ['safe:proceed', 'w3ir://settings', false], ['safe:status', 'w3ir://settings', true], ['safe:update', 'w3ir://warning', false],
+    ['agent:enable', 'w3ir://settings', true], ['agent:enable', 'w3ir://dashboard', false], ['dashboard:agent', 'w3ir://dashboard', true], ['dashboard:agent', 'w3ir://settings', false],
+    ['sync:enable', 'w3ir://settings', true], ['github:connect', 'w3ir://history', false], ['update:install', 'w3ir://settings', true], ['sites:list', 'w3ir://settings', true], ['sites:list', 'w3ir://help', false],
+    ['profiles:create', 'w3ir://profiles', true], ['profiles:remove', 'w3ir://settings', false], ['import:run', 'w3ir://import', true], ['import:run', 'w3ir://newtab', false],
+    ['settings:set', 'w3ir://settings', true], ['settings:set', 'w3ir://history', false], ['settings:set', 'w3ir://error?code=1', false], ['settings:get', 'w3ir://help', true], ['settings:get', 'w3ir://help#faq', true],
+    ['clear', 'w3ir://settings', true], ['clear', 'w3ir://reader', false], ['ext:add', 'w3ir://bookmarks', false], ['reader:get', 'w3ir://reader', true], ['reader:get', 'w3ir://newtab', false],
+    ['history:get', 'w3ir://history?q=a', true], ['history:clear', 'w3ir://history', true], ['history:clear', 'w3ir://newtab', false], ['downloads:action', 'w3ir://downloads', true], ['downloads:action', 'w3ir://history', false],
+    ['topsites', 'w3ir://newtab', true], ['resolve', 'w3ir://newtab', true], ['resolve', 'w3ir://settings', false],
+    ['settings:get', '', false], ['settings:get', undefined, false], ['settings:get', 'file:///C:/x.html', false],
+  ];
+  const bad = cases.filter(([n, u, exp]) => permitted(n, u) !== exp).map(([n, u, exp]) => `${n} @ ${u} → очікувалось ${exp}`);
+  ok(bad.length === 0, `ipc: єдина таблиця прав — ${cases.length} випадків (команда × сторінка) поводяться правильно`, bad);
+  // кожна група команд із клієнтських сторінок має запис у таблиці (щоб нова група не лишилась без правил)
+  const fs2 = require('fs'), path2 = require('path');
+  const used = new Set();
+  for (const f of fs2.readdirSync(path.join(__dirname, '..', 'pages')).filter(x => x.endsWith('.js'))) {
+    const t = fs2.readFileSync(path.join(__dirname, '..', 'pages', f), 'utf8');
+    for (const m of t.matchAll(/(?:w3ir\.invoke|call)\('([a-zA-Z]+(?::[a-zA-Z]+)?)'/g)) used.add(f.replace('.js', '') + ' ' + m[1]);
+  }
+  const denied = [...used].filter(x => { const [page, name] = x.split(' '); return !permitted(name, 'w3ir://' + page); });
+  ok(denied.length === 0, 'ipc: кожна команда, яку викликає сторінка, дозволена цій самій сторінці (таблиця не розходиться з кодом сторінок)', denied);
+}
+
 async function designTests() {
   const root = path.join(__dirname, '..');
   const css = (f) => fs.readFileSync(path.join(root, f), 'utf8');
@@ -1921,6 +1981,8 @@ module.exports = async function run(ctx) {
     await guardTests();
     await tabCloseTests(ctx);
     await auditTests(ctx);
+    await webauthnTests(ctx);
+    await ipcPolicyTests();
     await splitTests(ctx);
     await fullscreenTests(ctx);
   } catch (e) {
