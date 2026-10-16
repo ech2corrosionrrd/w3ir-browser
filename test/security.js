@@ -1245,6 +1245,12 @@ async function siteTests(ctx) {
 }
 
 
+async function rpcListTests() {
+  const { BUILTIN_NETWORKS, isSafeRpc } = require('../src/wallet');
+  ok(BUILTIN_NETWORKS.every(n => isSafeRpc(n.rpc) && n.rpc.startsWith('https://') && !/key|token|\$\{/i.test(n.rpc)), 'wallet: вбудовані RPC — https, без ключів у адресі');
+  ok(new Set(BUILTIN_NETWORKS.map(n => n.chainId)).size === BUILTIN_NETWORKS.length && new Set(BUILTIN_NETWORKS.map(n => n.rpc)).size === BUILTIN_NETWORKS.length, 'wallet: chainId і RPC вбудованих мереж унікальні');
+}
+
 async function agentTests(ctx) {
   const A = require('../src/agent');
   const { Agent, checkUrl, isPrivateHost, siteKey, bearerOk, hostHeaderOk } = A;
@@ -1415,6 +1421,7 @@ module.exports = async function run(ctx) {
     await groupTests(ctx);
     await siteTests(ctx);
     await agentTests(ctx);
+    await rpcListTests();
   } catch (e) {
     failed++;
     console.log('[sec] ERROR', e.stack || e);

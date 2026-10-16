@@ -158,6 +158,7 @@ class AppWindow {
     const bookmarks = ctx.bookmarks();
     const state = {
       incognito: this.incognito,
+      agent: this.agent,
       vertical: this.vertical(),
       activeId: this.activeId,
       tabs: this.tabs.map(t => {
