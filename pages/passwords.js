@@ -40,7 +40,7 @@ function renderCreate(st) {
   app.append(
     h('div', { class: 'card' },
       h('h2', null, 'Створіть захищене сховище'),
-      h('p', null, 'Паролі шифруються алгоритмом AES-256-GCM. Ключ виводиться з вашого майстер-пароля (scrypt)' + (st.pepper ? ' та прив’язується до облікового запису Windows.' : '.') + ' Сховище зберігається лише на цьому комп’ютері.'),
+      h('p', null, `Паролі шифруються алгоритмом AES-256-GCM. Ключ виводиться з вашого майстер-пароля (scrypt)${st.pepper ? ' та прив’язується до облікового запису Windows.' : '.'} Сховище зберігається лише на цьому комп’ютері.`),
       h('p', { class: 'note' }, strengthInfo),
       m1, m2, err,
       h('button', { class: 'primary', onclick: go }, 'Створити сховище')));
@@ -65,7 +65,7 @@ async function renderList(st) {
   const search = h('input', { type: 'text', placeholder: 'Пошук за сайтом або іменем', spellcheck: false });
   const listEl = h('div');
   const autolock = h('select', { onchange: () => call('vault:setAutolock', { minutes: Number(autolock.value) }) },
-    [5, 15, 30, 60, 120].map(n => h('option', { value: n, selected: n === st.autolock }, n + ' хв')));
+    [5, 15, 30, 60, 120].map(n => h('option', { value: n, selected: n === st.autolock }, `${n} хв`)));
 
   const addEntry = async (entry) => {
     const f = [

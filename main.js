@@ -65,6 +65,7 @@ app.whenReady().then(async () => {
   }
   manager = new ProfileManager();
   ctx = manager.ctx('default');
+  require('./src/i18n').i18n.setLang(ctx.cfg().language, app.getLocale());
   nativeTheme.themeSource = ['system', 'light', 'dark'].includes(ctx.cfg().theme) ? ctx.cfg().theme : 'system';
   // Автооновлення (спільне для всіх профілів; налаштування беруться з основного)
   manager.updater = new Updater({

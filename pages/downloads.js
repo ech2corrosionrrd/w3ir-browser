@@ -13,7 +13,7 @@ async function load() {
   listEl.append(h('div', { class: 'list' }, items.map(d => {
     const active = d.state === 'progressing' || d.state === 'paused';
     const status = active
-      ? `${fmtBytes(d.received)}${d.total > 0 ? ' з ' + fmtBytes(d.total) : ''}${d.state === 'paused' ? ' · призупинено' : ''}`
+      ? `${fmtBytes(d.received)}${d.total > 0 ? ` з ${fmtBytes(d.total)}` : ''}${d.state === 'paused' ? ' · призупинено' : ''}`
       : `${STATE[d.state] || d.state} · ${fmtBytes(d.total || d.received)} · ${fmtDay(d.start)}, ${fmtTime(d.start)}`;
     return h('div', { class: 'item' },
       h('div', { class: 'main' },

@@ -47,7 +47,7 @@ const search = h('input', { type: 'text', placeholder: 'Пошук у довід
 toc.append(search);
 const links = {};
 for (const s of SECTIONS) {
-  const a = h('a', { href: '#' + s.id, title: 'Перейти до розділу «' + s.title + '»' }, h('span', { class: 'ic' }, s.icon), s.title);
+  const a = h('a', { href: '#' + s.id, title: `Перейти до розділу «${s.title}»` }, h('span', { class: 'ic' }, s.icon), s.title);
   links[s.id] = a;
   toc.append(a);
 }

@@ -156,7 +156,7 @@ const TOOLS = [
   { name: 'browser_hover', description: 'Навести курсор на елемент (меню, підказки). Потрібне керування вкладкою.', inputSchema: { type: 'object', properties: { ref, tab: tabArg }, required: ['ref'], additionalProperties: false } },
   { name: 'browser_click', description: 'Клікнути елемент за номером зі знімка.', inputSchema: { type: 'object', properties: { ref, tab: tabArg }, required: ['ref'], additionalProperties: false } },
   { name: 'browser_type', description: 'Ввести текст у поле за номером зі знімка (замінює вміст). У поля паролів і платіжних карток вводити заборонено — це робить користувач.', inputSchema: { type: 'object', properties: { ref, text: { type: 'string', maxLength: 2000 }, submit: { type: 'boolean', description: 'Натиснути Enter після введення' }, tab: tabArg }, required: ['ref', 'text'], additionalProperties: false } },
-  { name: 'browser_press', description: 'Натиснути клавішу: ' + Object.keys(KEYS).join(', ') + '.', inputSchema: { type: 'object', properties: { key: { type: 'string', enum: Object.keys(KEYS) }, tab: tabArg }, required: ['key'], additionalProperties: false } },
+  { name: 'browser_press', description: `Натиснути клавішу: ${Object.keys(KEYS).join(', ')}.`, inputSchema: { type: 'object', properties: { key: { type: 'string', enum: Object.keys(KEYS) }, tab: tabArg }, required: ['key'], additionalProperties: false } },
   { name: 'browser_scroll', description: 'Прокрутити сторінку вгору або вниз.', inputSchema: { type: 'object', properties: { direction: { type: 'string', enum: ['up', 'down'] }, pages: { type: 'number', minimum: 0.1, maximum: 10, description: 'За замовчуванням 0.8 екрана' }, tab: tabArg }, required: ['direction'], additionalProperties: false } },
   { name: 'browser_screenshot', description: 'Знімок видимої частини вкладки (PNG).', inputSchema: { type: 'object', properties: { tab: tabArg }, additionalProperties: false } },
   { name: 'browser_wait', description: 'Зачекати (до 10 с), наприклад поки сторінка завантажиться.', inputSchema: { type: 'object', properties: { seconds: { type: 'number', minimum: 0.1, maximum: 10 } }, required: ['seconds'], additionalProperties: false } },
@@ -280,12 +280,12 @@ class Agent {
           try {
             const j = JSON.parse(d);
             const n = j.result && j.result.tools ? j.result.tools.length : 0;
-            resolve(res.statusCode === 200 && n ? { ok: true, ms: Date.now() - t0, tools: n, client: this.client, port: this.state.port } : { ok: false, error: 'Сервер відповів неочікувано (HTTP ' + res.statusCode + ').' });
-          } catch { resolve({ ok: false, error: 'Сервер відповів неочікувано (HTTP ' + res.statusCode + ').' }); }
+            resolve(res.statusCode === 200 && n ? { ok: true, ms: Date.now() - t0, tools: n, client: this.client, port: this.state.port } : { ok: false, error: `Сервер відповів неочікувано (HTTP ${res.statusCode}).` });
+          } catch { resolve({ ok: false, error: `Сервер відповів неочікувано (HTTP ${res.statusCode}).` }); }
         });
       });
       rq.on('timeout', () => { rq.destroy(); resolve({ ok: false, error: 'Сервер не відповів за 4 с.' }); });
-      rq.on('error', (e) => resolve({ ok: false, error: 'Немає з\u2019єднання: ' + (e.code || e.message) }));
+      rq.on('error', (e) => resolve({ ok: false, error: `Немає з’єднання: ${e.code || e.message}` }));
       rq.end(body);
     });
   }
@@ -297,7 +297,7 @@ class Agent {
       const srv = http.createServer((req, res) => this.handle(req, res));
       srv.headersTimeout = 10000; srv.requestTimeout = 30000; srv.keepAliveTimeout = 5000; srv.maxHeadersCount = 40;
       srv.on('error', (e) => {
-        this.error = e.code === 'EADDRINUSE' ? `Порт ${this.state.port} зайнятий іншою програмою. Змініть порт у налаштуваннях.` : 'Помилка сервера: ' + e.message;
+        this.error = e.code === 'EADDRINUSE' ? `Порт ${this.state.port} зайнятий іншою програмою. Змініть порт у налаштуваннях.` : `Помилка сервера: ${e.message}`;
         this.server = null; this.onChange(); resolve();
       });
       srv.listen(this.state.port, '127.0.0.1', () => { this.error = ''; this.server = srv; this.log('server', `слухає 127.0.0.1:${this.state.port}`); this.onChange(); resolve(); });
@@ -396,7 +396,7 @@ class Agent {
     // виклики виконуються по черзі
     const run = this.queue.then(() => Promise.race([this.exec(name, args), sleep(90000).then(() => text('Час очікування вичерпано.', true))]));
     this.queue = run.catch(() => {});
-    return run.catch((e) => text('Помилка: ' + clean(e && e.message, 200), true));
+    return run.catch((e) => text(`Помилка: ${clean(e && e.message, 200)}`, true));
   }
 
   // ---------- вікно агента ----------
@@ -475,7 +475,7 @@ class Agent {
     if (sh.off) sh.off();
     this.shares.delete(id);
     this.log('unshare', `${sh.site}: ${reason}`);
-    try { if (!sh.win.win.isDestroyed()) { sh.win.toast('ШІ більше не має доступу до вкладки: ' + reason); sh.win.push(); } } catch { /* ignore */ }
+    try { if (!sh.win.win.isDestroyed()) { sh.win.toast(`ШІ більше не має доступу до вкладки: ${reason}`); sh.win.push(); } } catch { /* ignore */ }
     this.onChange();
     return true;
   }
@@ -585,7 +585,7 @@ class Agent {
   async inPage(wc, code) { return wc.executeJavaScriptInIsolatedWorld(WORLD, [{ code }], false); }
 
   async exec(name, a) {
-    this.log(name, a.url ? clean(a.url, 100) : a.tab != null ? 'вкладка ' + a.tab : '');
+    this.log(name, a.url ? clean(a.url, 100) : a.tab != null ? `вкладка ${a.tab}` : '');
     if (name === 'browser_wait') { await sleep(Math.max(0.1, Math.min(10, Number(a.seconds) || 1)) * 1000); return text('Готово.'); }
 
     if (name === 'browser_tabs') {

@@ -183,7 +183,7 @@ class Updater {
         from: app.getVersion(), to: this.state.version, time: Date.now(),
         installer: helper && helper.file ? helper.file : '', signature: this.info && this.info.w3irSignature ? this.info.w3irSignature : '',
       }));
-    } catch (e) { this.log('error', 'не вдалося записати update-attempt.json: ' + e.message); }
+    } catch (e) { this.log('error', `не вдалося записати update-attempt.json: ${e.message}`); }
   }
 
   readAttempt() {
@@ -213,8 +213,8 @@ class Updater {
     if (r.response !== 0) return 'failed';
     if (!a.installer || !fs.existsSync(a.installer)) { toast('Файл оновлення не знайдено — перевірте оновлення в налаштуваннях'); return 'failed'; }
     const bad = await verifyFile({ publicPem: this.publicKey, version: a.to, signature: a.signature, file: a.installer });
-    if (bad) { this.log('error', 'ручне встановлення скасовано: ' + bad); toast('Файл оновлення не пройшов перевірку підпису: ' + bad); return 'failed'; }
-    this.log('install', 'відкриваємо інсталятор вручну: ' + a.installer);
+    if (bad) { this.log('error', `ручне встановлення скасовано: ${bad}`); toast(`Файл оновлення не пройшов перевірку підпису: ${bad}`); return 'failed'; }
+    this.log('install', `відкриваємо інсталятор вручну: ${a.installer}`);
     shell.openPath(a.installer);
     return 'manual';
   }

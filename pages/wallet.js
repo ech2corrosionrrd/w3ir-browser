@@ -118,7 +118,7 @@ async function renderDashboard(st) {
   if (!info.log.length) log.append(h('div', { class: 'row' }, 'Подій поки немає.'));
   for (const e of info.log.slice(0, 30)) {
     const n = info.networks.find(x => x.chainId === e.chainId);
-    log.append(h('div', { class: 'item' }, h('span', { class: 'time' }, new Date(e.t).toLocaleString('uk-UA')),
+    log.append(h('div', { class: 'item' }, h('span', { class: 'time' }, new Date(e.t).toLocaleString(LOCALE)),
       h('div', { class: 'main' }, h('div', { class: 't' }, e.action), h('div', { class: 's' }, e.origin + (e.hash ? ' · ' + short(e.hash) : ''))),
       e.hash && n && n.explorer ? h('a', { href: `${n.explorer}/tx/${e.hash}` }, 'Оглядач') : ''));
   }
