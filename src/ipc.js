@@ -143,7 +143,20 @@ async function githubApi(ctx, name, arg) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-// Яка внутрішня сторінка (w3ir://<назва>) має право викликати яку команду
+// ---------- права внутрішніх сторінок: ЄДИНА таблиця ----------
+// Адреса сторінки: w3ir://<назва>[/][?запит]. Групи команд (за префіксом) → які сторінки й які саме команди дозволено
+// ('*' — усі команди групи). Конфіденційні групи не приймають адреси із запитом (QUERY_OK).
+const PAGE_RE = /^w3ir:\/\/([a-z]+)\/?(\?[^#]*)?(#.*)?$/;
+const POLICY = {
+  'wallet:': { wallet: '*' },
+  'import:': { import: '*' },
+  'sites:': { settings: '*' }, 'update:': { settings: '*' }, 'sync:': { settings: '*' }, 'github:': { settings: '*' }, 'agent:': { settings: '*' },
+  'profiles:': { profiles: '*' },
+  'dashboard:': { dashboard: '*' },
+  'vault:': { passwords: '*', import: ['vault:status', 'vault:importCsv'], wallet: ['vault:status', 'vault:unlock'] },
+  'safe:': { warning: ['safe:proceed', 'safe:trust'], settings: ['safe:status', 'safe:update'] },
+};
+// Окремі команди без групи: назва → сторінки
 const PAGE_ONLY = {
   'settings:get': ['settings', 'help'], 'settings:set': ['settings'], defaultbrowser: ['settings'],
   'ext:add': ['settings'], 'ext:remove': ['settings'], clear: ['settings'],
@@ -152,6 +165,22 @@ const PAGE_ONLY = {
   'bookmarks:get': ['bookmarks'], 'bookmarks:remove': ['bookmarks'],
   'downloads:get': ['downloads'], 'downloads:action': ['downloads'],
 };
+// Сторінки, що відкриваються із запитом в адресі (попередження, службові); решта — лише точна адреса
+const QUERY_OK = new Set(['warning', 'history', 'bookmarks', 'downloads', 'newtab', 'reader', 'help']);
+
+function permitted(name, url) {
+  const m = PAGE_RE.exec(String(url || ''));
+  if (!m) return false;
+  const page = m[1];
+  if (m[2] && !QUERY_OK.has(page)) return false;
+  const prefix = Object.keys(POLICY).find(x => String(name).startsWith(x));
+  if (prefix) {
+    const rule = POLICY[prefix][page];
+    return rule === '*' || (Array.isArray(rule) && rule.includes(name));
+  }
+  const only = PAGE_ONLY[name];
+  return only ? only.includes(page) : true; // невідомі команди відхилить сам перемикач нижче
+}
 
 async function agentApi(ctx, name, arg) {
   const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
@@ -328,6 +357,18 @@ function registerIpc(resolve) {
     entry.win.offerSave(entry.tab, { username: data.username, password: data.password }, e.senderFrame.url);
   });
 
+  // WebAuthn недоступний у цій збірці: показуємо підказку (не частіше, ніж раз на 30 с на вікно)
+  ipcMain.on('webauthn:unsupported', (e) => {
+    const ctx = resolve(e.sender);
+    if (!ctx) return;
+    const entry = ctx.entryFor(e.sender);
+    if (!entry || !entry.tab || e.senderFrame !== e.sender.mainFrame) return;
+    const win = entry.win;
+    if (win.agent || Date.now() - (win._waToast || 0) < 30000) return;
+    win._waToast = Date.now();
+    win.toast('Passkeys і ключі безпеки поки не підтримуються в W3IR Browser: увійдіть паролем (🔑 менеджер паролів) або іншим способом.');
+  });
+
   // Команди з інтерфейсу браузера (панель вкладок / оверлей).
   ipcMain.handle('cmd', (e, cmd, arg) => {
     const ctx = resolve(e.sender);
@@ -362,52 +403,22 @@ function registerIpc(resolve) {
     }
     if (entry.win.agent) throw new Error('forbidden'); // у вікні під керуванням ШІ внутрішні сторінки не мають доступу до даних
     arg = arg || {};
-    // Менеджер паролів і синхронізація доступні лише зі своїх сторінок
-    const onPasswords = /^w3ir:\/\/passwords\/?$/.test(frame.url);
-    const onImport = /^w3ir:\/\/import\/?$/.test(frame.url);
-    const onWallet = /^w3ir:\/\/wallet\/?$/.test(frame.url);
-    if (name.startsWith('vault:') && !(onPasswords || (onImport && (name === 'vault:status' || name === 'vault:importCsv')) || (onWallet && (name === 'vault:status' || name === 'vault:unlock')))) throw new Error('forbidden');
-    if (name.startsWith('wallet:')) {
-      if (!onWallet) throw new Error('forbidden');
-      return walletApi(ctx, entry, name, arg);
-    }
-    if (name.startsWith('import:') && !onImport) throw new Error('forbidden');
-    if (name.startsWith('sites:')) {
-      if (!/^w3ir:\/\/settings\/?$/.test(frame.url)) throw new Error('forbidden');
-      return sitesApi(ctx, name, arg);
-    }
-    if (name.startsWith('safe:')) {
-      const onWarning = /^w3ir:\/\/warning\/?(\?.*)?$/.test(frame.url); // сторінка попередження відкривається з параметрами в адресі
-      const onSettings = /^w3ir:\/\/settings\/?$/.test(frame.url);
-      if (!(onWarning && (name === 'safe:proceed' || name === 'safe:trust')) && !(onSettings && (name === 'safe:status' || name === 'safe:update'))) throw new Error('forbidden');
-      return safeApi(ctx, name, arg);
-    }
-    if (name.startsWith('update:')) {
-      if (!/^w3ir:\/\/settings\/?$/.test(frame.url)) throw new Error('forbidden');
-      return updateApi(ctx, name, arg, entry);
-    }
-    if (name.startsWith('profiles:')) {
-      if (!/^w3ir:\/\/profiles\/?$/.test(frame.url)) throw new Error('forbidden');
-      return profilesApi(ctx, entry, name, arg);
-    }
+    // Єдина таблиця прав (POLICY / PAGE_ONLY): яка внутрішня сторінка може викликати яку команду
+    if (!permitted(name, frame.url)) throw new Error('forbidden');
+    if (name.startsWith('wallet:')) return walletApi(ctx, entry, name, arg);
+    if (name.startsWith('sites:')) return sitesApi(ctx, name, arg);
+    if (name.startsWith('safe:')) return safeApi(ctx, name, arg);
+    if (name.startsWith('update:')) return updateApi(ctx, name, arg, entry);
+    if (name.startsWith('profiles:')) return profilesApi(ctx, entry, name, arg);
     if (name.startsWith('import:')) return importApi(ctx, entry, name, arg);
-    if ((name.startsWith('sync:') || name.startsWith('github:')) && !/^w3ir:\/\/settings\/?$/.test(frame.url)) throw new Error('forbidden');
     if (name.startsWith('github:')) return githubApi(ctx, name, arg);
     if (name.startsWith('dashboard:')) {
-      if (!/^w3ir:\/\/dashboard\/?$/.test(frame.url)) throw new Error('forbidden');
       if (!ctx.dashboardApi) ctx.dashboardApi = require('./dashboard').createApi(ctx);
       return ctx.dashboardApi(name, arg);
     }
-    if (name.startsWith('agent:')) {
-      if (!/^w3ir:\/\/settings\/?$/.test(frame.url)) throw new Error('forbidden');
-      return agentApi(ctx, name, arg);
-    }
+    if (name.startsWith('agent:')) return agentApi(ctx, name, arg);
     if (name.startsWith('vault:')) return vaultApi(ctx, entry, name, arg);
     if (name.startsWith('sync:')) return syncApi(ctx, entry, name, arg);
-    // Спільні команди внутрішніх сторінок доступні лише тим сторінкам, яким потрібні (захист у глибину: помилка в одній
-    // внутрішній сторінці не дає доступу до налаштувань, розширень чи очищення даних)
-    const only = PAGE_ONLY[name];
-    if (only && !only.some(p => new RegExp('^w3ir://' + p + '/?(\\?.*)?$').test(frame.url))) throw new Error('forbidden');
     switch (name) {
       case 'settings:get':
         return { settings: ctx.cfg(), engines: Object.fromEntries(Object.entries(ctx.ENGINES).map(([k, v]) => [k, v.name])), incognito: entry.win.incognito, theme: (ctx.manager ? ctx.manager.ctx('default') : ctx).cfg().theme, version: app.getVersion(), adblockEngine: !!ctx.blocker, extensions: ctx.extStore.data.items };
@@ -492,4 +503,4 @@ function registerIpc(resolve) {
   });
 }
 
-module.exports = { registerIpc };
+module.exports = { registerIpc, permitted };

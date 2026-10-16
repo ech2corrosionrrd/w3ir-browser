@@ -2,7 +2,7 @@
 // Preload для вкладок (виконується в ізольованому світі, сторінка не бачить цього коду).
 //  * на внутрішніх сторінках w3ir:// — доступ до API браузера;
 //  * на https-сторінках — безпечне автозаповнення та перехоплення форм входу для менеджера паролів.
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 if (location.protocol === 'w3ir:') {
   contextBridge.exposeInMainWorld('w3ir', {
@@ -11,6 +11,24 @@ if (location.protocol === 'w3ir:') {
 }
 
 const secureContext = location.protocol === 'https:' || (location.protocol === 'http:' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1'));
+
+// WebAuthn (passkeys, Windows Hello, ключі безпеки) у цій збірці Electron недоступний: запит без відповіді висів би до таймауту
+// сайту (часто хвилину), а потім завершувався NotAllowedError. Тому відхиляємо одразу (сайт миттєво запропонує пароль)
+// і показуємо підказку. Фонові запити passkey-автозаповнення (mediation: 'conditional') не чіпаємо.
+if (secureContext && window === window.top) {
+  try {
+    webFrame.executeJavaScript(`(() => { const c = navigator.credentials; if (!c) return;
+      for (const m of ['create', 'get']) { const orig = c[m].bind(c);
+        c[m] = function (opts) {
+          if (opts && opts.publicKey && opts.mediation !== 'conditional') {
+            window.dispatchEvent(new CustomEvent('__w3ir_wa_unsupported'));
+            return Promise.reject(new DOMException('Passkeys і ключі безпеки не підтримуються в цьому браузері.', 'NotAllowedError'));
+          }
+          return orig(opts);
+        }; } })()`).catch(() => {});
+    window.addEventListener('__w3ir_wa_unsupported', () => ipcRenderer.send('webauthn:unsupported'));
+  } catch { /* не критично */ }
+}
 
 if (secureContext && window === window.top) {
   const isVisible = (el) => {
