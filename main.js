@@ -4,6 +4,13 @@ const path = require('path');
 
 app.enableSandbox(); // усі рендерери — в пісочниці
 
+// Встановлена збірка не запускається з параметрами налагодження (відкритий порт керування сторінками): див. src/launch-guard.js
+if (require('./src/launch-guard').shouldBlock({ argv: process.argv, packaged: app.isPackaged, env: process.env })) {
+  if (!process.env.W3IR_NO_DIALOG) try { require('electron').dialog.showErrorBox('W3IR Browser', 'Запуск із параметрами налагодження (--remote-debugging-port, --inspect тощо) заблоковано з міркувань безпеки.\nДля тестування встановіть змінну середовища W3IR_ALLOW_DEBUG=1.'); } catch { /* ignore */ }
+  app.exit(2);
+  return;
+}
+
 protocol.registerSchemesAsPrivileged([
   { scheme: 'w3ir', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);

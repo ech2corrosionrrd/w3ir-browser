@@ -424,6 +424,7 @@ class Agent {
     if (!c.ok) throw new Error('Ділитися можна лише веб-сторінками http(s).');
     mode = mode === 'control' ? 'control' : 'read';
     const old = this.shareOf(win, tab);
+    const keepId = old ? old.id : 0; // зміна рівня доступу лишає той самий id: дескриптор клієнта MCP не втрачається
     if (old) this.unshare(old.id, 'змінено рівень доступу');
     if (this.shares.size >= MAX_SHARES) throw new Error(`Не більше ${MAX_SHARES} спільних вкладок одночасно.`);
     const site = siteKey(c.host);
@@ -439,7 +440,7 @@ class Agent {
     });
     if (!r.approved) throw new Error('Ви відхилили спільний доступ.');
     if (!win.tabs.includes(tab) || wc.isDestroyed()) throw new Error('Вкладку закрито.');
-    const id = this.nextShare++;
+    const id = keepId || this.nextShare++;
     const sh = { id, win, tab, mode, site, sites: new Set([site]), lastAct: 0, until: Date.now() + this.shareMs, off: null, timer: null };
     const nav = (e, url) => this.shareNav(sh, e, url);
     const gone = () => this.unshare(id, 'вкладку закрито');

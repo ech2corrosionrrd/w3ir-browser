@@ -102,6 +102,10 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   await ev(ui, `api.cmd('splitNew')`); await sleep(1200);
   const splitTabs = await ev(ui, `document.querySelectorAll('.tab.split').length`);
   ok(splitTabs === 2, 'розділений екран: дві вкладки позначені', splitTabs);
+  ok(await ev(ui, `!document.getElementById('splitbar').hidden && document.getElementById('splitbar').style.height.endsWith('px')`), 'розділений екран: межа для перетягування видима');
+  await ev(ui, `api.cmd('splitDragStart')`); await sleep(300);
+  await ev(ui, `api.cmd('splitDragEnd', 0.65)`); await sleep(400);
+  ok(await ev(ui, `Math.abs(parseFloat(document.getElementById('splitbar').style.left) - 0.65 * (innerWidth - 6)) < 40`), 'розділений екран: нова пропорція після перетягування застосована');
   await ev(ui, `api.cmd('splitEnd')`); await sleep(500);
   ok(await ev(ui, `document.querySelectorAll('.tab.split').length`) === 0, 'розділений екран: закривається');
 
@@ -162,6 +166,41 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   const incogLabel = await (async () => { for (const t of await find(x => x.url === 'w3ir://ui/index.html')) { const v = await ev(t, `document.getElementById('incog') && !document.getElementById('incog').hidden ? document.getElementById('incog').textContent : ''`); if (v) return v; } return ''; })();
   ok(incogLabel === 'Керує ШІ', 'ШІ: у вікні агента значок «Керує ШІ»', incogLabel);
 
+  // ---- спільна вкладка користувача (головне вікно) ----
+  await ev(ui, `api.cmd('newTab')`); await sleep(500);
+  await ev(ui, `api.cmd('go', 'https://example.com')`);
+  await waitFor(async () => (await ev(ui, `document.querySelector('.tab.active .title') && document.querySelector('.tab.active .title').textContent`)) === 'Example Domain', 15000);
+  const activeId = await ev(ui, `Number(document.querySelector('.tab.active').dataset.id)`);
+  ok(activeId > 0, 'спільна вкладка: id активної вкладки видно в DOM', activeId);
+  await ev(ui, `api.cmd('aiShare', { id: ${activeId}, mode: 'read' })`);
+  const sh = await waitFor(async () => JSON.parse(txt(await call('browser_tabs'))).find(t => t.scope === 'shared'), 10000);
+  ok(sh && sh.mode === 'read', 'спільна вкладка: після підтвердження ШІ бачить вкладку (читання)', sh);
+  if (sh) {
+    ok(await ev(ui, `!!document.querySelector('.tab.active .ai')`), 'спільна вкладка: на вкладці значок «ШІ»');
+    r = await call('browser_read', { tab: sh.id });
+    ok(/Example Domain/.test(txt(r)), 'спільна вкладка: читання вмісту вкладки користувача');
+    r = await call('browser_snapshot', { tab: sh.id });
+    const sitems = JSON.parse(txt(r).split('\n').pop());
+    const link = sitems.find(i => i.tag === 'a');
+    r = await call('browser_click', { ref: link.ref, tab: sh.id });
+    ok(r.isError && /лише для читання/.test(txt(r)), 'спільна вкладка: у режимі читання клік відхиляється');
+    await ev(ui, `api.cmd('aiShare', { id: ${activeId}, mode: 'control' })`);
+    const up = await waitFor(async () => JSON.parse(txt(await call('browser_tabs'))).find(t => t.scope === 'shared' && t.mode === 'control'), 10000);
+    ok(up && up.id === sh.id, 'спільна вкладка: зміна рівня доступу лишає той самий id', up);
+    r = await call('browser_snapshot', { tab: sh.id });
+    const l2 = JSON.parse(txt(r).split('\n').pop()).find(i => i.tag === 'a');
+    await call('browser_click', { ref: l2.ref, tab: sh.id });
+    const moved = await waitFor(async () => (await find(t => /^https:\/\/(www\.)?iana\.org/.test(t.url)))[0], 12000);
+    ok(!!moved && approvals.some(a => /iana\.org/.test(a)), 'спільна вкладка: у режимі керування клік виконано; перехід на інший сайт пройшов через підтвердження', approvals.slice(-3));
+    await ev(ui, `api.cmd('aiUnshare', ${activeId})`); await sleep(500);
+    ok(!JSON.parse(txt(await call('browser_tabs'))).some(t => t.scope === 'shared'), 'спільна вкладка: «припинити» одразу знімає доступ');
+  }
+
+  // ---- темна тема ----
+  await ev(settings, `w3ir.invoke('settings:set', { theme: 'dark' })`); await sleep(1500);
+  const bgUi = await ev(ui, `getComputedStyle(document.body).backgroundColor`);
+  ok(bgUi === 'rgb(20, 18, 47)', 'дизайн: темна тема — фон інтерфейсу індиго (#14122F)', bgUi);
+  await shot(ui, 'i-dark-ui');
   await sleep(500);
   stop = true;
   const mainUi = (await find(t => t.url === 'w3ir://ui/index.html'))[0];
