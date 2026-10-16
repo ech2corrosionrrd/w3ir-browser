@@ -1,5 +1,6 @@
 'use strict';
 const { app, shell, dialog, BrowserWindow } = require('electron');
+const { t: tr } = require('./i18n');
 const path = require('path');
 const fs = require('fs');
 const { randomUUID } = require('crypto');
@@ -78,9 +79,9 @@ class Downloads {
     const cfg = this.ctx.cfg();
     if (cfg.torrentConfirm) {
       const opts = {
-        type: 'question', buttons: ['Відкрити в торент-клієнті', 'Залишити файл'], defaultId: 1, cancelId: 1,
-        message: 'Завантажено .torrent-файл', detail: `${path.basename(file)}\n\nПід час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам.`,
-        checkboxLabel: 'Більше не питати',
+        type: 'question', buttons: [tr('Відкрити в торент-клієнті'), tr('Залишити файл')], defaultId: 1, cancelId: 1,
+        message: tr('Завантажено .torrent-файл'), detail: tr('{0}\n\nПід час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам.', path.basename(file)),
+        checkboxLabel: tr('Більше не питати'),
       };
       const parent = BrowserWindow.getFocusedWindow();
       const r = parent ? await dialog.showMessageBox(parent, opts) : await dialog.showMessageBox(opts);
@@ -109,9 +110,9 @@ class Downloads {
     if (!Downloads.isRisky(rec.filename) && !Downloads.isRisky(rec.path)) return true;
     const parent = BrowserWindow.getFocusedWindow();
     const opts = {
-      type: 'warning', buttons: ['Запустити', 'Скасувати'], defaultId: 1, cancelId: 1, title: 'Запуск файлу',
-      message: `Файл «${String(rec.filename || '').slice(0, 80)}» може запустити програму на вашому комп’ютері.`,
-      detail: 'Запускайте лише файли, яким довіряєте і які завантажили з надійного джерела. Шкідливі програми часто видають себе за документи й інсталятори.',
+      type: 'warning', buttons: [tr('Запустити'), tr('Скасувати')], defaultId: 1, cancelId: 1, title: tr('Запуск файлу'),
+      message: tr('Файл «{0}» може запустити програму на вашому комп’ютері.', String(rec.filename || '').slice(0, 80)),
+      detail: tr('Запускайте лише файли, яким довіряєте і які завантажили з надійного джерела. Шкідливі програми часто видають себе за документи й інсталятори.'),
     };
     const r = parent ? await dialog.showMessageBox(parent, opts) : await dialog.showMessageBox(opts);
     return r.response === 0;

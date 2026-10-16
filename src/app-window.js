@@ -1,5 +1,6 @@
 'use strict';
 const { BrowserWindow, WebContentsView, Menu, clipboard, shell, dialog, app } = require('electron');
+const { t: tr } = require('./i18n');
 const { normOrigin } = require('./vault');
 const { githubRepo, HTML_URL } = require('./github');
 const { ASK } = require('./context');
@@ -197,7 +198,7 @@ class AppWindow {
         const sl = t.sleep;
         return {
           id: t.id,
-          title: (sl ? sl.title : wc.getTitle()) || (isBlankUrl(this.tabUrl(t)) ? 'Нова вкладка' : url || 'Завантаження…'),
+          title: (sl ? sl.title : wc.getTitle()) || (isBlankUrl(this.tabUrl(t)) ? tr('Нова вкладка') : url || tr('Завантаження…')),
           url,
           favicon: sl ? sl.favicon : t.favicon,
           loading: !sl && wc.isLoading(),
@@ -368,8 +369,8 @@ class AppWindow {
     const client = app.getApplicationNameForProtocol('magnet:');
     if (!client) {
       dialog.showMessageBox(this.win, {
-        type: 'info', buttons: ['OK'], message: 'Торент-клієнт не знайдено',
-        detail: 'Встановіть торент-клієнт (наприклад, qBittorrent або Transmission) — і magnet-посилання відкриватимуться в ньому.',
+        type: 'info', buttons: ['OK'], message: tr('Торент-клієнт не знайдено'),
+        detail: tr('Встановіть торент-клієнт (наприклад, qBittorrent або Transmission) — і magnet-посилання відкриватимуться в ньому.'),
       }).catch(() => {});
       return;
     }
@@ -378,10 +379,10 @@ class AppWindow {
     try { name = new URL(url).searchParams.get('dn') || ''; } catch {}
     if (cfg.torrentConfirm) {
       const r = await dialog.showMessageBox(this.win, {
-        type: 'question', buttons: [`Відкрити в ${client}`, 'Скасувати'], defaultId: 1, cancelId: 1,
-        message: 'Відкрити magnet-посилання у торент-клієнті?',
-        detail: `${name ? name.slice(0, 200) + '\n\n' : ''}Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам. Завантажуйте лише те, на що маєте право.`,
-        checkboxLabel: 'Більше не питати',
+        type: 'question', buttons: [tr('Відкрити в {0}', client), tr('Скасувати')], defaultId: 1, cancelId: 1,
+        message: tr('Відкрити magnet-посилання у торент-клієнті?'),
+        detail: tr('{0}Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам. Завантажуйте лише те, на що маєте право.', name ? name.slice(0, 200) + '\n\n' : ''),
+        checkboxLabel: tr('Більше не питати'),
       });
       if (r.response !== 0) return;
       if (r.checkboxChecked) { cfg.torrentConfirm = false; this.ctx.settingsStore.save(); }
@@ -395,8 +396,8 @@ class AppWindow {
     if (this._extAsk) return; // одне вікно підтвердження за раз: сторінка не може засипати діалогами
     this._extAsk = true;
     dialog.showMessageBox(this.win, {
-      type: 'question', buttons: ['Відкрити', 'Скасувати'], defaultId: 1, cancelId: 1,
-      message: 'Відкрити зовнішню програму?', detail: url.slice(0, 200),
+      type: 'question', buttons: [tr('Відкрити'), tr('Скасувати')], defaultId: 1, cancelId: 1,
+      message: tr('Відкрити зовнішню програму?'), detail: url.slice(0, 200),
     }).then(r => { if (r.response === 0) shell.openExternal(url); }).catch(() => {}).finally(() => { this._extAsk = false; });
   }
 
@@ -760,20 +761,20 @@ class AppWindow {
     const base = `https://github.com/${gr.owner}/${gr.repo}`;
     const name = `${gr.owner}/${gr.repo}`;
     const cmds = [
-      { label: `GitHub: копіювати git clone (HTTPS) — ${name}`, cmd: 'copyText', arg: `git clone ${base}.git` },
-      { label: `GitHub: копіювати git clone (SSH) — ${name}`, cmd: 'copyText', arg: `git clone git@github.com:${gr.owner}/${gr.repo}.git` },
-      { label: `GitHub: завантажити ZIP — ${name}`, cmd: 'downloadUrl', arg: `${base}/archive/HEAD.zip` },
-      { label: `GitHub: відкрити в github.dev (редактор) — ${name}`, cmd: 'newTabUrl', arg: `https://github.dev/${gr.owner}/${gr.repo}` },
+      { label: tr('GitHub: копіювати git clone (HTTPS) — {0}', name), cmd: 'copyText', arg: `git clone ${base}.git` },
+      { label: tr('GitHub: копіювати git clone (SSH) — {0}', name), cmd: 'copyText', arg: `git clone git@github.com:${gr.owner}/${gr.repo}.git` },
+      { label: tr('GitHub: завантажити ZIP — {0}', name), cmd: 'downloadUrl', arg: `${base}/archive/HEAD.zip` },
+      { label: tr('GitHub: відкрити в github.dev (редактор) — {0}', name), cmd: 'newTabUrl', arg: `https://github.dev/${gr.owner}/${gr.repo}` },
       { label: `GitHub: Issues — ${name}`, cmd: 'newTabUrl', arg: `${base}/issues` },
       { label: `GitHub: Pull requests — ${name}`, cmd: 'newTabUrl', arg: `${base}/pulls` },
       { label: `GitHub: Actions — ${name}`, cmd: 'newTabUrl', arg: `${base}/actions` },
       { label: `GitHub: Releases — ${name}`, cmd: 'newTabUrl', arg: `${base}/releases` },
-      { label: `GitHub: відкрити в GitHub Desktop — ${name}`, cmd: 'externalUrl', arg: `x-github-client://openRepo/${base}` },
-      { label: `GitHub: відкрити у VS Code — ${name}`, cmd: 'externalUrl', arg: `vscode://vscode.git/clone?url=${encodeURIComponent(base + '.git')}` },
+      { label: tr('GitHub: відкрити в GitHub Desktop — {0}', name), cmd: 'externalUrl', arg: `x-github-client://openRepo/${base}` },
+      { label: tr('GitHub: відкрити у VS Code — {0}', name), cmd: 'externalUrl', arg: `vscode://vscode.git/clone?url=${encodeURIComponent(base + '.git')}` },
     ];
     if (gr.kind === 'blob' && gr.rest.length >= 2) {
       const [branch, ...file] = gr.rest;
-      cmds.unshift({ label: 'GitHub: відкрити Raw-файл', cmd: 'newTabUrl', arg: `https://raw.githubusercontent.com/${gr.owner}/${gr.repo}/${branch}/${file.join('/')}` });
+      cmds.unshift({ label: tr('GitHub: відкрити Raw-файл'), cmd: 'newTabUrl', arg: `https://raw.githubusercontent.com/${gr.owner}/${gr.repo}/${branch}/${file.join('/')}` });
     }
     return cmds;
   }
@@ -783,44 +784,44 @@ class AppWindow {
     const ad = this.ctx.cfg().adblock;
     return [
       ...this.githubCommands(),
-      { label: 'Нова вкладка', hint: 'Ctrl+T', cmd: 'newTab' },
-      { label: 'Нове вікно', hint: 'Ctrl+N', cmd: 'newWindow' },
-      { label: 'Нове вікно інкогніто', hint: 'Ctrl+Shift+N', cmd: 'newIncognito' },
+      { label: tr('Нова вкладка'), hint: 'Ctrl+T', cmd: 'newTab' },
+      { label: tr('Нове вікно'), hint: 'Ctrl+N', cmd: 'newWindow' },
+      { label: tr('Нове вікно інкогніто'), hint: 'Ctrl+Shift+N', cmd: 'newIncognito' },
       ...this.splitCommands(),
       ...this.aiCommands(),
-      { label: 'Закрити вкладку', hint: 'Ctrl+W', cmd: 'closeTab', arg: this.activeId },
-      { label: 'Відновити закриту вкладку', hint: 'Ctrl+Shift+T', cmd: 'reopenClosed' },
-      { label: 'Закріпити / відкріпити вкладку', cmd: 'pinTab', arg: this.activeId },
-      { label: 'Дублювати вкладку', cmd: 'duplicateTab', arg: this.activeId },
-      ...(this.tabs.length > 1 && !this.incognito && !this.agent ? [{ label: 'Перемістити вкладку в нове вікно', cmd: 'tabToWindow', arg: { id: this.activeId } }] : []),
-      ...(this.active() && this.active().group && this.groupTabs(this.active().group).length > 1 ? [{ label: 'Закрити інші вкладки групи', cmd: 'closeOthersInGroup', arg: this.activeId }] : []),
-      { label: 'Нова група з поточної вкладки', cmd: 'groupNew', arg: this.activeId },
-      ...this.groupList().map(g => ({ label: `Перейти до групи «${g.name || 'Без назви'}»`, cmd: 'groupFocus', arg: g.id })),
-      { label: 'Режим читання', hint: 'Ctrl+Shift+R', cmd: 'reader' },
-      { label: vert ? 'Горизонтальні вкладки' : 'Вертикальні вкладки', cmd: 'toggleVertical' },
-      { label: ad ? 'Вимкнути блокування реклами' : 'Увімкнути блокування реклами', cmd: 'toggleAdblock' },
-      { label: 'Закладка для цієї сторінки', hint: 'Ctrl+D', cmd: 'bookmark' },
-      { label: 'Знайти на сторінці', hint: 'Ctrl+F', cmd: 'find' },
-      { label: 'Закладки', hint: 'Ctrl+Shift+O', cmd: 'openPage', arg: 'bookmarks' },
-      { label: 'Історія', hint: 'Ctrl+H', cmd: 'openPage', arg: 'history' },
-      { label: 'Завантаження', hint: 'Ctrl+J', cmd: 'openPage', arg: 'downloads' },
-      { label: 'Менеджер паролів', cmd: 'openPage', arg: 'passwords' },
-      { label: 'Панель (стан браузера)', cmd: 'openPage', arg: 'dashboard' },
-      { label: 'Гаманець (Web3)', cmd: 'openPage', arg: 'wallet' },
-      { label: 'Імпорт з Chrome / Firefox', cmd: 'openPage', arg: 'import' },
-      { label: 'Керування профілями', cmd: 'openPage', arg: 'profiles' },
-      ...(this.ctx.manager ? this.ctx.manager.list().filter(p => p.id !== this.ctx.id).map(p => ({ label: `Перейти до профілю «${p.name}»`, cmd: 'openProfile', arg: p.id })) : []),
-      { label: 'Заблокувати сховище паролів', cmd: 'vaultLock' },
-      { label: 'Налаштування', cmd: 'openPage', arg: 'settings' },
-      { label: 'Збільшити масштаб', hint: 'Ctrl++', cmd: 'zoomIn' },
-      { label: 'Зменшити масштаб', hint: 'Ctrl+−', cmd: 'zoomOut' },
-      { label: 'Скинути масштаб', hint: 'Ctrl+0', cmd: 'zoomReset' },
-      { label: 'Друк…', hint: 'Ctrl+P', cmd: 'print' },
-      { label: 'На весь екран', hint: 'F11', cmd: 'fullscreen' },
-      { label: 'Інструменти розробника', hint: 'F12', cmd: 'devtools' },
-      { label: 'Довідка', hint: 'F1', cmd: 'openPage', arg: 'help' },
-      ...(this.agentOn() ? [{ label: 'Зупинити керування браузером ШІ', cmd: 'agentStop' }] : []),
-      { label: 'Вийти', cmd: 'quit' },
+      { label: tr('Закрити вкладку'), hint: 'Ctrl+W', cmd: 'closeTab', arg: this.activeId },
+      { label: tr('Відновити закриту вкладку'), hint: 'Ctrl+Shift+T', cmd: 'reopenClosed' },
+      { label: tr('Закріпити / відкріпити вкладку'), cmd: 'pinTab', arg: this.activeId },
+      { label: tr('Дублювати вкладку'), cmd: 'duplicateTab', arg: this.activeId },
+      ...(this.tabs.length > 1 && !this.incognito && !this.agent ? [{ label: tr('Перемістити вкладку в нове вікно'), cmd: 'tabToWindow', arg: { id: this.activeId } }] : []),
+      ...(this.active() && this.active().group && this.groupTabs(this.active().group).length > 1 ? [{ label: tr('Закрити інші вкладки групи'), cmd: 'closeOthersInGroup', arg: this.activeId }] : []),
+      { label: tr('Нова група з поточної вкладки'), cmd: 'groupNew', arg: this.activeId },
+      ...this.groupList().map(g => ({ label: tr('Перейти до групи «{0}»', g.name || 'Без назви'), cmd: 'groupFocus', arg: g.id })),
+      { label: tr('Режим читання'), hint: 'Ctrl+Shift+R', cmd: 'reader' },
+      { label: vert ? tr('Горизонтальні вкладки') : tr('Вертикальні вкладки'), cmd: 'toggleVertical' },
+      { label: ad ? tr('Вимкнути блокування реклами') : tr('Увімкнути блокування реклами'), cmd: 'toggleAdblock' },
+      { label: tr('Закладка для цієї сторінки'), hint: 'Ctrl+D', cmd: 'bookmark' },
+      { label: tr('Знайти на сторінці'), hint: 'Ctrl+F', cmd: 'find' },
+      { label: tr('Закладки'), hint: 'Ctrl+Shift+O', cmd: 'openPage', arg: 'bookmarks' },
+      { label: tr('Історія'), hint: 'Ctrl+H', cmd: 'openPage', arg: 'history' },
+      { label: tr('Завантаження'), hint: 'Ctrl+J', cmd: 'openPage', arg: 'downloads' },
+      { label: tr('Менеджер паролів'), cmd: 'openPage', arg: 'passwords' },
+      { label: tr('Панель (стан браузера)'), cmd: 'openPage', arg: 'dashboard' },
+      { label: tr('Гаманець (Web3)'), cmd: 'openPage', arg: 'wallet' },
+      { label: tr('Імпорт з Chrome / Firefox'), cmd: 'openPage', arg: 'import' },
+      { label: tr('Керування профілями'), cmd: 'openPage', arg: 'profiles' },
+      ...(this.ctx.manager ? this.ctx.manager.list().filter(p => p.id !== this.ctx.id).map(p => ({ label: tr('Перейти до профілю «{0}»', p.name), cmd: 'openProfile', arg: p.id })) : []),
+      { label: tr('Заблокувати сховище паролів'), cmd: 'vaultLock' },
+      { label: tr('Налаштування'), cmd: 'openPage', arg: 'settings' },
+      { label: tr('Збільшити масштаб'), hint: 'Ctrl++', cmd: 'zoomIn' },
+      { label: tr('Зменшити масштаб'), hint: 'Ctrl+−', cmd: 'zoomOut' },
+      { label: tr('Скинути масштаб'), hint: 'Ctrl+0', cmd: 'zoomReset' },
+      { label: tr('Друк…'), hint: 'Ctrl+P', cmd: 'print' },
+      { label: tr('На весь екран'), hint: 'F11', cmd: 'fullscreen' },
+      { label: tr('Інструменти розробника'), hint: 'F12', cmd: 'devtools' },
+      { label: tr('Довідка'), hint: 'F1', cmd: 'openPage', arg: 'help' },
+      ...(this.agentOn() ? [{ label: tr('Зупинити керування браузером ШІ'), cmd: 'agentStop' }] : []),
+      { label: tr('Вийти'), cmd: 'quit' },
     ];
   }
 
@@ -829,35 +830,35 @@ class AppWindow {
     const zoom = wc ? Math.round(Math.pow(1.2, wc.getZoomLevel()) * 100) : 100;
     const up = this.ctx.manager && this.ctx.manager.updater ? this.ctx.manager.updater.brief() : null;
     return [
-      ...(up && up.state === 'ready' ? [{ label: `Оновити браузер до ${up.version} (перезапуск)`, cmd: 'updateInstall' }, { sep: true }] : []),
-      { label: 'Нова вкладка', hint: 'Ctrl+T', cmd: 'newTab' },
-      { label: 'Нове вікно', hint: 'Ctrl+N', cmd: 'newWindow' },
-      { label: 'Нове вікно інкогніто', hint: 'Ctrl+Shift+N', cmd: 'newIncognito' },
-      { label: 'Профілі…', cmd: 'openPage', arg: 'profiles' },
+      ...(up && up.state === 'ready' ? [{ label: tr('Оновити браузер до {0} (перезапуск)', up.version), cmd: 'updateInstall' }, { sep: true }] : []),
+      { label: tr('Нова вкладка'), hint: 'Ctrl+T', cmd: 'newTab' },
+      { label: tr('Нове вікно'), hint: 'Ctrl+N', cmd: 'newWindow' },
+      { label: tr('Нове вікно інкогніто'), hint: 'Ctrl+Shift+N', cmd: 'newIncognito' },
+      { label: tr('Профілі…'), cmd: 'openPage', arg: 'profiles' },
       { sep: true },
-      { label: 'Пошук по вкладках і командах', hint: 'Ctrl+K', cmd: 'palette' },
-      { label: 'Режим читання', hint: 'Ctrl+Shift+R', cmd: 'reader' },
-      { label: this.vertical() ? 'Горизонтальні вкладки' : 'Вертикальні вкладки', cmd: 'toggleVertical' },
+      { label: tr('Пошук по вкладках і командах'), hint: 'Ctrl+K', cmd: 'palette' },
+      { label: tr('Режим читання'), hint: 'Ctrl+Shift+R', cmd: 'reader' },
+      { label: this.vertical() ? tr('Горизонтальні вкладки') : tr('Вертикальні вкладки'), cmd: 'toggleVertical' },
       { sep: true },
-      { label: 'Закладки', hint: 'Ctrl+Shift+O', cmd: 'openPage', arg: 'bookmarks' },
-      { label: 'Історія', hint: 'Ctrl+H', cmd: 'openPage', arg: 'history' },
-      { label: 'Завантаження', hint: 'Ctrl+J', cmd: 'openPage', arg: 'downloads' },
-      { label: 'Менеджер паролів', cmd: 'openPage', arg: 'passwords' },
-      { label: 'Панель (стан браузера)', cmd: 'openPage', arg: 'dashboard' },
-      { label: 'Гаманець (Web3)', cmd: 'openPage', arg: 'wallet' },
+      { label: tr('Закладки'), hint: 'Ctrl+Shift+O', cmd: 'openPage', arg: 'bookmarks' },
+      { label: tr('Історія'), hint: 'Ctrl+H', cmd: 'openPage', arg: 'history' },
+      { label: tr('Завантаження'), hint: 'Ctrl+J', cmd: 'openPage', arg: 'downloads' },
+      { label: tr('Менеджер паролів'), cmd: 'openPage', arg: 'passwords' },
+      { label: tr('Панель (стан браузера)'), cmd: 'openPage', arg: 'dashboard' },
+      { label: tr('Гаманець (Web3)'), cmd: 'openPage', arg: 'wallet' },
       { sep: true },
-      { label: 'Збільшити', hint: 'Ctrl++', cmd: 'zoomIn' },
-      { label: 'Зменшити', hint: 'Ctrl+−', cmd: 'zoomOut' },
-      { label: `Скинути масштаб (${zoom}%)`, hint: 'Ctrl+0', cmd: 'zoomReset' },
-      { label: 'Знайти на сторінці', hint: 'Ctrl+F', cmd: 'find' },
-      { label: 'Друк…', hint: 'Ctrl+P', cmd: 'print' },
-      { label: 'На весь екран', hint: 'F11', cmd: 'fullscreen' },
-      { label: 'Інструменти розробника', hint: 'F12', cmd: 'devtools' },
+      { label: tr('Збільшити'), hint: 'Ctrl++', cmd: 'zoomIn' },
+      { label: tr('Зменшити'), hint: 'Ctrl+−', cmd: 'zoomOut' },
+      { label: tr('Скинути масштаб ({0}%)', zoom), hint: 'Ctrl+0', cmd: 'zoomReset' },
+      { label: tr('Знайти на сторінці'), hint: 'Ctrl+F', cmd: 'find' },
+      { label: tr('Друк…'), hint: 'Ctrl+P', cmd: 'print' },
+      { label: tr('На весь екран'), hint: 'F11', cmd: 'fullscreen' },
+      { label: tr('Інструменти розробника'), hint: 'F12', cmd: 'devtools' },
       { sep: true },
-      { label: 'Імпорт з Chrome / Firefox', cmd: 'openPage', arg: 'import' },
-      { label: 'Налаштування', cmd: 'openPage', arg: 'settings' },
-      { label: 'Довідка', hint: 'F1', cmd: 'openPage', arg: 'help' },
-      { label: 'Вийти', cmd: 'quit' },
+      { label: tr('Імпорт з Chrome / Firefox'), cmd: 'openPage', arg: 'import' },
+      { label: tr('Налаштування'), cmd: 'openPage', arg: 'settings' },
+      { label: tr('Довідка'), hint: 'F1', cmd: 'openPage', arg: 'help' },
+      { label: tr('Вийти'), cmd: 'quit' },
     ];
   }
 
@@ -890,18 +891,18 @@ class AppWindow {
     if (!t) return;
     const i = this.tabs.indexOf(t);
     Menu.buildFromTemplate([
-      { label: t.pinned ? 'Відкріпити вкладку' : 'Закріпити вкладку', click: () => this.exec('pinTab', id) },
-      { label: t.view.webContents.isAudioMuted() ? 'Увімкнути звук' : 'Вимкнути звук', click: () => this.exec('muteTab', id) },
-      { label: 'Дублювати', click: () => this.exec('duplicateTab', id) },
-      { label: 'Перемістити в нове вікно', enabled: this.tabs.length > 1 && !this.incognito && !this.agent, click: () => this.exec('tabToWindow', { id }) },
-      { label: 'Приспати вкладку', enabled: id !== this.activeId && isWebUrl(this.tabUrl(t)) && !t.sleep, click: () => this.sleepTab(t) },
+      { label: t.pinned ? tr('Відкріпити вкладку') : tr('Закріпити вкладку'), click: () => this.exec('pinTab', id) },
+      { label: t.view.webContents.isAudioMuted() ? tr('Увімкнути звук') : tr('Вимкнути звук'), click: () => this.exec('muteTab', id) },
+      { label: tr('Дублювати'), click: () => this.exec('duplicateTab', id) },
+      { label: tr('Перемістити в нове вікно'), enabled: this.tabs.length > 1 && !this.incognito && !this.agent, click: () => this.exec('tabToWindow', { id }) },
+      { label: tr('Приспати вкладку'), enabled: id !== this.activeId && isWebUrl(this.tabUrl(t)) && !t.sleep, click: () => this.sleepTab(t) },
       { type: 'separator' },
       ...(t.pinned ? [] : [...this.tabGroupMenuItems(t), { type: 'separator' }]),
       ...this.splitMenuItems(t),
       ...this.aiMenuItems(t),
-      { label: 'Закрити', click: () => this.closeTab(id) },
-      { label: 'Закрити інші', enabled: this.tabs.length > 1, click: () => this.exec('closeOthers', id) },
-      { label: 'Закрити вкладки праворуч', enabled: i < this.tabs.length - 1, click: () => this.exec('closeRight', id) },
+      { label: tr('Закрити'), click: () => this.closeTab(id) },
+      { label: tr('Закрити інші'), enabled: this.tabs.length > 1, click: () => this.exec('closeOthers', id) },
+      { label: tr('Закрити вкладки праворуч'), enabled: i < this.tabs.length - 1, click: () => this.exec('closeRight', id) },
     ]).popup({ window: this.win });
   }
 
@@ -915,43 +916,43 @@ class AppWindow {
       if (t.length) t.push({ type: 'separator' });
     }
     if (p.linkURL) {
-      t.push({ label: 'Відкрити посилання в новій вкладці', click: () => this.createTab(p.linkURL, { activate: false }) });
-      t.push({ label: 'Відкрити посилання в інкогніто', click: () => this.ctx.openWindow({ incognito: true, urls: [p.linkURL] }) });
-      t.push({ label: 'Копіювати адресу посилання', click: () => clipboard.writeText(p.linkURL) });
+      t.push({ label: tr('Відкрити посилання в новій вкладці'), click: () => this.createTab(p.linkURL, { activate: false }) });
+      t.push({ label: tr('Відкрити посилання в інкогніто'), click: () => this.ctx.openWindow({ incognito: true, urls: [p.linkURL] }) });
+      t.push({ label: tr('Копіювати адресу посилання'), click: () => clipboard.writeText(p.linkURL) });
       t.push({ type: 'separator' });
     }
     if (p.mediaType === 'image' && p.srcURL) {
-      t.push({ label: 'Відкрити зображення в новій вкладці', click: () => this.createTab(p.srcURL, { activate: false }) });
-      t.push({ label: 'Зберегти зображення як…', click: () => wc.downloadURL(p.srcURL) });
-      t.push({ label: 'Копіювати зображення', click: () => wc.copyImageAt(p.x, p.y) });
-      t.push({ label: 'Копіювати адресу зображення', click: () => clipboard.writeText(p.srcURL) });
+      t.push({ label: tr('Відкрити зображення в новій вкладці'), click: () => this.createTab(p.srcURL, { activate: false }) });
+      t.push({ label: tr('Зберегти зображення як…'), click: () => wc.downloadURL(p.srcURL) });
+      t.push({ label: tr('Копіювати зображення'), click: () => wc.copyImageAt(p.x, p.y) });
+      t.push({ label: tr('Копіювати адресу зображення'), click: () => clipboard.writeText(p.srcURL) });
       t.push({ type: 'separator' });
     }
     if (p.isEditable) {
-      t.push({ role: 'undo', label: 'Скасувати' }, { role: 'redo', label: 'Повторити' }, { type: 'separator' });
-      t.push({ role: 'cut', label: 'Вирізати' }, { role: 'copy', label: 'Копіювати' }, { role: 'paste', label: 'Вставити' });
-      t.push({ role: 'selectAll', label: 'Виділити все' });
+      t.push({ role: 'undo', label: tr('Скасувати') }, { role: 'redo', label: tr('Повторити') }, { type: 'separator' });
+      t.push({ role: 'cut', label: tr('Вирізати') }, { role: 'copy', label: tr('Копіювати') }, { role: 'paste', label: tr('Вставити') });
+      t.push({ role: 'selectAll', label: tr('Виділити все') });
     } else if (p.selectionText) {
-      t.push({ role: 'copy', label: 'Копіювати' });
+      t.push({ role: 'copy', label: tr('Копіювати') });
       const sel = p.selectionText.trim();
       const short = sel.length > 30 ? sel.slice(0, 30) + '…' : sel;
       t.push({
-        label: `Шукати «${short}» (${engine.name})`,
+        label: tr('Шукати «{0}» ({1})', short, engine.name),
         click: () => this.createTab(engine.url.replace('%s', encodeURIComponent(sel))),
       });
     } else if (!p.linkURL && p.mediaType !== 'image') {
-      t.push({ label: 'Назад', enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() });
-      t.push({ label: 'Вперед', enabled: wc.navigationHistory.canGoForward(), click: () => wc.navigationHistory.goForward() });
-      t.push({ label: 'Оновити', click: () => this.exec('reload') });
+      t.push({ label: tr('Назад'), enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() });
+      t.push({ label: tr('Вперед'), enabled: wc.navigationHistory.canGoForward(), click: () => wc.navigationHistory.goForward() });
+      t.push({ label: tr('Оновити'), click: () => this.exec('reload') });
       t.push({ type: 'separator' });
-      t.push({ label: 'Зберегти як закладку', click: () => this.exec('bookmark') });
-      t.push({ label: 'Режим читання', enabled: isWebUrl(this.tabUrl(tab)), click: () => this.openReader() });
-      t.push({ label: 'Друк…', click: () => wc.print() });
+      t.push({ label: tr('Зберегти як закладку'), click: () => this.exec('bookmark') });
+      t.push({ label: tr('Режим читання'), enabled: isWebUrl(this.tabUrl(tab)), click: () => this.openReader() });
+      t.push({ label: tr('Друк…'), click: () => wc.print() });
       const url = this.tabUrl(tab);
-      if (isWebUrl(url)) t.push({ label: 'Переглянути код сторінки', click: () => this.createTab('view-source:' + url) });
+      if (isWebUrl(url)) t.push({ label: tr('Переглянути код сторінки'), click: () => this.createTab('view-source:' + url) });
     }
     t.push({ type: 'separator' });
-    t.push({ label: 'Дослідити елемент', click: () => wc.inspectElement(p.x, p.y) });
+    t.push({ label: tr('Дослідити елемент'), click: () => wc.inspectElement(p.x, p.y) });
     Menu.buildFromTemplate(t).popup({ window: this.win });
   }
 
@@ -1102,9 +1103,9 @@ class AppWindow {
         const up = ctx.manager && ctx.manager.updater;
         if (!up || up.state.state !== 'ready') break;
         dialog.showMessageBox(this.win, {
-          type: 'question', buttons: ['Оновити та перезапустити', 'Пізніше'], defaultId: 0, cancelId: 1,
-          message: `Встановити оновлення ${up.state.version}?`,
-          detail: 'Браузер закриється, і приблизно за 30 секунд нова версія встановиться та запуститься сама (під час встановлення вікон не буде — не відкривайте браузер вручну). Вкладки можна відновити через «При запуску → Відновити попередню сесію». Оновлення перевірено підписом випускача.',
+          type: 'question', buttons: [tr('Оновити та перезапустити'), tr('Пізніше')], defaultId: 0, cancelId: 1,
+          message: tr('Встановити оновлення {0}?', up.state.version),
+          detail: tr('Браузер закриється, і приблизно за 30 секунд нова версія встановиться та запуститься сама (під час встановлення вікон не буде — не відкривайте браузер вручну). Вкладки можна відновити через «При запуску → Відновити попередню сесію». Оновлення перевірено підписом випускача.'),
         }).then(r => { if (r.response === 0) up.install(); }).catch(() => {});
         break;
       }

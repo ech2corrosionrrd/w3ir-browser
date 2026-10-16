@@ -1,4 +1,5 @@
 'use strict';
+const { t: tr } = require('./i18n');
 // Розділений екран (дві вкладки поруч) і вихід із повноекранного режиму сайту.
 
 // Методи змішуються в прототип AppWindow
@@ -52,19 +53,19 @@ const methods = {
 
   splitMenuItems(t) {
     if (this.agent) return [];
-    if (this.split) return (t.id === this.split.a || t.id === this.split.b) ? [{ label: 'Закрити розділений екран', click: () => this.exec('splitEnd') }] : [];
-    return t.id !== this.activeId ? [{ label: 'Показати поруч з активною вкладкою', click: () => this.exec('splitWith', t.id) }] : [];
+    if (this.split) return (t.id === this.split.a || t.id === this.split.b) ? [{ label: tr('Закрити розділений екран'), click: () => this.exec('splitEnd') }] : [];
+    return t.id !== this.activeId ? [{ label: tr('Показати поруч з активною вкладкою'), click: () => this.exec('splitWith', t.id) }] : [];
   },
 
   splitCommands() {
     if (this.agent) return [];
-    if (!this.split) return [{ label: 'Розділений екран: нова вкладка поруч', cmd: 'splitNew' }];
+    if (!this.split) return [{ label: tr('Розділений екран: нова вкладка поруч'), cmd: 'splitNew' }];
     return [
-      { label: 'Закрити розділений екран', cmd: 'splitEnd' },
-      { label: 'Розділений екран: поміняти панелі місцями', cmd: 'splitSwap' },
-      { label: 'Розділений екран: пропорція 50 / 50', cmd: 'splitRatio', arg: 0.5 },
-      { label: 'Розділений екран: ширша ліва панель (60 / 40)', cmd: 'splitRatio', arg: 0.6 },
-      { label: 'Розділений екран: ширша права панель (40 / 60)', cmd: 'splitRatio', arg: 0.4 },
+      { label: tr('Закрити розділений екран'), cmd: 'splitEnd' },
+      { label: tr('Розділений екран: поміняти панелі місцями'), cmd: 'splitSwap' },
+      { label: tr('Розділений екран: пропорція 50 / 50'), cmd: 'splitRatio', arg: 0.5 },
+      { label: tr('Розділений екран: ширша ліва панель (60 / 40)'), cmd: 'splitRatio', arg: 0.6 },
+      { label: tr('Розділений екран: ширша права панель (40 / 60)'), cmd: 'splitRatio', arg: 0.4 },
     ];
   },
 };

@@ -28,18 +28,22 @@ function entry(it) {
 
 function shortcutsTable() {
   const rows = [];
-  for (const [k, v] of SHORTCUTS) {
+  for (const [k, v] of SHORTCUTS_T) {
     if (v === null) rows.push(h('tr', null, h('td', { colSpan: 2, style: 'font-weight:600;background:var(--bg)' }, k)));
     else rows.push(h('tr', null, h('td', null, ...k.split(' / ').flatMap((x, i) => [i ? ' / ' : '', h('span', { class: 'kbd' }, x)])), h('td', null, v)));
   }
   return h('table', { class: 'keys' }, ...rows);
 }
 
+// Довідка перекладається на рівні даних (розмітка **…**, `…`, [..](..) не розбивається на вузли DOM)
+const trAll = (v) => typeof v === 'string' ? t(v) : Array.isArray(v) ? v.map(trAll) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === 'id' || k === 'icon' ? x : trAll(x)])) : v;
+const HELP_T = trAll(HELP), SHORTCUTS_T = trAll(SHORTCUTS), FAQ_T = trAll(FAQ);
+
 const SECTIONS = [
-  ...HELP,
-  { id: 'keys', icon: '⌨', title: 'Гарячі клавіші', custom: () => shortcutsTable(), text: SHORTCUTS.map(x => x.join(' ')).join(' ').toLowerCase() },
-  { id: 'faq', icon: '❓', title: 'Часті запитання та проблеми', items: FAQ.map(([q, a]) => ({ t: q, d: [a] })) },
-  { id: 'about', icon: 'ℹ', title: 'Про програму', about: true, text: 'про програму версія chromium electron' },
+  ...HELP_T,
+  { id: 'keys', icon: '⌨', title: t('Гарячі клавіші'), custom: () => shortcutsTable(), text: SHORTCUTS_T.map(x => x.join(' ')).join(' ').toLowerCase() },
+  { id: 'faq', icon: '❓', title: t('Часті запитання та проблеми'), items: FAQ_T.map(([q, a]) => ({ t: q, d: [a] })) },
+  { id: 'about', icon: 'ℹ', title: t('Про програму'), about: true, text: 'про програму версія chromium electron' },
 ];
 
 const toc = document.getElementById('toc');
@@ -65,9 +69,9 @@ async function build() {
     const sec = h('section', { class: 'sec', id: s.id }, h('h2', null, s.icon, ' ', s.title));
     if (s.custom) sec.append(s.custom());
     else if (s.about) {
-      sec.append(entry({ t: 'W3IR Browser ' + version, d: ['Браузер на основі Chromium (Electron). Тема, вкладки, приватність, паролі, Web3 та GitHub — в одному місці.'] }));
-      sec.append(entry({ t: 'Де зберігаються дані', d: ['`%APPDATA%\\W3IR Browser` — налаштування, закладки, історія, профілі (`profiles`), зашифроване сховище (`vault.bin`).'] }));
-      sec.append(entry({ t: 'Повернутися до роботи', d: ['Закрийте вкладку (Ctrl+W) або відкрийте [налаштування](w3ir://settings).'] }));
+      sec.append(entry({ t: 'W3IR Browser ' + version, d: [t('Браузер на основі Chromium (Electron). Тема, вкладки, приватність, паролі, Web3 та GitHub — в одному місці.')] }));
+      sec.append(entry({ t: t('Де зберігаються дані'), d: [t('`%APPDATA%\\W3IR Browser` — налаштування, закладки, історія, профілі (`profiles`), зашифроване сховище (`vault.bin`).')] }));
+      sec.append(entry({ t: t('Повернутися до роботи'), d: [t('Закрийте вкладку (Ctrl+W) або відкрийте [налаштування](w3ir://settings).')] }));
     } else for (const it of s.items) { const e = entry(it); e.dataset.text = flat(it); sec.append(e); }
     sectionEls[s.id] = sec;
     content.append(sec);

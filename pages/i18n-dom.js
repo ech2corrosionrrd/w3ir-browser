@@ -17,7 +17,7 @@
     const idx = [];
     const re = new RegExp('^' + k.split(/(\{\d+\})/).map(p => {
       const m = /^\{(\d+)\}$/.exec(p);
-      if (m) { idx.push(Number(m[1])); return '([\s\S]*?)'; }
+      if (m) { idx.push(Number(m[1])); return '([\\s\\S]*?)'; }
       return p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }).join('') + '$');
     templates.push({ re, idx, to: map[k] });
@@ -26,14 +26,25 @@
     if (map[s]) return map[s];
     for (const t of templates) {
       const m = t.re.exec(s);
-      if (m) return t.to.replace(/\{(\d+)\}/g, (x, i) => { const p = t.idx.indexOf(Number(i)); return p >= 0 ? m[p + 1] : x; });
+      if (m) return t.to.replace(/\{(\d+)\}/g, (x, i) => { const p = t.idx.indexOf(Number(i)); if (p < 0) return x; const v = m[p + 1]; const r = tr(v); return r != null ? r : v; });
     }
     return null;
   };
   const tr = (s) => {
     const core = s.trim();
     if (!core || !/[\u0400-\u04FF]/.test(core)) return null;
-    const r = lookup(core);
+    let r = lookup(core);
+    if (r == null && core.includes('\n')) {
+      // \u0431\u0430\u0433\u0430\u0442\u043E\u0440\u044F\u0434\u043A\u043E\u0432\u0456 \u043F\u0456\u0434\u043A\u0430\u0437\u043A\u0438: \u043A\u043E\u0436\u0435\u043D \u0440\u044F\u0434\u043E\u043A \u043E\u043A\u0440\u0435\u043C\u043E
+      let any = false;
+      r = core.split('\n').map(line => {
+        const l = line.trim();
+        const x = l && /[\u0400-\u04FF]/.test(l) ? lookup(l) : null;
+        if (x != null) any = true;
+        return x != null ? x : line;
+      }).join('\n');
+      if (!any) return null;
+    }
     if (r == null) return null;
     return s.slice(0, s.indexOf(core)) + r + s.slice(s.indexOf(core) + core.length);
   };
