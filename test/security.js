@@ -1260,6 +1260,41 @@ async function brandTests() {
   ok(pages.every(f => fs.readFileSync(path.join(root, 'pages', f), 'utf8').includes('brand-favicon.png')) && fs.readFileSync(path.join(root, 'pages/newtab.js'), 'utf8').includes('brand-wordmark.png'), 'brand: усі внутрішні сторінки мають фавікон, нова вкладка — вордмарк');
 }
 
+async function dashboardTests(ctx) {
+  const { pingNetworks } = require('../src/dashboard');
+  const rpc = http.createServer((req, res) => {
+    let b = ''; req.on('data', c => { b += c; });
+    req.on('end', () => {
+      if (req.url === '/slow') return;
+      if (req.url === '/err') { res.statusCode = 500; return res.end('{}'); }
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: req.url === '/wrong' ? '0x2' : '0x1' }));
+    });
+  });
+  await new Promise(r => rpc.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${rpc.address().port}`;
+  const nets = ['ok', 'wrong', 'err', 'slow'].map(n => ({ chainId: 1, name: n, rpc: base + '/' + n })).concat([{ chainId: 1, name: 'evil', rpc: 'http://evil.example/x' }]);
+  const r = await pingNetworks(nets, { timeout: 700 });
+  ok(r[0].ok && r[0].ms >= 0 && !r[1].ok && r[1].error === 'інший chainId' && !r[2].ok && r[2].error === 'HTTP 500' && !r[3].ok && r[3].error === 'тайм-аут' && !r[4].ok && /небезпечна/.test(r[4].error), 'dashboard: пінг RPC — правильний chainId, помилки, тайм-аут, небезпечна адреса');
+  rpc.closeAllConnections(); rpc.close();
+
+  const w = [...ctx.windows].find(x => !x.incognito);
+  const tab = w.createTab('w3ir://dashboard', { activate: true });
+  await sleep(1800);
+  const wc = tab.view.webContents;
+  const st = await wc.executeJavaScript(`w3ir.invoke('dashboard:state')`);
+  ok(st && st.ok && st.protection && st.wallet && Array.isArray(st.networks) && Array.isArray(st.events) && st.agent, 'dashboard: стан відображається зі сторінки панелі');
+  ok(!/mnemonic|phrase|token|privateKey/i.test(JSON.stringify(st)), 'dashboard: у відповіді немає токенів і секретів гаманця');
+  ok(await wc.executeJavaScript(`document.querySelectorAll('.bento .bcard').length`) === 4, 'dashboard: сторінка малює чотири картки');
+  const cp = await wc.executeJavaScript(`w3ir.invoke('dashboard:copy', { address: '0x0000000000000000000000000000000000000001' })`);
+  ok(cp && cp.ok === false, 'dashboard: копіюються лише адреси власних рахунків');
+  tab.view.webContents.loadURL('w3ir://history').catch(() => {});
+  await sleep(1500);
+  const denied = await wc.executeJavaScript(`w3ir.invoke('dashboard:state').then(() => 'allowed', () => 'denied')`);
+  ok(denied === 'denied', 'dashboard: з інших внутрішніх сторінок доступ заборонено');
+  w.closeTab(tab.id);
+}
+
 async function rpcListTests() {
   const { BUILTIN_NETWORKS, isSafeRpc } = require('../src/wallet');
   ok(BUILTIN_NETWORKS.every(n => isSafeRpc(n.rpc) && n.rpc.startsWith('https://') && !/key|token|\$\{/i.test(n.rpc)), 'wallet: вбудовані RPC — https, без ключів у адресі');
@@ -1437,6 +1472,7 @@ module.exports = async function run(ctx) {
     await siteTests(ctx);
     await agentTests(ctx);
     await rpcListTests();
+    await dashboardTests(ctx);
     await brandTests();
   } catch (e) {
     failed++;
