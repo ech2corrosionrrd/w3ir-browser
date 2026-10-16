@@ -1,17 +1,33 @@
 'use strict';
-const BAD_TAGS = 'script,style,iframe,object,embed,form,input,button,select,textarea,link,meta,base,svg,math,noscript,audio,source';
+// Білий список: усе, чого тут немає, прибирається; невідомі теги замінюються своїм вмістом (текст зберігається)
+const ALLOWED = new Set('a,abbr,article,aside,b,blockquote,br,caption,cite,code,dd,del,details,div,dl,dt,em,figcaption,figure,h1,h2,h3,h4,h5,h6,hr,i,img,ins,kbd,li,main,mark,ol,p,picture,pre,q,s,samp,section,small,span,strong,sub,summary,sup,table,tbody,td,tfoot,th,thead,time,tr,u,ul,var,wbr'.split(','));
+// Ці теги прибираються разом із вмістом
+const DROP = new Set('script,style,iframe,object,embed,form,input,button,select,textarea,link,meta,base,svg,math,noscript,audio,video,source,template,frame,frameset,applet,canvas,dialog,title,head'.split(','));
+const ATTRS = { a: ['href', 'title'], img: ['src', 'alt', 'title', 'width', 'height'], td: ['colspan', 'rowspan'], th: ['colspan', 'rowspan'], '*': ['title', 'lang', 'dir'] };
+const SAFE_HREF = /^(https?:|#)/i;
+const SAFE_SRC = /^(https?:|data:image\/(png|jpeg|gif|webp);)/i;
+
+function cleanNode(parent) {
+  for (const n of [...parent.childNodes]) {
+    if (n.nodeType === 3) continue; // текст
+    if (n.nodeType !== 1) { n.remove(); continue; } // коментарі, інструкції тощо
+    const tag = n.tagName.toLowerCase();
+    if (DROP.has(tag)) { n.remove(); continue; }
+    cleanNode(n);
+    if (!ALLOWED.has(tag)) { n.replaceWith(...n.childNodes); continue; }
+    const allow = new Set([...(ATTRS[tag] || []), ...ATTRS['*']]);
+    for (const a of [...n.attributes]) {
+      const name = a.name.toLowerCase();
+      const v = a.value.trim();
+      if (!allow.has(name) || (name === 'href' && !SAFE_HREF.test(v)) || (name === 'src' && !SAFE_SRC.test(v))) n.removeAttribute(a.name);
+    }
+    if (tag === 'a') n.setAttribute('rel', 'noopener noreferrer');
+  }
+}
 
 function sanitize(html) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  doc.querySelectorAll(BAD_TAGS).forEach(n => n.remove());
-  doc.querySelectorAll('*').forEach(n => {
-    for (const a of [...n.attributes]) {
-      const name = a.name.toLowerCase();
-      if (name.startsWith('on') || name === 'style' || name === 'srcdoc') n.removeAttribute(a.name);
-      else if ((name === 'href' || name === 'src') && !/^(https?:|data:image\/|#|\/)/i.test(a.value.trim())) n.removeAttribute(a.name);
-    }
-    if (n.tagName === 'A') { n.removeAttribute('target'); n.setAttribute('rel', 'noopener noreferrer'); }
-  });
+  cleanNode(doc.body);
   return doc.body;
 }
 

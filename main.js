@@ -93,7 +93,7 @@ app.whenReady().then(async () => {
   }
   initBlocker(ctx).then(() => manager.all().forEach(c => c.pushAll())).catch(e => console.error('Adblock engine unavailable, using built-in list:', e.message));
 
-  if (process.env.W3IR_SMOKE) require(process.env.W3IR_SMOKE === 'security' ? './test/security' : process.env.W3IR_SMOKE === 'shots' ? './test/ui-shots' : './test/smoke')(ctx);
+  if (!app.isPackaged && process.env.W3IR_SMOKE) require(process.env.W3IR_SMOKE === 'security' ? './test/security' : process.env.W3IR_SMOKE === 'shots' ? './test/ui-shots' : './test/smoke')(ctx);
 
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) manager.launch('default'); });
 });

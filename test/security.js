@@ -1542,6 +1542,142 @@ async function tabCloseTests(ctx) {
   w.win.destroy();
 }
 
+async function auditTests(ctx) {
+  const { writeAtomic } = require('../src/crypto-util');
+  const { Store } = require('../src/store');
+  const { Downloads } = require('../src/downloads');
+  const { Agent, isPrivateAddress } = require('../src/agent');
+  const { dialog, shell } = require('electron');
+  const corrupt = (dir, base) => fs.readdirSync(dir).filter(f => f.startsWith(base + '.corrupt-'));
+
+  // --- запис файлів: fsync, .bak, відновлення ---
+  const d1 = tmp('audit');
+  const f1 = path.join(d1, 'a.bin');
+  writeAtomic(fs, f1, 'v1', { backup: true }); writeAtomic(fs, f1, 'v2', { backup: true });
+  ok(fs.readFileSync(f1, 'utf8') === 'v2' && fs.readFileSync(f1 + '.bak', 'utf8') === 'v1' && !fs.existsSync(f1 + '.tmp'), 'audit: запис файлу атомарний із резервною копією попередньої версії');
+  const s0 = new Store('t0', { a: 1 }, d1);
+  ok(s0.recovered === '' && s0.data.a === 1, 'audit: перший запуск (файлу немає) — без повідомлень про пошкодження');
+  const s1 = new Store('t1', { a: 1 }, d1);
+  s1.data.a = 2; s1.flush(); s1.data.a = 3; s1.flush();
+  ok(JSON.parse(fs.readFileSync(path.join(d1, 't1.json'), 'utf8')).a === 3 && JSON.parse(fs.readFileSync(path.join(d1, 't1.json.bak'), 'utf8')).a === 2, 'audit: Store зберігає резервну копію попередньої версії');
+  fs.writeFileSync(path.join(d1, 't1.json'), '{"a":'); // обрізаний запис
+  const s1b = new Store('t1', { a: 1 }, d1);
+  ok(s1b.recovered === 'backup' && s1b.data.a === 2 && corrupt(d1, 't1.json').length === 1 && JSON.parse(fs.readFileSync(path.join(d1, 't1.json'), 'utf8')).a === 2, 'audit: пошкоджений Store відновлюється з резервної копії, зіпсований файл зберігається окремо');
+  fs.writeFileSync(path.join(d1, 't2.json'), 'не json');
+  const s2 = new Store('t2', { x: 5 }, d1);
+  ok(s2.recovered === 'defaults' && s2.data.x === 5 && corrupt(d1, 't2.json').length === 1, 'audit: без копії пошкоджений файл не стирається, а зберігається поруч (дані за замовчуванням)');
+
+  // --- сховище паролів: відновлення з .bak лише при непрочитному JSON, підміна відхиляється ---
+  const dv = tmp('auditvault');
+  const v = new Vault({ dir: dv, autolockMinutes: 15 });
+  await v.create('Correct-Horse-9-Battery');
+  v.add({ url: 'https://one.example.com', username: 'u1', password: 'p1' });
+  v.add({ url: 'https://two.example.com', username: 'u2', password: 'p2' });
+  ok(fs.existsSync(path.join(dv, 'vault.bin.bak')), 'audit: сховище паролів має резервну копію попередньої версії');
+  v.lock();
+  const full = fs.readFileSync(path.join(dv, 'vault.bin'));
+  fs.writeFileSync(path.join(dv, 'vault.bin'), full.slice(0, Math.floor(full.length / 2))); // обрізаний запис
+  v.nextAllowed = 0;
+  const rr = await v.unlock('Correct-Horse-9-Battery');
+  ok(rr.ok && v.recoveredFromBackup && v.list().length >= 1 && corrupt(dv, 'vault.bin').length === 1, 'audit: обрізаний vault.bin відновлено з резервної копії (паролі не втрачено), зіпсований файл збережено');
+  v.lock();
+
+  // --- завантаження: виконувані файли — лише з підтвердженням ---
+  ok(['a.exe', 'B.BAT', 'x.lnk', 'setup.msi', 'r.ps1', 'a.js', 'disk.iso', 'x.hta', 'photo.jpg.exe'].every(n => Downloads.isRisky(n)) && !['a.pdf', 'photo.jpg', 'notes.txt', 'archive.zip', 'doc.docx', 'exe.txt'].some(n => Downloads.isRisky(n)), 'audit: розпізнавання виконуваних розширень (без хибних спрацювань на безпечні)');
+  const od = dialog.showMessageBox, op = shell.openPath;
+  let asked = 0, opened = [], answer = 1;
+  dialog.showMessageBox = async () => { asked++; return { response: answer }; };
+  shell.openPath = async (p) => { opened.push(p); return ''; };
+  try {
+    ctx.downloads.store.data.push({ id: 'audit-exe', filename: 'setup.exe', path: 'C:\\fake\\setup.exe', state: 'completed', received: 1, total: 1, start: Date.now() });
+    ctx.downloads.store.data.push({ id: 'audit-pdf', filename: 'doc.pdf', path: 'C:\\fake\\doc.pdf', state: 'completed', received: 1, total: 1, start: Date.now() });
+    ctx.downloads.action('audit-exe', 'open'); await sleep(150);
+    ok(asked === 1 && opened.length === 0, 'audit: відкриття .exe питає підтвердження (за замовчуванням — «Скасувати») і без згоди не запускається');
+    ctx.downloads.action('audit-pdf', 'open'); await sleep(150);
+    ok(asked === 1 && opened.length === 1 && /doc\.pdf$/.test(opened[0]), 'audit: безпечний файл відкривається без запитання');
+    answer = 0; ctx.downloads.action('audit-exe', 'open'); await sleep(150);
+    ok(asked === 2 && opened.length === 2 && /setup\.exe$/.test(opened[1]), 'audit: після підтвердження .exe запускається');
+  } finally {
+    dialog.showMessageBox = od; shell.openPath = op;
+    ctx.downloads.store.data = ctx.downloads.store.data.filter(d => !String(d.id).startsWith('audit-'));
+  }
+
+  // --- IPC: команда доступна лише своїй сторінці ---
+  const w = [...ctx.windows].find(x => !x.incognito && !x.agent);
+  const probe = async (page, expr) => {
+    const t = w.createTab('w3ir://' + page, { activate: false });
+    await sleep(1400);
+    const r = await t.view.webContents.executeJavaScript(`(${expr}).then(() => 'ok', () => 'denied')`);
+    w.closeTab(t.id);
+    return r;
+  };
+  const inv = (n, a) => `w3ir.invoke('${n}', ${JSON.stringify(a || {})})`;
+  ok(await probe('history', inv('settings:set', { sendGpc: false })) === 'denied' && await probe('history', inv('clear', { cookies: true })) === 'denied' && await probe('bookmarks', inv('ext:add')) === 'denied' && await probe('downloads', inv('settings:get')) === 'denied', 'audit: settings:set, clear, ext:add, settings:get недоступні сторінкам історії, закладок і завантажень');
+  ok(await probe('settings', inv('settings:get')) === 'ok' && await probe('help', inv('settings:get')) === 'ok' && await probe('newtab', inv('topsites')) === 'ok' && await probe('history', inv('history:get', {})) === 'ok', 'audit: власні команди сторінок працюють (налаштування, довідка, нова вкладка, історія)');
+  ok(await probe('history', inv('reader:get')) === 'denied' && await probe('newtab', inv('history:clear')) === 'denied' && await probe('settings', inv('topsites')) === 'denied', 'audit: чужі команди відхиляються (reader:get з історії, history:clear з нової вкладки)');
+
+  // --- режим читання: білий список ---
+  const tr = w.createTab('w3ir://newtab', { activate: false });
+  tr.reader = { title: 'Т', url: 'https://e.example/', content: '<p onclick="x()" style="color:red">текст</p><script>window.__x=1</script><form action="http://e"><input name="p"></form><a href="javascript:alert(1)">лінк1</a><a href="https://ok.example/">лінк2</a><img src="x" onerror="alert(1)"><img src="https://e.example/i.png" alt="i"><custom-el>вміст</custom-el><svg><circle></circle></svg><iframe src="https://e.example"></iframe><base href="http://evil/"><meta http-equiv="refresh" content="0;url=http://evil/">' + '<p>' + 'я'.repeat(300) + '</p>' };
+  tr.view.webContents.loadURL('w3ir://reader').catch(() => {});
+  await sleep(1800);
+  const dom = await tr.view.webContents.executeJavaScript(`(() => { const all = [...document.querySelectorAll('#app *')]; const art = document.getElementById('app'); return { bad: art.querySelectorAll('script,form,input,svg,iframe,base,meta,custom-el').length, on: all.some(e => [...e.attributes].some(a => /^on|^style$/i.test(a.name))), js: [...art.querySelectorAll('a')].some(a => /^javascript:/i.test(a.getAttribute('href') || '')), text: art.innerText.includes('вміст') && art.innerText.includes('лінк1'), ok: !!art.querySelector('a[href="https://ok.example/"][rel~="noopener"]'), badSrc: [...art.querySelectorAll('img')].some(i => i.getAttribute('src') === 'x'), good: !!art.querySelector('img[src="https://e.example/i.png"]') }; })()`);
+  ok(dom.bad === 0 && !dom.on && !dom.js && dom.text && dom.ok && !dom.badSrc && dom.good, 'audit: режим читання — білий список (скрипти, форми, svg, iframe, обробники, javascript: прибрано; текст і безпечні посилання/зображення збережено)', dom);
+  w.closeTab(tr.id);
+
+  // --- ШІ: DNS-перевірка ---
+  ok(['127.0.0.1', '10.1.2.3', '192.168.0.9', '169.254.169.254', '0.0.0.0', '::1', 'fd00::1', 'fe80::1', '::ffff:127.0.0.1', '::ffff:7f00:1', '100.64.0.1'].every(isPrivateAddress) && !['8.8.8.8', '93.184.216.34', '2606:4700::1111', '::ffff:8.8.8.8'].some(isPrivateAddress), 'audit: розпізнавання локальних і приватних IP-адрес (IPv4, IPv6, відображені)');
+  const ag = new Agent({ ctx, dir: tmp('auditdns'), port: 47999 });
+  ag.resolver = async () => [{ address: '127.0.0.1', family: 4 }];
+  let err = '';
+  try { await ag.ensureSite({ requestApproval: async () => ({ approved: true }) }, 'rebind.example'); } catch (e) { err = e.message; }
+  ok(/DNS/.test(err) && !ag.allowed.has('rebind.example'), 'audit: ШІ: домен, що через DNS вказує на 127.0.0.1, відхиляється до запиту користувачу');
+  ag.resolver = async () => [{ address: '93.184.216.34', family: 4 }];
+  ok(await ag.ensureSite({ requestApproval: async () => ({ approved: true }) }, 'public.example') === true && ag.allowed.has('public.example'), 'audit: ШІ: домен із публічною адресою проходить далі до підтвердження користувачем');
+
+  // --- спливаючі вікна: походження в заголовку, лише http(s) ---
+  const srv = http.createServer((q, r) => { r.setHeader('content-type', 'text/html; charset=utf-8'); r.end('<!doctype html><title>Вхід у банк</title><p>x</p>'); });
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${srv.address().port}/`;
+  const tp = w.createTab(base, { activate: true });
+  await sleep(1500);
+  let popup = null;
+  app.once('browser-window-created', (e, win) => { popup = win; });
+  await tp.view.webContents.executeJavaScript(`window.open('${base}pop', '_blank', 'popup,width=320,height=240'); 1`, true);
+  await sleep(2200);
+  ok(popup && popup.getTitle().startsWith(`127.0.0.1:${srv.address().port} — `) && /Вхід у банк/.test(popup.getTitle()), 'audit: спливаюче вікно показує в заголовку справжнє походження (сайт не може його підробити)', popup && popup.getTitle());
+  if (popup) {
+    await popup.webContents.executeJavaScript(`location.href = 'file:///C:/Windows/win.ini'; 1`).catch(() => {});
+    await sleep(900);
+    ok(/^http:/.test(popup.webContents.getURL()), 'audit: спливаюче вікно не може перейти на file:// (лише http/https)', popup.webContents.getURL());
+    popup.destroy();
+  }
+  const nTabs = w.tabs.length;
+  await tp.view.webContents.executeJavaScript(`window.open('${base}plain'); 1`, true);
+  await sleep(1200);
+  ok(w.tabs.length === nTabs + 1, 'audit: звичайне window.open і далі відкриває вкладку');
+  w.closeTab(tp.id);
+  srv.close();
+
+  // --- зовнішні схеми: одне підтвердження за раз ---
+  let ext = 0, resolveExt = null;
+  dialog.showMessageBox = () => { ext++; return new Promise((r) => { resolveExt = r; }); };
+  try {
+    w.openExternal('vscode://file/audit'); w.openExternal('vscode://file/audit2'); w.openExternal('vscode://file/audit3');
+    ok(ext === 1, 'audit: сторінка не може засипати діалогами зовнішніх програм (одне підтвердження за раз)', ext);
+    resolveExt({ response: 1 }); await sleep(100);
+    w.openExternal('vscode://file/audit4');
+    ok(ext === 2, 'audit: після відповіді можна відкрити наступне підтвердження');
+    resolveExt({ response: 1 }); await sleep(100);
+  } finally { dialog.showMessageBox = od; }
+
+  // --- статичні перевірки ---
+  const mainSrc = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
+  const ipcSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'ipc.js'), 'utf8');
+  ok(/!app\.isPackaged && process\.env\.W3IR_SMOKE/.test(mainSrc), 'audit: тестовий хук W3IR_SMOKE не підключається в упакованій збірці');
+  ok(/allowFileAccess: false/.test(ipcSrc) && !/allowFileAccess: true/.test(ipcSrc), 'audit: розпаковані розширення не отримують доступ до файлової системи');
+}
+
 async function designTests() {
   const root = path.join(__dirname, '..');
   const css = (f) => fs.readFileSync(path.join(root, f), 'utf8');
@@ -1784,6 +1920,7 @@ module.exports = async function run(ctx) {
     await designTests();
     await guardTests();
     await tabCloseTests(ctx);
+    await auditTests(ctx);
     await splitTests(ctx);
     await fullscreenTests(ctx);
   } catch (e) {

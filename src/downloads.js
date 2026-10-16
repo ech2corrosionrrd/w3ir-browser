@@ -5,6 +5,9 @@ const fs = require('fs');
 const { randomUUID } = require('crypto');
 const { Store } = require('./store');
 
+// Розширення, що можуть запустити код (програми, скрипти, ярлики, інсталятори, образи дисків)
+const RISKY = /\.(exe|msi|msp|msix|msixbundle|appx|appxbundle|bat|cmd|com|scr|pif|ps1|psm1|vbs|vbe|js|jse|wsf|wsh|hta|jar|lnk|url|reg|dll|cpl|application|gadget|iso|img|vhd|vhdx)$/i;
+
 function uniquePath(dir, filename) {
   const ext = path.extname(filename);
   const base = path.basename(filename, ext);
@@ -99,13 +102,28 @@ class Downloads {
     return { active, percent: total > 0 ? Math.round((received / total) * 100) : -1 };
   }
 
+  // Файли, що можуть запустити програму: відкриття лише після підтвердження (за замовчуванням — «Скасувати»)
+  static isRisky(name) { return RISKY.test(String(name || '')); }
+
+  async confirmOpen(rec) {
+    if (!Downloads.isRisky(rec.filename) && !Downloads.isRisky(rec.path)) return true;
+    const parent = BrowserWindow.getFocusedWindow();
+    const opts = {
+      type: 'warning', buttons: ['Запустити', 'Скасувати'], defaultId: 1, cancelId: 1, title: 'Запуск файлу',
+      message: `Файл «${String(rec.filename || '').slice(0, 80)}» може запустити програму на вашому комп’ютері.`,
+      detail: 'Запускайте лише файли, яким довіряєте і які завантажили з надійного джерела. Шкідливі програми часто видають себе за документи й інсталятори.',
+    };
+    const r = parent ? await dialog.showMessageBox(parent, opts) : await dialog.showMessageBox(opts);
+    return r.response === 0;
+  }
+
   action(id, action) {
     const live = this.live.get(id);
     const rec = this.store.data.find(d => d.id === id);
     if (action === 'cancel' && live) live.item.cancel();
     else if (action === 'pause' && live) live.item.pause();
     else if (action === 'resume' && live && live.item.canResume()) live.item.resume();
-    else if (rec && action === 'open' && rec.path && rec.state === 'completed') shell.openPath(rec.path);
+    else if (rec && action === 'open' && rec.path && rec.state === 'completed') this.confirmOpen(rec).then((yes) => { if (yes) shell.openPath(rec.path); }).catch(() => {});
     else if (rec && action === 'show' && rec.path) shell.showItemInFolder(rec.path);
     else if (rec && action === 'remove' && !live) this.store.data.splice(this.store.data.indexOf(rec), 1);
     else if (action === 'clear') this.store.data = this.store.data.filter(d => this.live.has(d.id));
@@ -113,4 +131,4 @@ class Downloads {
   }
 }
 
-module.exports = { Downloads };
+module.exports = { Downloads, RISKY };

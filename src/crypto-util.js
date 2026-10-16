@@ -36,6 +36,14 @@ function decrypt(key, { iv, tag, ct }, aad) {
 const b64 = (b) => Buffer.from(b).toString('base64');
 const unb64 = (s) => Buffer.from(String(s), 'base64');
 const norm = (s) => Buffer.from(String(s).normalize('NFKC'), 'utf8');
-const writeAtomic = (fs, file, data) => { const tmp = file + '.tmp'; fs.writeFileSync(tmp, data, { mode: 0o600 }); fs.renameSync(tmp, file); };
+// Атомарний запис: тимчасовий файл → fsync → (за потреби) резервна копія попередньої версії → rename.
+// backup: true зберігає попередній вміст як <файл>.bak (для сховища паролів: пошкодження основного файлу не знищує паролі)
+const writeAtomic = (fs, file, data, { backup = false } = {}) => {
+  const tmp = file + '.tmp';
+  const fd = fs.openSync(tmp, 'w', 0o600);
+  try { fs.writeSync(fd, data); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+  if (backup) { try { if (fs.existsSync(file)) fs.copyFileSync(file, file + '.bak'); } catch { /* резервна копія не критична */ } }
+  fs.renameSync(tmp, file);
+};
 
 module.exports = { KDF_DEFAULT, validKdf, deriveKey, encrypt, decrypt, b64, unb64, norm, writeAtomic };
