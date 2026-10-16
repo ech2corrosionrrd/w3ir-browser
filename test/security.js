@@ -89,7 +89,7 @@ async function vaultTests2() {
   v.lastAuth = Date.now();
   ok((await v.exportBackup(bk, 'Backup-Password-1234')).ok, 'vault: експорт резервної копії');
   const btxt = fs.readFileSync(bk, 'utf8');
-  ok(!btxt.includes('a.example.com') && !btxt.includes('p2'), 'vault: резервна копія зашифрована');
+  ok(!btxt.includes('a.example.com') && !/"password"|"username"|"url"/.test(btxt), 'vault: резервна копія зашифрована (немає імен полів і адрес відкритим текстом)');
   const dir2 = tmp('vault3');
   const v2 = new Vault({ dir: dir2 });
   await v2.create('Another-Master-Pass-5!');
@@ -1414,10 +1414,24 @@ async function splitTests(ctx) {
   w.exec('splitRatio', 0.6);
   const r1 = a.view.getBounds().width / (cw - 6);
   ok(Math.abs(r1 - 0.6) < 0.01, 'split: пропорція 60 / 40');
+  // перетягування межі: сторінки ховаються на час перетягування, потім повертаються з новою пропорцією
+  await sleep(300);
+  const geom = w.splitGeom;
+  ok(geom && geom.top === w.chromeHeight && Math.abs(geom.ratio - 0.6) < 0.001 && await w.chrome.executeJavaScript(`!document.getElementById('splitbar').hidden && document.getElementById('splitbar').style.height === '${geom.height}px'`), 'split: у інтерфейсі є межа, яку можна перетягнути (позиція й висота з геометрії)');
+  w.exec('splitDragStart');
+  ok(!a.view.getVisible() && !b.view.getVisible() && w.splitDrag, 'split: на час перетягування сторінки ховаються (інтерфейс отримує події миші)');
+  w.exec('splitDragEnd', 0.7);
+  ok(a.view.getVisible() && b.view.getVisible() && !w.splitDrag && Math.abs(a.view.getBounds().width / (cw - 6) - 0.7) < 0.01, 'split: після перетягування сторінки повертаються з новою пропорцією');
+  w.exec('splitDragStart'); w.exec('splitDragEnd', 5);
+  ok(Math.abs(w.split.ratio - 0.75) < 0.001, 'split: пропорція при перетягуванні обмежена 25–75 %');
+  w.exec('splitRatio', 0.6);
   w.exec('splitSwap');
   ok(w.split.a === b.id && w.split.b === a.id && b.view.getBounds().x === 0 && Math.abs(b.view.getBounds().width / (cw - 6) - 0.4) < 0.01, 'split: панелі міняються місцями разом із пропорцією');
   w.exec('splitEnd');
   ok(w.split === null && kids().includes(w.active().view) && !kids().some(k => k !== w.active().view && (k === a.view || k === b.view)) && w.active().view.getBounds().width === cw, 'split: закриття розділення лишає одну панель на всю ширину');
+  w.startSplit(w.activeId === a.id ? b.id : a.id);
+  w.exec('splitDragStart'); w.exec('splitEnd');
+  ok(!w.splitDrag && kids().includes(w.active().view) && w.active().view.getVisible() && w.splitGeom === null, 'split: закриття розділення під час перетягування не лишає сторінки схованими');
   const n0 = w.tabs.length;
   w.exec('splitNew');
   await sleep(600);

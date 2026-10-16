@@ -33,6 +33,8 @@ class AppWindow {
     if (this.agent) this.ses.__w3irAgent = true;
     this.tabs = [];
     this.initGroups();
+    this.splitGeom = null; // геометрія розділеного екрана для інтерфейсу (межа, яку можна перетягнути)
+    this.splitDrag = null;
     this.userFs = false; // користувач сам ввімкнув повний екран вікна (F11 / меню); сайт на весь екран цього не змінює
     this.split = null; // розділений екран: { a, b, ratio } — id двох вкладок поруч
     this.activeId = null;
@@ -139,7 +141,11 @@ class AppWindow {
       const lw = Math.round((area.width - gap) * this.split.ratio);
       pair.left.view.setBounds({ x: area.x, y: area.y, width: lw, height: area.height });
       pair.right.view.setBounds({ x: area.x + lw + gap, y: area.y, width: Math.max(0, area.width - lw - gap), height: area.height });
-    } else if (t) t.view.setBounds(area);
+      this.splitGeom = { left: area.x, top: area.y, width: area.width, height: area.height, gap, ratio: this.split.ratio };
+    } else {
+      this.splitGeom = null;
+      if (t) t.view.setBounds(area);
+    }
     if (ANCHORED_OVERLAYS.has(this.overlayType)) {
       const y = this.overlayAnchor || top;
       this.overlay.setBounds({ x: 0, y, width: w, height: Math.max(0, h - y) });
@@ -193,6 +199,7 @@ class AppWindow {
           split: this.split ? (t.id === this.split.a ? 'L' : t.id === this.split.b ? 'R' : '') : '',
         };
       }),
+      splitGeom: this.htmlFullscreen ? null : this.splitGeom || null,
       bookmarked: !!curUrl && bookmarks.some(b => b.url === curUrl),
       bookmarks: cfg.showBookmarksBar ? bookmarks.slice(0, 40) : [],
       groups: this.groupList(),
@@ -825,6 +832,7 @@ class AppWindow {
   endSplit() {
     const s = this.split;
     if (!s) return;
+    if (this.splitDrag) this.exec('splitDragEnd');
     this.split = null;
     for (const t of this.tabs) if ((t.id === s.a || t.id === s.b) && t.id !== this.activeId) { try { this.win.contentView.removeChildView(t.view); } catch { /* ignore */ } }
     this.layout();
@@ -1218,7 +1226,24 @@ class AppWindow {
       }
       case 'splitEnd': this.endSplit(); break;
       case 'splitSwap': if (this.split) { const s = this.split; this.split = { ...s, a: s.b, b: s.a, ratio: 1 - s.ratio }; this.layout(); this.push(); } break;
-      case 'splitRatio': if (this.split) { this.split.ratio = Math.max(0.25, Math.min(0.75, Number(arg) || 0.5)); this.layout(); } break;
+      case 'splitRatio': if (this.split) { this.split.ratio = Math.max(0.25, Math.min(0.75, Number(arg) || 0.5)); this.layout(); this.push(); } break;
+      case 'splitDragStart': {
+        const pair = this.splitPair();
+        if (!pair || this.splitDrag) break;
+        pair.left.view.setVisible(false); pair.right.view.setVisible(false);
+        this.splitDrag = { pair, timer: setTimeout(() => this.exec('splitDragEnd'), 15000) }; // запобіжник: сторінки не лишаться схованими
+        break;
+      }
+      case 'splitDragEnd': {
+        const d = this.splitDrag;
+        if (!d) break;
+        clearTimeout(d.timer);
+        this.splitDrag = null;
+        if (arg != null && this.split) this.split.ratio = Math.max(0.25, Math.min(0.75, Number(arg) || this.split.ratio));
+        for (const t of [d.pair.left, d.pair.right]) { try { t.view.setVisible(true); } catch { /* ignore */ } }
+        this.layout(); this.push();
+        break;
+      }
       case 'aiShare': {
         const a = this.ai(); const tb = this.tabs.find(x => x.id === (arg && arg.id));
         if (!a || !tb) break;
