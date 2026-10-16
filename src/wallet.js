@@ -3,7 +3,7 @@
 // (AES-256-GCM + scrypt + DPAPI); приватні ключі виводяться лише на мить підпису й ніколи не кешуються.
 // Кожен підпис і транзакція потребують явного підтвердження у довіреному вікні браузера, яке сторінка підробити не може.
 const {
-  Mnemonic, HDNodeWallet, JsonRpcProvider, Network, formatEther, formatUnits, getAddress, isAddress, isHexString,
+  Mnemonic, HDNodeWallet, JsonRpcProvider, Network, formatEther, getAddress, isAddress, isHexString,
   hexlify, getBytes, TypedDataEncoder, randomBytes, toUtf8String, MaxUint256, Interface,
 } = require('ethers');
 
