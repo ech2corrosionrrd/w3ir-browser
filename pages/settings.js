@@ -283,4 +283,20 @@ async function main() {
       h('div', null, clear, status))),
     h('p', { class: 'note' }, 'W3IR Browser ' + version + ' · на основі Chromium/Electron'));
 }
-main();
+function buildRail() {
+  const heads = [...document.querySelectorAll('main > h2')];
+  if (heads.length < 4) return;
+  const links = heads.map((hd, i) => {
+    hd.id = 'sec' + i;
+    return h('a', { href: '#sec' + i, onclick: (e) => { e.preventDefault(); hd.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, hd.textContent);
+  });
+  document.body.append(h('nav', { class: 'rail', 'aria-label': 'Розділи налаштувань' }, links));
+  const mark = () => {
+    let cur = 0;
+    heads.forEach((hd, i) => { if (hd.getBoundingClientRect().top < 140) cur = i; });
+    links.forEach((a, i) => a.classList.toggle('on', i === cur));
+  };
+  window.addEventListener('scroll', mark, { passive: true });
+  mark();
+}
+main().then(() => setTimeout(buildRail, 50));

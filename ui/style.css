@@ -1,17 +1,17 @@
 :root {
   color-scheme: dark;
-  --bg0: #131416; --bg1: #1e1f22; --bg2: #2b2d31; --bg3: #3a3c41; --bg4: #34373d;
-  --fg: #e6e6e6; --fg2: #c4c8cf; --dim: #9aa0a8; --accent: #8b7cf6; --pill: #d9c8ff; --warn: #e0a050; --shadow: rgba(0,0,0,.5);
+  --bg0: #0b0a1f; --bg1: #14122f; --bg2: #1c1947; --bg3: #2f2b66; --bg4: #26225a;
+  --fg: #eeedff; --fg2: #cfcdf3; --dim: #9e9bd0; --accent: #8b7cf6; --pill: #d9c8ff; --warn: #e0a050; --shadow: rgba(0,0,0,.5);
 }
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
-    --bg0: #dee1e6; --bg1: #f1f3f4; --bg2: #ffffff; --bg3: #e3e5e9; --bg4: #eef0f3;
-    --fg: #202124; --fg2: #3c4043; --dim: #5f6368; --accent: #5b3fd0; --pill: #4b2fa0; --warn: #b06000; --shadow: rgba(60,64,67,.3);
+    --bg0: #e0dff2; --bg1: #f1f0fb; --bg2: #ffffff; --bg3: #dedcf2; --bg4: #ebeaf8;
+    --fg: #1e1b3a; --fg2: #3a3760; --dim: #5c5a85; --accent: #5b3fd0; --pill: #4b2fa0; --warn: #b06000; --shadow: rgba(60,64,67,.3);
   }
 }
 body.incog { color-scheme: dark; --bg0: #0f0b18; --bg1: #1b1626; --bg2: #2a2140; --bg3: #3b2f5a; --bg4: #33284f;
-  --fg: #e6e6e6; --fg2: #c4c8cf; --dim: #9aa0a8; --accent: #a078f0; --pill: #d9c8ff; --warn: #e0a050; --shadow: rgba(0,0,0,.5); }
+  --fg: #e6e6e6; --fg2: #c4c8cf; --dim: #9aa0a8; --accent: #d946ef; --pill: #f5d0fe; --warn: #e0a050; --shadow: rgba(0,0,0,.5); }
 * { box-sizing: border-box; }
 html, body { margin: 0; overflow: hidden; background: var(--bg1); color: var(--fg);
   font: 13px "Segoe UI", system-ui, sans-serif; user-select: none; }
@@ -132,3 +132,23 @@ body.vertical .tab.ingroup { margin-left: 10px; width: calc(100% - 10px); border
 
 #sec { cursor: pointer; padding: 2px 4px; border-radius: 6px; }
 #sec:hover { background: var(--bg3); }
+
+/* ===== Фірмовий стиль W3IR: глибокий індиго, скло, неонові акценти (docs/BRANDING.md) ===== */
+:root { --cyan: #00f2fe; --grid: rgba(139,124,246,.08); }
+body.incog { --cyan: #f0abfc; --grid: rgba(217,70,239,.08); }
+#toolbar, #bookmarks, #findbar {
+  background-color: var(--bg2);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.tab.active { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, var(--bg2)), var(--bg2)); }
+.tab.active::before { content: ''; position: absolute; left: 8px; right: 8px; top: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--cyan), var(--accent)); }
+.tab:hover:not(.active) { background: color-mix(in srgb, var(--accent) 14%, var(--bg0)); filter: none; }
+.tab .spin { border-color: var(--cyan); border-top-color: transparent; }
+#omni { background: color-mix(in srgb, var(--bg0) 60%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); transition: border-color .15s, box-shadow .15s; }
+#omni:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent), 0 0 16px color-mix(in srgb, var(--cyan) 30%, transparent); }
+button:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+#shield .badge, #dl .badge, #vault .badge { background: linear-gradient(135deg, #2563eb, #7c3aed); }
+#toast { background: var(--bg2); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+.bm:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+#savebar button.primary { background: linear-gradient(135deg, #2563eb, #7c3aed); border-color: transparent; }
