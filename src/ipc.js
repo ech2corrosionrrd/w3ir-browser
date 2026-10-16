@@ -381,6 +381,11 @@ function registerIpc(resolve) {
     if (name.startsWith('import:')) return importApi(ctx, entry, name, arg);
     if ((name.startsWith('sync:') || name.startsWith('github:')) && !/^w3ir:\/\/settings\/?$/.test(frame.url)) throw new Error('forbidden');
     if (name.startsWith('github:')) return githubApi(ctx, name, arg);
+    if (name.startsWith('dashboard:')) {
+      if (!/^w3ir:\/\/dashboard\/?$/.test(frame.url)) throw new Error('forbidden');
+      if (!ctx.dashboardApi) ctx.dashboardApi = require('./dashboard').createApi(ctx);
+      return ctx.dashboardApi(name, arg);
+    }
     if (name.startsWith('agent:')) {
       if (!/^w3ir:\/\/settings\/?$/.test(frame.url)) throw new Error('forbidden');
       return agentApi(ctx, name, arg);

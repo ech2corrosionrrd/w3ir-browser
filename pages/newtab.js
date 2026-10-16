@@ -21,6 +21,7 @@ async function main() {
 
   const foot = h('div', { class: 'note', style: 'margin-top:36px' },
     h('a', { href: 'w3ir://help', title: 'Опис усіх функцій і гарячих клавіш (F1)' }, 'Довідка'), ' · ',
+    h('a', { href: 'w3ir://dashboard', title: 'Стан мереж, керування ШІ, захист і журнал подій' }, 'Панель'), ' · ',
     h('a', { href: 'w3ir://settings', title: 'Тема, пошук, приватність, синхронізація' }, 'Налаштування'), ' · ',
     h('a', { href: 'w3ir://import', title: 'Перенесіть закладки, історію й паролі з Chrome чи Firefox' }, 'Імпорт даних'), ' · Ctrl+K — палітра команд');
   const brand = h('div', { class: 'brand' },
