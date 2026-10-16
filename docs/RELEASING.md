@@ -8,6 +8,7 @@
 
 ## Випуск нової версії
 
+0. Перед кожним випуском: `npm audit --omit=dev` (має бути 0), `npm outdated electron` — оновлюйте Electron до останнього патча поточної гілки (виправлення Chromium і пісочниці), потім повний прогін тестів.
 1. Змініть `version` у `package.json` (семантичне версіонування). Оновіть `CHANGELOG.md`, довідку (`pages/help-data.js`) і README за потреби.
 2. `npm run release` — збирає (`electron-builder --win`: NSIS + portable) і підписує: `build/release.js` звіряє SHA-512 інсталятора з `latest.yml`, додає `w3irSignature` і `w3irKeyId`, перевіряє підпис вбудованим публічним ключем і кладе файли в `dist/release/` (`latest.yml`, `W3IR-Browser-Setup-X.exe`, `….blockmap`, `W3IR-Browser-X-portable.exe`).
 3. Публікація: `npm run release:github -- ech2corrosionrrd/w3ir-browser` (`build/publish-github.js`):
