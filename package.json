@@ -36,6 +36,7 @@
       "ui/**",
       "pages/**",
       "locales/**",
+      "!locales/_keys.json",
       "build/icon.png"
     ],
     "win": {
