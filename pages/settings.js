@@ -136,6 +136,7 @@ async function main() {
   // ---------- керування браузером ШІ (MCP) ----------
   const agBox = h('div', { class: 'list' });
   let agShow = false;
+  let agTest = '';
   const renderAg = async () => {
     const st = await w3ir.invoke('agent:status');
     agBox.textContent = '';
@@ -144,17 +145,27 @@ async function main() {
       h('div', null, h('div', null, 'Дозволити ШІ керувати браузером'),
         h('div', { class: 'd' }, 'Локальний сервер MCP на 127.0.0.1 (ззовні недоступний). ШІ працює в окремому тимчасовому вікні без ваших входів, паролів і гаманця; кожен новий сайт ви підтверджуєте самі.')),
       h('input', { type: 'checkbox', class: 'switch', checked: st.enabled, onchange: (ev) => run(ev.target.checked ? 'agent:enable' : 'agent:disable') })));
+    if (!st.coveredOk) agBox.append(h('div', { class: 'row' }, h('div', { class: 'd' }, 'ℹ Щоб ШІ стабільно клікав і робив скріншоти, коли вікно браузера перекрите іншими програмами, перезапустіть браузер один раз (налаштування застосується при старті).')));
     if (st.error) agBox.append(h('div', { class: 'row' }, h('div', { class: 'merr' }, st.error)));
     if (!st.enabled) return;
     const token = agShow ? (await w3ir.invoke('agent:token')).token : '';
     const url = `http://127.0.0.1:${st.port}/mcp`;
     const copy = (txt, btn) => { navigator.clipboard.writeText(txt).then(() => { const o = btn.textContent; btn.textContent = 'Скопійовано'; setTimeout(() => { btn.textContent = o; }, 1500); }); };
+    const testOut = h('div', { class: 'd', style: 'margin-top:4px' }, agTest || '');
+    const testBtn = h('button', { onclick: async () => {
+      testBtn.disabled = true; testBtn.textContent = 'Перевірка…';
+      const r = await w3ir.invoke('agent:test');
+      agTest = r.ok ? `✔ Сервер відповідає (${r.ms} мс), інструментів: ${r.tools}. ` + (r.client ? 'Клієнт підключався: ' + r.client.name + '.' : 'Клієнт ще не підключався: виконайте команду підключення.') : '✘ ' + r.error + ' Перевірте порт, файрвол і чи ввімкнено перемикач.';
+      renderAg();
+    } }, 'Перевірити підключення');
     const port = h('input', { type: 'number', min: 1024, max: 65535, value: st.port, style: 'width:90px' });
     port.addEventListener('change', () => run('agent:setPort', { port: Number(port.value) }));
     agBox.append(
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Стан'), h('div', { class: 'd' }, (st.running ? 'Сервер працює: ' + url : 'Сервер не запущений') + (st.windowOpen ? ' · вікно ШІ відкрито' : ''))), port),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Підключення клієнта'),
-        h('div', { class: 'd' }, st.client ? `✔ ${st.client.name} ${st.client.version || ''} підключився ${new Date(st.client.at).toLocaleTimeString('uk-UA')}` : 'Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.'))),
+        h('div', { class: 'd' }, st.client ? `✔ ${st.client.name} ${st.client.version || ''} підключився ${new Date(st.client.at).toLocaleTimeString('uk-UA')}` : 'Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.'),
+        testOut),
+      testBtn),
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Токен доступу'),
         h('div', { class: 'd' }, 'Секрет: хто його має, може керувати вікном ШІ. Зберігається зашифрованим (DPAPI). Нікому не передавайте.'),
         h('code', { style: 'word-break:break-all;user-select:all' }, agShow ? token : '••••••••••••••••••••••••')),

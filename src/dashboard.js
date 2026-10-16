@@ -79,6 +79,10 @@ function createApi(ctx, { fetchFn } = {}) {
           if (arg && arg.on) await base.agent.enable(); else base.agent.disable();
           return { ok: true };
         }
+        case 'dashboard:agentTest': {
+          const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
+          return base.agent ? await base.agent.selfTest() : { ok: false, error: 'Недоступно.' };
+        }
         case 'dashboard:unshare': {
           const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
           if (base.agent) base.agent.unshareAll('припинено з панелі');

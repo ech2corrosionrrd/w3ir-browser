@@ -156,6 +156,7 @@ async function agentApi(ctx, name, arg) {
       case 'agent:regenerate': a.regenerate(); if (a.server) await a.start(); return { ok: true, ...a.status() };
       case 'agent:setPort': a.setPort(arg.port); return { ok: true, ...a.status() };
       case 'agent:closeWindow': a.closeWindow(); return { ok: true, ...a.status() };
+      case 'agent:test': return { ...(await a.selfTest()), ...{ status: a.status() } };
       case 'agent:unshareAll': a.unshareAll('припинено в налаштуваннях'); return { ok: true, ...a.status() };
       default: throw new Error('unknown');
     }

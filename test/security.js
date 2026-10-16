@@ -1278,6 +1278,8 @@ async function agentShareTests(ctx) {
   const init = await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test-client', version: '9.9' } });
   ok(agent.status().client && agent.status().client.name === 'test-client' && /Спільні вкладки/.test(init.result.instructions) && /паролі/i.test(init.result.instructions), 'share: клієнт видно в статусі; інструкції для моделі передаються при підключенні');
 
+  const st = await agent.selfTest();
+  ok(st.ok && st.tools === A.TOOLS.length && st.ms >= 0 && st.client && st.client.name === 'test-client', 'agent: самоперевірка підключення — сервер відповідає, токен діє, клієнт видно');
   const w = [...ctx.windows].find(x => !x.incognito && !x.agent);
   const asked = []; let answer = true;
   w.requestApproval = async (spec) => { asked.push(spec); return { approved: answer }; };
@@ -1379,10 +1381,55 @@ async function agentShareTests(ctx) {
   agent.disable();
   await sleep(300);
   ok(agent.status().shares.length === 0 && w.aiMode(tab) === '', 'share: вимкнення керування ШІ скасовує всі спільні доступи');
+  ok((await agent.selfTest()).ok === false, 'agent: самоперевірка після вимкнення повідомляє про помилку');
   w.closeTab(tab.id); w.closeTab(tab2.id); w.closeTab(tab4.id);
   delete w.requestApproval;
   ctx.agent = prev;
   srv.close(); srv2.close();
+}
+
+async function splitTests(ctx) {
+  const w = ctx.openWindow({ urls: ['w3ir://newtab'] });
+  await sleep(2500);
+  w.win.setSize(1200, 800);
+  await sleep(500);
+  const a = w.tabs[0];
+  const b = w.createTab('w3ir://history', { activate: false });
+  const c = w.createTab('w3ir://downloads', { activate: false });
+  await sleep(1500);
+  w.switchTab(a.id);
+  const kids = () => w.win.contentView.children;
+  ok(w.startSplit(b.id) === true && w.split && w.split.a === a.id && w.split.b === b.id, 'split: розділений екран запускається для активної й вибраної вкладки');
+  const [cw] = w.win.getContentSize();
+  const ba = a.view.getBounds(), bb = b.view.getBounds();
+  ok(ba.x === 0 && bb.x === ba.width + 6 && ba.width + 6 + bb.width === cw && ba.height === bb.height && ba.height > 300, 'split: дві панелі поруч без перекриття (проміжок 6 px)');
+  ok(kids().includes(a.view) && kids().includes(b.view), 'split: обидві вкладки на екрані');
+  b.view.webContents.focus();
+  await sleep(400);
+  ok(w.activeId === b.id && kids().includes(a.view) && kids().includes(b.view), 'split: фокус у правій панелі робить її активною, пара лишається');
+  w.switchTab(c.id);
+  ok(!kids().includes(a.view) && !kids().includes(b.view) && kids().includes(c.view) && w.split, 'split: перехід на сторонню вкладку ховає пару, але пам’ятає її');
+  w.switchTab(a.id);
+  ok(kids().includes(a.view) && kids().includes(b.view) && !kids().includes(c.view) && b.view.getBounds().width > 0, 'split: повернення до вкладки пари показує обидві');
+  w.exec('splitRatio', 0.6);
+  const r1 = a.view.getBounds().width / (cw - 6);
+  ok(Math.abs(r1 - 0.6) < 0.01, 'split: пропорція 60 / 40');
+  w.exec('splitSwap');
+  ok(w.split.a === b.id && w.split.b === a.id && b.view.getBounds().x === 0 && Math.abs(b.view.getBounds().width / (cw - 6) - 0.4) < 0.01, 'split: панелі міняються місцями разом із пропорцією');
+  w.exec('splitEnd');
+  ok(w.split === null && kids().includes(w.active().view) && !kids().some(k => k !== w.active().view && (k === a.view || k === b.view)) && w.active().view.getBounds().width === cw, 'split: закриття розділення лишає одну панель на всю ширину');
+  const n0 = w.tabs.length;
+  w.exec('splitNew');
+  await sleep(600);
+  ok(w.tabs.length === n0 + 1 && w.split && w.split.b === w.activeId && kids().filter(k => w.tabs.some(t => t.view === k)).length === 2, 'split: «нова вкладка поруч» відкриває пару й активує нову вкладку');
+  w.closeTab(w.split.b);
+  await sleep(300);
+  ok(w.split === null, 'split: закриття вкладки пари завершує розділення');
+  const ag = ctx.openWindow({ incognito: true, agent: true, urls: ['about:blank'] });
+  await sleep(1500);
+  ok(ag.startSplit(ag.tabs[0].id) === false && ag.splitCommands().length === 0, 'split: у вікні ШІ розділення недоступне');
+  ag.win.destroy();
+  w.win.destroy();
 }
 
 async function designTests() {
@@ -1624,6 +1671,7 @@ module.exports = async function run(ctx) {
     await dashboardTests(ctx);
     await brandTests();
     await designTests();
+    await splitTests(ctx);
   } catch (e) {
     failed++;
     console.log('[sec] ERROR', e.stack || e);

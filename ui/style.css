@@ -32,6 +32,8 @@ button:disabled { opacity: .35; cursor: default; }
 .tab .fav { width: 16px; height: 16px; flex: none; border-radius: 3px; }
 .tab .ai { flex: none; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 6px; color: #00f2fe; border: 1px solid rgba(0,242,254,.55); background: rgba(0,242,254,.1); }
 .tab .ai.ctl { color: #f5b942; border-color: rgba(245,185,66,.65); background: rgba(245,185,66,.12); }
+.tab.split { box-shadow: inset 0 -2px 0 var(--cyan); }
+.tab .splitmark { flex: none; font-size: 13px; color: var(--cyan); }
 .tab .title { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tab .ico { font-size: 12px; flex: none; width: 20px; height: 20px; }
 .tab .close { width: 20px; height: 20px; font-size: 11px; flex: none; }

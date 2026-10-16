@@ -55,6 +55,7 @@ function cardAgent(st) {
   if (a.error) box.append(h('div', { class: 'merr' }, a.error));
   box.append(h('div', { class: 'actions' },
     h('button', { class: a.enabled ? 'danger' : 'primary', onclick: async () => { await call('dashboard:agent', { on: !a.enabled }); render(); } }, a.enabled ? 'Вимкнути' : 'Увімкнути'),
+    a.enabled ? h('button', { onclick: async (ev) => { const b = ev.target; b.disabled = true; b.textContent = 'Перевірка…'; const r = await call('dashboard:agentTest'); b.disabled = false; b.textContent = r.ok ? '✔ ' + r.ms + ' мс · ' + r.tools + ' інстр.' : '✘ ' + r.error; } }, 'Перевірити підключення') : null,
     a.shares.length ? h('button', { class: 'danger', onclick: async () => { await call('dashboard:unshare'); render(); } }, 'Припинити спільні вкладки') : null,
     h('a', { href: 'w3ir://settings', title: 'Токен і команда підключення Claude Code — у налаштуваннях' }, 'Підключення…')));
   return box;

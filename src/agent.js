@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
-const { safeStorage } = require('electron');
+const { safeStorage, app } = require('electron');
 const { parse: parseHost } = require('tldts-experimental');
 const { writeAtomic } = require('./crypto-util');
 
@@ -219,6 +219,7 @@ class Agent {
     return {
       enabled: !!this.state.enabled, running: !!this.server && this.server.listening, port: this.state.port, error: this.error,
       hasToken: !!this.token, sites: [...this.allowed], windowOpen: !!this.liveWin(), lastCall: this.lastCall, client: this.client,
+      coveredOk: (() => { try { return app.commandLine.getSwitchValue('disable-features').includes('CalculateNativeWinOcclusion'); } catch { return false; } })(),
       shares: [...this.shares.values()].map(x => ({ id: x.id, site: x.site, mode: x.mode, until: x.until })),
       log: this.recent.slice(-20),
     };
@@ -248,6 +249,30 @@ class Agent {
     this._saveState();
     if (this.state.enabled) this.start();
     this.onChange();
+  }
+
+  // Самоперевірка: справжній запит до власного сервера з токеном (tools/list не змінює дані про клієнта й не рахується в ліміті викликів)
+  selfTest() {
+    return new Promise((resolve) => {
+      if (!this.state.enabled) return resolve({ ok: false, error: 'Керування ШІ вимкнено.' });
+      if (!this.server || !this.server.listening) return resolve({ ok: false, error: this.error || 'Сервер не запущений.' });
+      const t0 = Date.now();
+      const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+      const rq = http.request({ host: '127.0.0.1', port: this.state.port, path: '/mcp', method: 'POST', timeout: 4000,
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Authorization: 'Bearer ' + this.token } }, (res) => {
+        let d = ''; res.on('data', (c) => { d += c; });
+        res.on('end', () => {
+          try {
+            const j = JSON.parse(d);
+            const n = j.result && j.result.tools ? j.result.tools.length : 0;
+            resolve(res.statusCode === 200 && n ? { ok: true, ms: Date.now() - t0, tools: n, client: this.client, port: this.state.port } : { ok: false, error: 'Сервер відповів неочікувано (HTTP ' + res.statusCode + ').' });
+          } catch { resolve({ ok: false, error: 'Сервер відповів неочікувано (HTTP ' + res.statusCode + ').' }); }
+        });
+      });
+      rq.on('timeout', () => { rq.destroy(); resolve({ ok: false, error: 'Сервер не відповів за 4 с.' }); });
+      rq.on('error', (e) => resolve({ ok: false, error: 'Немає з\u2019єднання: ' + (e.code || e.message) }));
+      rq.end(body);
+    });
   }
 
   start() {
