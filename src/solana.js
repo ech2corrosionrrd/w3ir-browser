@@ -3,6 +3,7 @@
 // розбір і підпис транзакцій (legacy та v0), розшифровка інструкцій з попередженнями про шахрайські шаблони.
 // Лише чиста логіка (без мережі й сховища) — вона повністю покрита тестами.
 const crypto = require('crypto');
+const { sanitize } = require('./injection-guard');
 
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
@@ -173,6 +174,62 @@ function signTransaction(secret, address, wire) {
   return { signedWire: out, signature, index: idx };
 }
 
+
+// ---------- адреси, похідні від програми (PDA) і метадані Metaplex ----------
+const P_FIELD = (1n << 255n) - 19n;
+const modpow = (b, e, m) => { let r = 1n; b %= m; while (e > 0n) { if (e & 1n) r = r * b % m; b = b * b % m; e >>= 1n; } return r; };
+const D_CURVE = (P_FIELD - 121665n * modpow(121666n, P_FIELD - 2n, P_FIELD) % P_FIELD) % P_FIELD;
+
+// Чи є 32 байти точкою на кривій Ed25519 (PDA мають бути поза кривою: для них не існує приватного ключа)
+function isOnCurve(bytes) {
+  const b = Buffer.from(bytes);
+  if (b.length !== 32) return false;
+  let y = 0n;
+  for (let i = 31; i >= 0; i--) y = (y << 8n) | BigInt(i === 31 ? b[i] & 0x7f : b[i]);
+  y %= P_FIELD;
+  const y2 = y * y % P_FIELD;
+  const u = (y2 - 1n + P_FIELD) % P_FIELD;
+  const v = (D_CURVE * y2 + 1n) % P_FIELD;
+  const x2 = u * modpow(v, P_FIELD - 2n, P_FIELD) % P_FIELD;
+  if (x2 === 0n) return true;
+  return modpow(x2, (P_FIELD - 1n) / 2n, P_FIELD) === 1n; // x² має бути квадратичним лишком
+}
+
+function findProgramAddress(seeds, programId) {
+  const pid = Buffer.isBuffer(programId) ? programId : b58decode(programId);
+  if (seeds.length > 16 || seeds.some(x => Buffer.from(x).length > 32)) throw new Error('Некоректні seed-и PDA');
+  for (let bump = 255; bump >= 0; bump--) {
+    const h = crypto.createHash('sha256');
+    for (const x of seeds) h.update(Buffer.from(x));
+    h.update(Buffer.from([bump])).update(pid).update('ProgramDerivedAddress');
+    const out = h.digest();
+    if (!isOnCurve(out)) return { address: b58encode(out), bump };
+  }
+  throw new Error('PDA не знайдено');
+}
+
+const METADATA_PROGRAM = 'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s';
+const metadataPda = (mint) => findProgramAddress([Buffer.from('metadata'), b58decode(METADATA_PROGRAM), b58decode(mint)], METADATA_PROGRAM).address;
+
+// Рахунок метаданих Metaplex (Borsh): key u8, update authority 32, mint 32, name/symbol/uri — рядки з префіксом довжини u32
+function parseMetadata(data) {
+  try {
+    const b = Buffer.from(data);
+    if (b.length < 70 || b[0] !== 4) return null;
+    let o = 65;
+    const str = (max) => {
+      const n = b.readUInt32LE(o); o += 4;
+      if (n > max || o + n > b.length) throw new Error('bad');
+      const t = b.subarray(o, o + n).toString('utf8').replace(/\u0000/g, '').trim(); o += n;
+      return t;
+    };
+    const name = str(64), symbol = str(32), uri = str(300);
+    // рядки задає творець токена: прибираємо невидимі й керівні символи (підміна напрямку тексту, нульова ширина)
+    const cleanText = (t) => sanitize(t).text.replace(/[\u0000-\u001f]/g, ' ').trim();
+    return { mint: b58encode(b.subarray(33, 65)), name: cleanText(name), symbol: cleanText(symbol), uri: sanitize(uri).text.replace(/[\u0000-\u001f\s]/g, '') };
+  } catch { return null; }
+}
+
 // ---------- розшифровка інструкцій ----------
 const P = {
   SYSTEM: '11111111111111111111111111111111',
@@ -276,6 +333,6 @@ function describe(parsed, ours = []) {
 }
 
 module.exports = {
-  b58encode, b58decode, isAddress, slip10, keypairFromSeed, deriveAccount, sign, verify,
+  b58encode, b58decode, isAddress, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, sign, verify,
   parseMessage, parseTransaction, unsignedWire, signTransaction, encodeShortVec, describe, formatUnits, sol, short, PROGRAMS: P,
 };
