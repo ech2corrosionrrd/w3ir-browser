@@ -130,6 +130,8 @@ async function renderDashboard(st) {
     h('h2', null, 'Рахунки'),
     accounts,
     h('div', { class: 'bar', style: 'margin-top:10px' }, info.accounts.length < 10 ? h('button', { onclick: async () => { const r = await call('wallet:addAccount'); if (!r.ok) alert(r.error); render(); } }, '+ Додати рахунок') : ''),
+    h('h2', null, 'Solana'),
+    buildSolanaSection(info.sol),
     h('h2', null, 'Децентралізоване сховище & NFT (Arweave / Irys)'),
     buildArweaveSection(first, net),
     h('h2', null, 'Підключені сайти'),
@@ -161,6 +163,36 @@ function showPhraseOnly(phrase) {
       h('div', { class: 'mbtns' }, h('button', { class: 'primary', onclick: () => box.remove() }, 'Закрити'))));
   document.body.append(box);
   setTimeout(() => box.remove(), 60000);
+}
+
+function buildSolanaSection(sol) {
+  if (!sol) return h('div', { class: 'row' }, '…');
+  const explorer = (a, cluster) => `https://explorer.solana.com/address/${a}` + (cluster === 'mainnet-beta' ? '' : `?cluster=${cluster}`);
+  const sel = h('select', { onchange: async () => { await call('wallet:solSetCluster', { id: sel.value }); render(); } },
+    sol.clusters.map(c => h('option', { value: c.id, selected: c.id === sol.cluster }, c.name)));
+  const balEls = {};
+  const list = h('div', { class: 'list' }, sol.addresses.map((a, i) => {
+    const bal = h('span', { class: 'note' }, '…');
+    balEls[a] = bal;
+    return h('div', { class: 'item' },
+      h('div', { class: 'main' }, h('div', { class: 't' }, `Рахунок ${i + 1}`), h('div', { class: 's pw', style: 'user-select:text' }, a)),
+      bal,
+      h('button', { class: 'link', onclick: () => navigator.clipboard.writeText(a).catch(() => {}) }, 'Копіювати'),
+      h('a', { href: explorer(a, sol.cluster) }, 'Оглядач'));
+  }));
+  call('wallet:solBalances').then(r => {
+    if (!r.ok) return;
+    for (const b of r.balances) if (balEls[b.address]) balEls[b.address].textContent = b.balance === null ? 'баланс недоступний' : `${Number(b.balance).toFixed(5)} ${b.symbol}`;
+  });
+  const sites = h('div', { class: 'list' });
+  for (const c of sol.connections) {
+    sites.append(h('div', { class: 'item' }, h('div', { class: 'main' }, h('div', { class: 't' }, c.origin), h('div', { class: 's' }, short(c.address))),
+      h('button', { class: 'link danger', onclick: async () => { await call('wallet:disconnect', { origin: c.origin }); render(); } }, 'Відключити')));
+  }
+  return h('div', null,
+    h('div', { class: 'list' }, h('div', { class: 'row' }, h('div', null, h('div', null, 'Мережа Solana'), h('div', { class: 'd' }, 'Адреси виводяться з тієї самої фрази відновлення (шлях m/44′/501′/N′/0′, як у Phantom).')), sel)),
+    list,
+    sol.connections.length ? sites : '');
 }
 
 function buildArweaveSection(first, net) {

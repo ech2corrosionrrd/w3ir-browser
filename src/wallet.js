@@ -176,6 +176,7 @@ class Wallet {
   remove() {
     const s = this.section();
     s.mnemonic = null; s.addresses = []; s.connections = {}; s.log = [];
+    s.solAddresses = []; s.solConnections = {};
     this.vault.persist();
     this.ctx.cfg().walletEnabled = false;
     this.ctx.settingsStore.save();
@@ -189,7 +190,7 @@ class Wallet {
     return {
       exists: true, accounts: s.addresses, activeChain: s.activeChain,
       networks: this.networks(), connections: Object.entries(s.connections).map(([origin, c]) => ({ origin, accounts: c.accounts, chainId: c.chainId })),
-      log: s.log.slice(-100).reverse(),
+      log: s.log.slice(-100).reverse(), sol: this.solInfo(),
     };
   }
 
@@ -227,6 +228,7 @@ class Wallet {
   disconnectSite(origin) {
     const s = this.data();
     if (s && s.connections[origin]) { delete s.connections[origin]; this.vault.persist(); this.emit(origin, 'accountsChanged', []); }
+    this.solDisconnectSite(origin);
   }
 
   log(entry) {
@@ -258,12 +260,21 @@ class Wallet {
       const conns = this._lastConns || {};
       if (!unlocked) {
         for (const origin of Object.keys(conns)) this.emit(origin, 'accountsChanged', []);
+        for (const origin of Object.keys(this._lastSolConns || {})) this.emit(origin, 'sol:disconnect', null);
       } else if (this.data()) {
         const cur = this.section().connections;
         for (const [origin, c] of Object.entries(cur)) this.emit(origin, 'accountsChanged', c.accounts);
       }
-      if (unlocked && this.data()) this._lastConns = JSON.parse(JSON.stringify(this.section().connections));
+      this.snapConns();
     } catch { /* ignore */ }
+  }
+
+  // Знімок підключень: після блокування сховища дані вже недоступні, а сайтам треба повідомити про відключення
+  snapConns() {
+    if (this.unlocked() && this.data()) {
+      this._lastConns = JSON.parse(JSON.stringify(this.section().connections));
+      this._lastSolConns = JSON.parse(JSON.stringify(this.section().solConnections || {}));
+    }
   }
 
   // ---------- запити від сторінок ----------
@@ -290,6 +301,7 @@ class Wallet {
       throw unauthorized('Гаманець не створено');
     }
     const sameTab = () => win.tabs.includes(tab) && (() => { try { return new URL(tab.view.webContents.getURL()).origin === origin; } catch { return false; } })();
+    if (method.startsWith('solana_')) return this.solRequest(win, tab, origin, method, params[0], sameTab);
 
     switch (method) {
       case 'eth_chainId': return hexChain(this.chainOf(origin));
@@ -352,6 +364,7 @@ class Wallet {
     s.connections[origin] = { accounts: [s.addresses[0]], chainId: s.activeChain, since: Date.now() };
     this.vault.persist();
     this.log({ origin, action: 'Підключення' });
+    this.snapConns();
     this.emit(origin, 'accountsChanged', s.connections[origin].accounts);
     return s.connections[origin].accounts.slice();
   }
@@ -503,5 +516,7 @@ class Wallet {
     return hash;
   }
 }
+
+require('./wallet-solana').install(Wallet, { RpcError, isSafeRpc, clip, unauthorized });
 
 module.exports = { Wallet, RpcError, BUILTIN_NETWORKS, describeCall, hexChain, isSafeRpc };
