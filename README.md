@@ -2,7 +2,7 @@
 
 # W3IR Browser
 
-Браузер для Windows на основі Chromium (Electron 41) з упором на приватність, безпеку й зручність. Усі функції працюють локально, без облікових записів і серверів розробника.
+Браузер для Windows на основі Chromium (Electron 44) з упором на приватність, безпеку й зручність. Усі функції працюють локально, без облікових записів і серверів розробника.
 
 - Поточна версія: **1.29.4** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
 - Мова інтерфейсу: українська, English, Polski, Deutsch, Español, Français (вибір у налаштуваннях) · Платформа: Windows 10/11 x64
@@ -50,7 +50,7 @@
 npm install
 npm start                      # запуск із вихідного коду
 npm test                       # повний автотест у тимчасовому профілі (код виходу 1 при збоях)
-W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 997 автоматичних перевірок
+W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 998 автоматичних перевірок
 ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron.exe build/mainnet-sim-check.js   # транзакції Solana на справжньому mainnet (симуляція, без коштів)
 npm run release                # збірка + підпис оновлення → dist/release
 npm run check:rpc               # онлайн-перевірка вбудованих RPC гаманця

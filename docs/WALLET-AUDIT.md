@@ -4,7 +4,7 @@ _Стан на версію 1.29.0 (коміт `793a60a`, тег `v1.29.0`). Д�
 
 ## 1. Мета й обсяг аудиту
 
-**Прохання до аудитора:** оцінити безпеку вбудованого гаманця EVM і Solana браузера W3IR (Electron 41, Windows). Пріоритет: незворотні втрати коштів, витік ключів, підміна підтверджень, обхід вікна підтвердження сторінкою (dApp) чи внутрішньою сторінкою.
+**Прохання до аудитора:** оцінити безпеку вбудованого гаманця EVM і Solana браузера W3IR (Electron 44, Windows). Пріоритет: незворотні втрати коштів, витік ключів, підміна підтверджень, обхід вікна підтвердження сторінкою (dApp) чи внутрішньою сторінкою.
 
 ### 1.1. Код у межах аудиту
 
@@ -148,7 +148,7 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron.exe build/devnet-chec
 
 ## 9. Залежності гаманця
 
-`ethers` ^6.17.0 (EVM, HD-ключі, ABI, транзакції); Solana — без залежностей (`node:crypto`); QR — без залежностей (`jsqr` лише для тестів); `tldts-experimental`, `@ghostery/adblocker-electron` (не стосуються гаманця безпосередньо). Dev: `electron` ^41.10.7, `electron-builder`, `eslint`, `jsqr`. `npm audit --omit=dev` — 0 вразливостей; єдине сповіщення Dependabot (`sprintf-js`) стосується збірки й закрите як «not used».
+`ethers` 6.17.0 (EVM, HD-ключі, ABI, транзакції); Solana — без залежностей (`node:crypto`); QR — без залежностей (`jsqr` лише для тестів); `tldts-experimental`, `@ghostery/adblocker-electron` (не стосуються гаманця безпосередньо). Dev: `electron` ^41.10.7, `electron-builder`, `eslint`, `jsqr`. `npm audit --omit=dev` — 0 вразливостей; єдине сповіщення Dependabot (`sprintf-js`) стосується збірки й закрите як «not used».
 
 ## 10. На що звернути увагу в першу чергу (пропозиція)
 

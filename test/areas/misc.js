@@ -261,6 +261,8 @@ async function dashboardTests(ctx) {
   const nets = ['ok', 'wrong', 'err', 'slow'].map(n => ({ chainId: 1, name: n, rpc: base + '/' + n })).concat([{ chainId: 1, name: 'evil', rpc: 'http://evil.example/x' }]);
   const r = await pingNetworks(nets, { timeout: 700 });
   ok(r[0].ok && r[0].ms >= 0 && !r[1].ok && r[1].error === 'інший chainId' && !r[2].ok && r[2].error === 'HTTP 500' && !r[3].ok && r[3].error === 'тайм-аут' && !r[4].ok && /небезпечна/.test(r[4].error), 'dashboard: пінг RPC — правильний chainId, помилки, тайм-аут, небезпечна адреса');
+  const rf = await pingNetworks([{ chainId: 1, name: 'f1', rpc: base + '/err', rpcFallback: [base + '/ok'] }, { chainId: 1, name: 'f2', rpc: base + '/err', rpcFallback: [base + '/wrong'] }], { timeout: 700 });
+  ok(rf[0].ok === true && rf[0].fallback === true && rf[1].ok === false && rf[1].error === 'інший chainId', 'dashboard: мережа зелена, якщо відповідає запасний вузол (позначка fallback); якщо не відповідає жоден — помилка');
   rpc.closeAllConnections(); rpc.close();
 
   const w = [...ctx.windows].find(x => !x.incognito);
