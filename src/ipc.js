@@ -162,6 +162,7 @@ async function githubApi(ctx, name, arg) {
 const PAGE_RE = /^w3ir:\/\/([a-z]+)\/?(\?[^#]*)?(#.*)?$/;
 const POLICY = {
   'wallet:': { wallet: '*' },
+  'arweave:': { wallet: '*', dashboard: '*' },
   'import:': { import: '*' },
   'sites:': { settings: '*' }, 'update:': { settings: '*' }, 'sync:': { settings: '*' }, 'github:': { settings: '*' }, 'agent:': { settings: '*' },
   'profiles:': { profiles: '*' },
@@ -247,6 +248,51 @@ async function walletApi(ctx, entry, name, arg) {
       default: throw new Error('unknown');
     }
   } catch (e) { return { ok: false, error: e.code === 4100 ? 'Спершу розблокуйте сховище паролів.' : e.message }; }
+}
+
+async function arweaveApi(ctx, name, arg) {
+  const ar = ctx.arweave;
+  try {
+    switch (name) {
+      case 'arweave:status':
+        return { ok: true, gateways: ar.DEFAULT_GATEWAYS };
+      case 'arweave:resolve': {
+        const input = String(arg.url || arg.txId || '').trim();
+        let txId = input;
+        let pathname = '';
+        if (input.startsWith('ar://')) {
+          const parsed = ar.parseArweaveUrl(input);
+          if (!parsed) return { ok: false, error: 'Недійсний формат посилання ar://' };
+          txId = parsed.txId;
+          pathname = parsed.pathname + parsed.search;
+        }
+        if (!ar.isValidTxId(txId)) return { ok: false, error: 'Недійсний хеш транзакції Arweave (має бути 43 символи base64url).' };
+        return {
+          ok: true,
+          txId,
+          arweaveUrl: ar.formatArweaveUrl(txId, pathname),
+          gatewayUrl: ar.resolveGatewayUrl(txId, pathname, 0)
+        };
+      }
+      case 'arweave:nft': {
+        const input = String(arg.txId || arg.url || '').trim();
+        const txId = input.startsWith('ar://') ? (ar.parseArweaveUrl(input)?.txId || '') : input;
+        if (!ar.isValidTxId(txId)) return { ok: false, error: 'Недійсний хеш транзакції Arweave.' };
+        const metadata = await ar.fetchMetadata(txId);
+        return { ok: true, metadata };
+      }
+      case 'arweave:tags': {
+        const input = String(arg.txId || arg.url || '').trim();
+        const txId = input.startsWith('ar://') ? (ar.parseArweaveUrl(input)?.txId || '') : input;
+        if (!ar.isValidTxId(txId)) return { ok: false, error: 'Недійсний хеш транзакції Arweave.' };
+        const tags = await ar.fetchTags(txId);
+        return { ok: true, tags };
+      }
+      default: throw new Error('unknown');
+    }
+  } catch (e) {
+    return { ok: false, error: e.message || 'Помилка звернення до Arweave' };
+  }
 }
 
 async function sitesApi(ctx, name, arg) {
@@ -419,6 +465,7 @@ function registerIpc(resolve) {
     // Єдина таблиця прав (POLICY / PAGE_ONLY): яка внутрішня сторінка може викликати яку команду
     if (!permitted(name, frame.url)) throw new Error('forbidden');
     if (name.startsWith('wallet:')) return walletApi(ctx, entry, name, arg);
+    if (name.startsWith('arweave:')) return arweaveApi(ctx, name, arg);
     if (name.startsWith('sites:')) return sitesApi(ctx, name, arg);
     if (name.startsWith('safe:')) return safeApi(ctx, name, arg);
     if (name.startsWith('update:')) return updateApi(ctx, name, arg, entry);

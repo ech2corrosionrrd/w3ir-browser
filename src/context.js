@@ -14,6 +14,7 @@ const { GitHub } = require('./github');
 const { Agent } = require('./agent');
 const { Wallet } = require('./wallet');
 const { Threats } = require('./threats');
+const arweave = require('./arweave');
 const { parse: parseHost } = require('tldts-experimental');
 const { attachCosmetic } = require('./adblock');
 const { stripTracking, upgradeHttps } = require('./urlrules');
@@ -107,6 +108,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   const userData = dataDir;
   ctx.vault = new Vault({ dir: userData, autolockMinutes: ctx.cfg().autolockMinutes, onChange: () => { ctx.pushAll(); if (ctx.wallet) ctx.wallet.onVaultChange(); } });
   ctx.wallet = new Wallet(ctx);
+  ctx.arweave = arweave;
   // Захист від шахрайських сайтів: списки спільні для всіх профілів і лежать у теці основного профілю
   shared.threats = shared.threats || { lists: null };
   ctx.threats = new Threats({
@@ -176,7 +178,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     if (!e || !e.tab) return '';
     try { return new URL(e.tab.view.webContents.getURL()).hostname.toLowerCase(); } catch { return ''; }
   };
-  ctx.adblockAllowed = (host) => !!host && (ctx.cfg().adblockAllow || []).includes(ctx.siteKey(host));
+  ctx.adblockAllowed = (host) => !!host && (/^accounts\.(google|youtube)\./i.test(host) || (ctx.cfg().adblockAllow || []).includes(ctx.siteKey(host)));
   ctx.setAdblockAllowed = (host, allowed) => {
     const key = ctx.siteKey(host);
     const list = ctx.cfg().adblockAllow = ctx.cfg().adblockAllow || [];
@@ -219,7 +221,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     input = String(input || '').trim();
     if (!input) return null;
     if (/^javascript:/i.test(input)) return null;
-    if (/^(https?|file|about|w3ir|view-source):/i.test(input)) return input;
+    if (/^(https?|file|about|w3ir|view-source|ar):/i.test(input)) return input;
     const kw = ctx.keywordUrl(input);
     if (kw) return kw;
     if (!/\s/.test(input)) {
@@ -250,6 +252,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       case 'wiki': return `https://uk.wikipedia.org/w/index.php?search=${enc(q)}`;
       case 'crates': return `https://crates.io/search?q=${enc(q)}`;
       case 'pypi': return `https://pypi.org/search/?q=${enc(q)}`;
+      case 'ar': return arweave.isValidTxId(q) ? `ar://${q}` : `https://viewblock.io/arweave/search?q=${enc(q)}`;
     }
     for (const line of String(ctx.cfg().keywords || '').split('\n').slice(0, 100)) {
       const mm = /^\s*(\S+)\s*=\s*(https?:\/\/\S*%s\S*)\s*$/i.exec(line);
@@ -396,6 +399,24 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       return net.fetch(pathToFileURL(file).toString());
     });
 
+    ses.protocol.handle('ar', async (req) => {
+      const parsed = arweave.parseArweaveUrl(req.url);
+      if (!parsed) {
+        return new Response('Invalid Arweave URL format. Use: ar://<43-char-txid>[/path]', {
+          status: 400,
+          headers: { 'content-type': 'text/plain; charset=utf-8' }
+        });
+      }
+      try {
+        return await arweave.handleProtocolRequest(parsed, net.fetch);
+      } catch (err) {
+        return new Response(`Failed to fetch from Arweave gateways: ${err.message}`, {
+          status: 502,
+          headers: { 'content-type': 'text/plain; charset=utf-8' }
+        });
+      }
+    });
+
     ctx.sessions.push(ses);
     attachCosmetic(ctx, ses);
 
@@ -442,8 +463,13 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     });
     ses.webRequest.onBeforeSendHeaders((details, cb) => {
       if (ctx.cfg().sendGpc) { details.requestHeaders['Sec-GPC'] = '1'; details.requestHeaders['DNT'] = '1'; }
-      // Вхід Google відхиляє клієнтів без бренду «Google Chrome» у Client Hints
-      if (/^https:\/\/([\w-]+\.)?(google|youtube)\.[a-z.]+\//i.test(details.url)) {
+      // Вхід Google: accounts.google.* блокує вхід через перевірку Chromium/Client Hints; для нього використовуємо Firefox UA
+      if (/^https:\/\/accounts\.(google|youtube)\.[a-z.]+\//i.test(details.url)) {
+        details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0';
+        for (const k of Object.keys(details.requestHeaders)) {
+          if (/^sec-ch-ua/i.test(k)) delete details.requestHeaders[k];
+        }
+      } else if (/^https:\/\/([\w-]+\.)?(google|youtube)\.[a-z.]+\//i.test(details.url)) {
         const major = process.versions.chrome.split('.')[0];
         const h = details.requestHeaders;
         for (const k of Object.keys(h)) if (k.toLowerCase() === 'sec-ch-ua') delete h[k];

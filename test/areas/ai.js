@@ -60,7 +60,7 @@ async function agentShareTests(ctx) {
   let r = await call('browser_read', { tab: sh.id });
   ok(!r.isError && txt(r).includes('Спільна сторінка') && /недовірені дані/.test(txt(r)), 'share: читання тексту спільної вкладки');
   const snap = JSON.parse(txt(await call('browser_snapshot', { tab: sh.id })).split('\n').pop());
-  const bBtn = snap.find(i => i.tag === 'button'), bQ = snap.find(i => i.name === 'Пошук'), bSel = snap.find(i => i.tag === 'select'), bPw = snap.find(i => i.type === 'password'), bOther = snap.find(i => i.name === 'інший сайт');
+  const bBtn = snap.find(i => i.tag === 'button'), bQ = snap.find(i => i.name === 'Пошук'), bSel = snap.find(i => i.tag === 'select'), bPw = snap.find(i => i.type === 'password');
   ok(bBtn && bQ && bSel && bPw, 'share: знімок елементів спільної вкладки');
   const found = JSON.parse(txt(await call('browser_find', { query: 'пошук', tab: sh.id })).split('\n').pop());
   ok(found.length === 1 && found[0].name === 'Пошук', 'share: browser_find шукає елементи за текстом');

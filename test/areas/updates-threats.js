@@ -3,7 +3,6 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
-const { app } = require('electron');
 const { ok, sleep, tmp } = require('../lib');
 
 async function helpTests(ctx) {
@@ -73,6 +72,7 @@ async function updateTests(ctx) {
   // --- підпис ---
   const sig = V.sign(good.priv, '9.0.0', 'AAAA');
   ok(V.verify(good.pub, '9.0.0', 'AAAA', sig), 'update: коректний підпис проходить перевірку');
+  ok(V.verify([evil.pub, good.pub], '9.0.0', 'AAAA', sig), 'update: масив ключів із резервним проходить перевірку');
   ok(!V.verify(good.pub, '9.0.1', 'AAAA', sig) && !V.verify(good.pub, '9.0.0', 'AAAB', sig), 'update: зміна версії або хешу робить підпис недійсним');
   ok(!V.verify(evil.pub, '9.0.0', 'AAAA', sig) && !V.verify(good.pub, '9.0.0', 'AAAA', 'garbage') && !V.verify(good.pub, '9.0.0', 'AAAA', undefined), 'update: чужий ключ і сміття відхиляються');
   const keyPath = path.join(__dirname, '..', '..', 'build', 'keys', 'update-private.pem');

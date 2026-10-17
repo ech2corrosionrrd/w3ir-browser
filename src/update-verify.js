@@ -14,7 +14,14 @@ function sign(privatePem, version, sha512) {
 function verify(publicPem, version, sha512, signatureB64) {
   try {
     if (typeof signatureB64 !== 'string' || signatureB64.length > 200) return false;
-    return crypto.verify(null, message(version, sha512), crypto.createPublicKey(publicPem), Buffer.from(signatureB64, 'base64'));
+    const keys = Array.isArray(publicPem) ? publicPem : [publicPem];
+    for (const key of keys) {
+      if (!key) continue;
+      try {
+        if (crypto.verify(null, message(version, sha512), crypto.createPublicKey(key), Buffer.from(signatureB64, 'base64'))) return true;
+      } catch { /* спробувати наступний ключ */ }
+    }
+    return false;
   } catch { return false; }
 }
 
@@ -37,7 +44,8 @@ async function verifyFile({ publicPem, version, signature, file }) {
 
 function fingerprint(publicPem) {
   try {
-    return crypto.createHash('sha256').update(crypto.createPublicKey(publicPem).export({ type: 'spki', format: 'der' })).digest('hex').slice(0, 16);
+    const key = Array.isArray(publicPem) ? publicPem[0] : publicPem;
+    return crypto.createHash('sha256').update(crypto.createPublicKey(key).export({ type: 'spki', format: 'der' })).digest('hex').slice(0, 16);
   } catch { return ''; }
 }
 
