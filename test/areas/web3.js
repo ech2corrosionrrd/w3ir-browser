@@ -83,6 +83,7 @@ async function githubTests(ctx) {
 
 async function walletTests(ctx) {
   const E = require('ethers');
+  const S = require('../../src/solana');
   const { Wallet: W, describeCall, isSafeRpc } = require('../../src/wallet');
   const { Store } = require('../../src/store');
   const MASTER = 'Wallet-Master-Pass-55!';
@@ -94,6 +95,7 @@ async function walletTests(ctx) {
   ok(describeCall(iface.encodeFunctionData('approve', [spender, MAX])).warnings.some(w => /Необмежений/.test(w)), 'wallet: необмежений approve розпізнається й має попередження');
   ok(!describeCall(iface.encodeFunctionData('approve', [spender, 1000n])).warnings.length, 'wallet: обмежений approve без тривоги');
   ok(describeCall(iface.encodeFunctionData('setApprovalForAll', [spender, true])).warnings.some(w => /ВСІ/.test(w)), 'wallet: setApprovalForAll(true) — попередження про ВСІ NFT');
+  ok(describeCall('0x095ea7b3' + 'ff'.repeat(32) + '00'.repeat(32)).warnings.some(w => /спотворені/.test(w)) && describeCall('0xa9059cbb' + 'ab'.repeat(40)).lines.length > 0, 'wallet: спотворені дані виклику (ненульові старші байти адреси) — попередження, а не збій');
   ok(describeCall('0xdeadbeef00').warnings.length === 1, 'wallet: невідомий виклик контракту має попередження');
   ok(isSafeRpc('https://rpc.example') && isSafeRpc('http://127.0.0.1:8545') && !isSafeRpc('http://evil.example') && !isSafeRpc('javascript:alert(1)'), 'wallet: безпечні/небезпечні RPC-адреси');
 
@@ -116,6 +118,8 @@ async function walletTests(ctx) {
 
   // --- мок RPC ---
   const rawTxs = [];
+  let mockNonce = '0x5';
+  let allowanceValue = 5_000_000n;
   const rpc = http.createServer((req, res) => {
     let body = '';
     req.on('data', d => { body += d; });
@@ -130,10 +134,25 @@ async function walletTests(ctx) {
           case 'eth_getBlockByNumber': return r({ number: '0x10', hash: '0x' + '11'.repeat(32), parentHash: '0x' + '22'.repeat(32), timestamp: '0x65000000', nonce: '0x0000000000000000', difficulty: '0x0', gasLimit: '0x1c9c380', gasUsed: '0x0', miner: '0x' + '00'.repeat(20), extraData: '0x', baseFeePerGas: '0x3b9aca00', transactions: [], mixHash: '0x' + '00'.repeat(32), sha3Uncles: '0x' + '00'.repeat(32), logsBloom: '0x' + '00'.repeat(256), stateRoot: '0x' + '00'.repeat(32), receiptsRoot: '0x' + '00'.repeat(32), transactionsRoot: '0x' + '00'.repeat(32), size: '0x100', uncles: [] });
           case 'eth_maxPriorityFeePerGas': return r('0x59682f00');
           case 'eth_gasPrice': return r('0x3b9aca00');
-          case 'eth_getTransactionCount': return r('0x5');
+          case 'eth_getTransactionCount': return r(mockNonce);
           case 'eth_estimateGas': return r('0x5208');
-          case 'eth_call': return r('0x');
-          case 'eth_getCode': return r(String(j.params[0]).toLowerCase() === '0x5fbdb2315678afecb367f032d93f642f64180aa3' ? '0x6080604052' : '0x');
+          case 'eth_call': {
+            const c = j.params[0];
+            if (String(c.to).toLowerCase() !== '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512') return r('0x');
+            const coder = E.AbiCoder.defaultAbiCoder();
+            const sel = String(c.data).slice(0, 10);
+            if (sel === '0x313ce567') return r(coder.encode(['uint8'], [6]));
+            if (sel === '0x95d89b41') return r(coder.encode(['string'], ['TKN\u202E']));
+            if (sel === '0x06fdde03') return r(coder.encode(['string'], ['Test Token']));
+            if (sel === '0x70a08231') return r(coder.encode(['uint256'], [1_234_500_000n]));
+            if (sel === '0xdd62ed3e') return r(coder.encode(['uint256'], [allowanceValue]));
+            return r('0x');
+          }
+          case 'eth_getCode': return r(['0x5fbdb2315678afecb367f032d93f642f64180aa3', '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512'].includes(String(j.params[0]).toLowerCase()) ? '0x6080604052' : '0x');
+          case 'eth_getTransactionReceipt': {
+            const known = rawTxs.find(t => E.keccak256(t) === j.params[0]);
+            return r(known ? { transactionHash: j.params[0], transactionIndex: '0x0', blockNumber: '0x10', blockHash: '0x' + '11'.repeat(32), from: addr0, to: E.Transaction.from(known).to, cumulativeGasUsed: '0x5208', gasUsed: '0x5208', contractAddress: null, logs: [], logsBloom: '0x' + '00'.repeat(256), status: '0x1', effectiveGasPrice: '0x3b9aca00', type: '0x2' } : null);
+          }
           case 'eth_sendRawTransaction': rawTxs.push(j.params[0]); return r(E.keccak256(j.params[0]));
           default: return { jsonrpc: '2.0', id: j.id, error: { code: -32601, message: 'no ' + j.method } };
         }
@@ -250,6 +269,149 @@ async function walletTests(ctx) {
   ok(apCode.spec.warnings.some(x => /смарт-контракт/.test(x)), 'wallet: отримувач — контракт: попередження');
   await decide(false); await sp.catch(() => {});
 
+  // ---------- токени ERC-20 ----------
+  const TOKEN = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+  const empty = await wal.evmTokens(0);
+  ok(empty.tokens.length === 0 && empty.chainId === 31337, 'tokens: у мережі без вбудованих токенів і без доданих список порожній');
+  let notToken = ''; try { await wal.addToken(rcpt); } catch (e) { notToken = e.message; }
+  let badAddr = ''; try { await wal.addToken('0x123'); } catch (e) { badAddr = e.message; }
+  ok(/не схоже на токен/.test(notToken) && /Некоректна адреса/.test(badAddr), 'tokens: адреса без контракту ERC-20 й некоректна адреса не додаються');
+  const added = await wal.addToken(TOKEN);
+  ok(added.symbol === 'TKN' && added.decimals === 6 && added.name === 'Test Token', 'tokens: символ і decimals читаються з контракту, керівні символи в символі прибрано');
+  await wal.addToken(TOKEN.toLowerCase());
+  const list1 = await wal.evmTokens(0);
+  ok(list1.tokens.length === 1 && list1.tokens[0].amount === '1234.5' && list1.tokens[0].raw === '1234500000' && list1.tokens[0].custom, 'tokens: баланс ERC-20 з урахуванням decimals; повторне додавання не дублює');
+  const tokErr = async (p) => { try { await wal.sendToken(w, () => true, p); return ''; } catch (e) { return e.message; } };
+  const tokBefore = rawTxs.length;
+  const tokBad = await Promise.all([
+    { index: 0, token: TOKEN, to: '0x0000000000000000000000000000000000000000', amount: '1' }, { index: 0, token: TOKEN, to: TOKEN, amount: '1' },
+    { index: 0, token: TOKEN, to: rcpt, amount: '1.1234567' }, { index: 0, token: TOKEN, to: rcpt, amount: '0' }, { index: 0, token: TOKEN, to: rcpt, amount: '99999999' },
+    { index: 0, token: rcpt, to: rcpt, amount: '1' }, { index: 0, token: TOKEN, to: 'не адреса', amount: '1' }, { index: 5, token: TOKEN, to: rcpt, amount: '1' }, { index: 0, token: TOKEN, to: rcpt, amount: 1 },
+  ].map(tokErr));
+  ok(tokBad.every(m => m.length > 0) && !w.approval && rawTxs.length === tokBefore, 'tokens: нульова адреса, сам контракт, зайві знаки, нуль, більше за баланс, не токен — відхиляються до підтвердження');
+  let tp = wal.sendToken(w, () => true, { index: 0, token: TOKEN, to: rcpt, amount: '12.5' });
+  const apTok = await waitApproval();
+  ok(apTok.spec.lines.some(l => l[0] === 'Токен' && l[1].startsWith('TKN — Test Token') && l[1].includes(TOKEN)) && apTok.spec.lines.some(l => l[0] === 'Кількість' && l[1] === '12.5 TKN') && apTok.spec.lines.some(l => l[0] === 'Отримувач' && l[1] === rcpt), 'tokens: у підтвердженні — токен (з адресою контракту), кількість у людському вигляді, отримувач');
+  await decide(true, MASTER);
+  const tokHash = await tp;
+  const tokTx = E.Transaction.from(rawTxs[rawTxs.length - 1]);
+  const decoded = new E.Interface(['function transfer(address,uint256)']).decodeFunctionData('transfer', tokTx.data);
+  ok(tokTx.to === TOKEN && tokTx.value === 0n && decoded[0] === rcpt && decoded[1] === 12_500_000n && tokHash === E.keccak256(rawTxs[rawTxs.length - 1]), 'tokens: надіслано transfer(отримувач, 12 500 000) на контракт токена, без ETH');
+  // dApp просить approve на токен — суми у людському вигляді
+  const iface2 = new E.Interface(['function approve(address,uint256)']);
+  let apr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: TOKEN, data: iface2.encodeFunctionData('approve', [spender, 3_000_000n]) }]);
+  const apApprove = await waitApproval();
+  ok(apApprove.spec.lines.some(l => l[0] === 'Сума дозволу' && l[1] === '3.0 TKN') && apApprove.spec.lines.some(l => l[0] === 'Токен' && /^TKN/.test(l[1])), 'tokens: approve від dApp — сума дозволу у людському вигляді й назва токена');
+  await decide(false); await apr;
+  apr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: TOKEN, data: iface2.encodeFunctionData('approve', [spender, MAX]) }]);
+  const apUnl = await waitApproval();
+  ok(apUnl.spec.lines.some(l => l[0] === 'Сума дозволу' && l[1] === 'НЕОБМЕЖЕНО') && apUnl.spec.danger === true, 'tokens: необмежений approve лишається червоним попередженням');
+  await decide(false); await apr;
+  // ---------- швидкість комісії, прискорення, скасування ----------
+  const sendFee = async (speed) => {
+    const p = wal.sendNative(w, () => true, { index: 0, to: rcpt, amount: '0.01', speed });
+    const a = await waitApproval();
+    const speedLine = a.spec.lines.find(l => l[0] === 'Швидкість комісії');
+    await decide(true, MASTER);
+    const h = await p;
+    const t = E.Transaction.from(rawTxs[rawTxs.length - 1]);
+    return { h, t, speedLine };
+  };
+  const fStd = await sendFee(undefined), fFast = await sendFee('fast'), fLow = await sendFee('low');
+  ok(fFast.t.maxFeePerGas === fStd.t.maxFeePerGas * 150n / 100n && fLow.t.maxFeePerGas === fStd.t.maxFeePerGas * 85n / 100n && fFast.t.maxPriorityFeePerGas > fStd.t.maxPriorityFeePerGas && fLow.t.maxPriorityFeePerGas < fStd.t.maxPriorityFeePerGas, 'wallet: швидкість комісії — fast ×1.5, low ×0.85 від стандартної (обидва поля EIP-1559)');
+  ok(!fStd.speedLine && /швидко/.test(fFast.speedLine[1]) && /повільно/.test(fLow.speedLine[1]), 'wallet: у підтвердженні вказано рівень швидкості, якщо він не стандартний');
+  let badSpeed = ''; try { await wal.sendNative(w, () => true, { index: 0, to: rcpt, amount: '0.01', speed: 'warp' }); } catch (e) { badSpeed = e.message; }
+  ok(/Невідомий рівень/.test(badSpeed) && !w.approval, 'wallet: невідомий рівень швидкості відхиляється до підтвердження');
+
+  const pend1 = await wal.evmPending();
+  ok(pend1.some(x => x.hash === fLow.h && x.nonce === 5), 'wallet: надіслані транзакції відстежуються як очікувані');
+  let sp1 = wal.replacePending(w, () => true, { hash: fLow.h, mode: 'speedup' });
+  const apSp = await waitApproval();
+  ok(apSp.spec.lines.some(l => l[0] === 'Дія' && /Прискорення/.test(l[1])) && apSp.spec.lines.some(l => l[0] === 'Початкова транзакція' && l[1] === fLow.h) && apSp.spec.lines.some(l => l[0] === 'Nonce' && l[1] === '5'), 'wallet: прискорення — у підтвердженні початкова транзакція, nonce й нова комісія');
+  await decide(true, MASTER);
+  const spHash = await sp1;
+  const spTx = E.Transaction.from(rawTxs[rawTxs.length - 1]);
+  ok(spTx.nonce === 5 && spTx.to === rcpt && spTx.value === fLow.t.value && spTx.maxFeePerGas >= fLow.t.maxFeePerGas * 11n / 10n && spTx.maxPriorityFeePerGas >= fLow.t.maxPriorityFeePerGas * 11n / 10n && spHash === E.keccak256(rawTxs[rawTxs.length - 1]), 'wallet: прискорена транзакція — той самий nonce, отримувач і сума, комісія вища щонайменше на 10 %');
+  const pend2 = await wal.evmPending();
+  ok(pend2.some(x => x.hash === spHash) && !pend2.some(x => x.hash === fLow.h), 'wallet: замінену транзакцію прибрано з очікуваних, нова додана');
+  let cp = wal.replacePending(w, () => true, { hash: spHash, mode: 'cancel' });
+  const apCancel = await waitApproval();
+  ok(apCancel.spec.lines.some(l => l[0] === 'Дія' && /Скасування/.test(l[1])) && apCancel.spec.warnings.some(x => /не гарантоване/.test(x)), 'wallet: скасування — попередження, що воно не гарантоване');
+  await decide(true, MASTER);
+  const cHash = await cp;
+  const cTx = E.Transaction.from(rawTxs[rawTxs.length - 1]);
+  ok(cTx.nonce === 5 && cTx.to === addr0 && cTx.value === 0n && cTx.data === '0x' && cTx.gasLimit === 21000n && cTx.maxFeePerGas > spTx.maxFeePerGas && cHash === E.keccak256(rawTxs[rawTxs.length - 1]), 'wallet: скасування — нульовий переказ собі з тим самим nonce, комісія вища, газ 21000');
+  const errReplace = async (p) => { try { await wal.replacePending(w, () => true, p); return ''; } catch (e) { return e.message; } };
+  ok(/не знайдено/.test(await errReplace({ hash: '0x' + '12'.repeat(32), mode: 'speedup' })) && /Невідома дія/.test(await errReplace({ hash: cHash, mode: 'steal' })) && !w.approval, 'wallet: невідома транзакція чи дія відхиляються без підтвердження');
+  mockNonce = '0x6';
+  ok(/вже підтверджена/.test(await errReplace({ hash: cHash, mode: 'speedup' })) && !(await wal.evmPending()).some(x => x.hash === cHash) && !w.approval, 'wallet: якщо nonce уже використано — заміна відхиляється й запис очищається');
+  mockNonce = '0x5';
+
+  // ---------- скасування дозволу токена ----------
+  await wal.addToken(TOKEN);
+  const revokeErr = async (p) => { try { await wal.revokeAllowance(w, () => true, p); return ''; } catch (e) { return e.message; } };
+  ok((await revokeErr({ index: 0, token: 'x', spender })).length > 0 && (await revokeErr({ index: 9, token: TOKEN, spender })).length > 0 && (await revokeErr({ index: 0, token: rcpt, spender })).length > 0 && !w.approval, 'wallet: скасування дозволу — хибні дані відхиляються до підтвердження');
+  let rv = wal.revokeAllowance(w, () => true, { index: 0, token: TOKEN, spender });
+  const apRev = await waitApproval();
+  ok(apRev.spec.lines.some(l => l[0] === 'Поточний дозвіл' && l[1] === '5.0 TKN') && apRev.spec.lines.some(l => l[0] === 'Кому видано дозвіл' && l[1] === spender), 'wallet: скасування дозволу — поточний дозвіл у людському вигляді й кому видано');
+  await decide(true, MASTER);
+  await rv;
+  const rvTx = E.Transaction.from(rawTxs[rawTxs.length - 1]);
+  const rvData = iface2.decodeFunctionData('approve', rvTx.data);
+  ok(rvTx.to === TOKEN && rvData[0] === spender && rvData[1] === 0n && rvTx.value === 0n, 'wallet: надіслано approve(spender, 0) на контракт токена');
+  allowanceValue = MAX;
+  rv = wal.revokeAllowance(w, () => true, { index: 0, token: TOKEN, spender });
+  const apRev2 = await waitApproval();
+  ok(apRev2.spec.lines.some(l => l[0] === 'Поточний дозвіл' && l[1] === 'НЕОБМЕЖЕНО'), 'wallet: необмежений дозвіл показано як НЕОБМЕЖЕНО');
+  await decide(false); await rv.catch(() => {});
+  allowanceValue = 0n;
+  ok(/уже нульовий/.test(await revokeErr({ index: 0, token: TOKEN, spender })) && !w.approval, 'wallet: нульовий дозвіл скасовувати не потрібно (без підтвердження)');
+  allowanceValue = 5_000_000n;
+
+  // ---------- адресна книга й ENS ----------
+  const SOLADDR = S.b58encode(Buffer.alloc(32, 44));
+  const c1 = wal.addContact('  Аліса\u202E \u200B', rcpt.toLowerCase());
+  ok(c1.name === 'Аліса' && c1.chain === 'evm' && c1.address === rcpt, 'wallet: контакт — ім\u2019я очищено від керівних символів, адреса EVM з контрольною сумою');
+  ok(wal.addContact('Боб', SOLADDR).chain === 'sol' && wal.addContact('Аліса 2', rcpt).name === 'Аліса 2' && wal.contacts().length === 2, 'wallet: контакт Solana; повторна адреса оновлює ім\u2019я, а не дублює');
+  const contactErr = (n, a) => { try { wal.addContact(n, a); return ''; } catch (e) { return e.message; } };
+  ok(contactErr('', rcpt).length > 0 && contactErr('Х', 'не адреса').length > 0 && contactErr('Х', '0x90F79bf6EB2c4f870365E785982E1f101E93B906').length > 0, 'wallet: порожнє ім\u2019я, некоректна адреса, хибна контрольна сума — відхиляються');
+  for (let i = 0; i < 98; i++) wal.addContact('К' + i, E.Wallet.createRandom().address);
+  ok(wal.contacts().length === 100 && /Не більше 100/.test(contactErr('Зайвий', E.Wallet.createRandom().address)), 'wallet: ліміт 100 контактів');
+  ok(wal.removeContact(rcpt) === true && wal.removeContact(rcpt) === false && wal.contacts().length === 99, 'wallet: контакт видаляється');
+  wal.addContact('Одержувач', '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65');
+  let spc = wal.sendNative(w, () => true, { index: 0, to: '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65', amount: '0.01' });
+  const apContact = await waitApproval();
+  ok(!apContact.spec.warnings.some(x => /ще не надсилали/.test(x)), 'wallet: адреса з адресної книги не вважається новою');
+  await decide(false); await spc.catch(() => {});
+  wal.ensResolver = async (n) => (n === 'alice.eth' ? rcpt.toLowerCase() : n === 'ghost.eth' ? null : 'нісенітниця');
+  ok(await wal.resolveName('  ALICE.eth ') === rcpt, 'wallet: ENS — ім\u2019я приводиться до нижнього регістру, результат з контрольною сумою');
+  const ensErr = async (n) => { try { await wal.resolveName(n); return ''; } catch (e) { return e.message; } };
+  const ensBad = await Promise.all(['vitalіk.eth', 'a..eth', 'foo.com', '.eth', 'x'.repeat(70) + '.eth', 'alice.eth\u202E', 'ghost.eth', 'junk.eth', 'ａlice.eth', ''].map(ensErr));
+  ok(ensBad.every(m => m.length > 0) && /ASCII/.test(ensBad[0]) && /не зареєстровано/.test(ensBad[6]), 'wallet: ENS — імена з кирилицею й схожими символами, хибні та порожні відхиляються; невідоме ім\u2019я — зрозуміла відмова');
+  wal.ensResolver = null;
+  // розв'язання напряму через реєстр ENS (запити перехоплено): resolver(node) -> addr(node)
+  const origCall = wal._ethCall;
+  const RES = '0x4976fb03C32e5B8cfe2b6cCB31c09Ba78EBaBa41';
+  const enc = (v) => E.AbiCoder.defaultAbiCoder().encode(['address'], [v]);
+  const ensCalls = [];
+  let ensMode = 'ok';
+  wal._ethCall = async (chain, to, data) => {
+    ensCalls.push({ chain, to, sel: data.slice(0, 10) });
+    if (to === '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e') return enc(ensMode === 'noresolver' ? E.ZeroAddress : RES);
+    if (to === RES) return enc(ensMode === 'noaddr' ? E.ZeroAddress : rcpt);
+    throw new Error('неочікуваний виклик');
+  };
+  ok(await wal.resolveName('Alice.ETH') === rcpt && ensCalls.length === 2 && ensCalls.every(c => c.chain === 1) && ensCalls[0].sel === '0x0178b8bf' && ensCalls[1].sel === '0x3b3b57de', 'wallet: ENS — запити resolver(node) і addr(node) до мережі Ethereum, ім’я приведено до нижнього регістру');
+  ensMode = 'noresolver';
+  ok(/не зареєстровано/.test(await ensErr('ghost.eth')), 'wallet: ENS — немає резолвера → ім’я не зареєстровано');
+  ensMode = 'noaddr';
+  ok(/не зареєстровано|не вказує/.test(await ensErr('empty.eth')), 'wallet: ENS — резолвер без адреси → зрозуміла відмова');
+  wal._ethCall = origCall;
+
+  ok(wal.removeToken(TOKEN) === true && (await wal.evmTokens(0)).tokens.length === 0 && wal.removeToken(TOKEN) === false, 'tokens: токен можна прибрати зі списку');
+  const evmSt = await wal.txStatuses([{ hash: tokHash, chainId: 31337 }, { hash: '0x' + 'ab'.repeat(32), chainId: 31337 }, { hash: 'не хеш', chainId: 31337 }, { hash: tokHash, chainId: 999999 }]);
+  ok(evmSt[tokHash] === 'confirmed' && evmSt['0x' + 'ab'.repeat(32)] === 'pending' && Object.keys(evmSt).length === 2, 'tokens: статуси транзакцій EVM (підтверджено / очікує); хибні записи ігноруються');
+
   // небезпечні виклики: попередження + відхилення
   const token = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
   pr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: token, data: iface.encodeFunctionData('approve', [spender, MAX]) }]);
@@ -257,7 +419,7 @@ async function walletTests(ctx) {
   ok(ap4.spec.warnings.some(x => /Необмежений/.test(x)) && ap4.spec.danger === true, 'wallet: необмежений approve — червоне попередження');
   await decide(false);
   res = await pr;
-  ok(res.err === 4001 && rawTxs.length === 2, 'wallet: відхилення → код 4001, нічого не надіслано');
+  ok(res.err === 4001 && rawTxs.length === 9, 'wallet: відхилення → код 4001, нічого не надіслано');
   pr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: token, data: iface.encodeFunctionData('setApprovalForAll', [spender, true]) }]);
   const ap5 = await waitApproval();
   ok(ap5.spec.warnings.some(x => /ВСІ/.test(x)), 'wallet: setApprovalForAll — попередження про ВСІ NFT');
@@ -299,7 +461,7 @@ async function walletTests(ctx) {
   w.exec('switchTab', w.tabs.find(t => t.view.webContents === wcA).id);
   ok((await call(wcA, 'eth_accounts')).ok.length === 0, 'wallet: при блокуванні сховища сайти не бачать рахунків');
   res = await call(wcA, 'eth_sendTransaction', [{ from: addr0, to, value: '0x1' }]);
-  ok(res.err === 4100 && rawTxs.length === 2, 'wallet: заблокований гаманець нічого не підписує');
+  ok(res.err === 4100 && rawTxs.length === 9, 'wallet: заблокований гаманець нічого не підписує');
   pr = call(wcA, 'eth_requestAccounts');
   const ap6 = await waitApproval();
   ok(ap6.spec.kind === 'connect' && w.approvalPayload(ap6).needsUnlock === true, 'wallet: запит при заблокованому сховищі вимагає майстер-пароль');
