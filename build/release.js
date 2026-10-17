@@ -2,6 +2,7 @@
 // Підготовка релізу: бере збірку з dist/, додає підпис випускача в latest.yml і кладе готові файли в dist/release/.
 //   node build/release.js                     — лише підготувати dist/release
 //   node build/release.js --github owner/repo — додатково створити GitHub Release (потрібен gh CLI з авторизацією)
+//   node build/release.js --from-ci ...       — замість локальної збірки взяти артефакт workflow «Build» для поточного коміту (див. docs/RELEASING.md)
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
@@ -14,6 +15,31 @@ const keyFile = path.join(__dirname, 'keys', 'update-private.pem');
 const publicPem = require('../src/update-key');
 
 const fail = (m) => { console.error('ПОМИЛКА:', m); process.exit(1); };
+
+// Артефакт збірки GitHub Actions для ПОТОЧНОГО коміту (збірка й комміт мають збігатися), у dist/
+function fetchCiBuild(repo) {
+  const { execFileSync } = require('child_process');
+  const run = (cmd, args) => execFileSync(cmd, args, { cwd: root, encoding: 'utf8' }).trim();
+  if (run('git', ['status', '--porcelain'])) fail('Є незакомічені зміни: збірку CI порівнюють із закоміченим кодом.');
+  const sha = run('git', ['rev-parse', 'HEAD']);
+  if (run('git', ['branch', '-r', '--contains', sha]) === '') fail('Поточний коміт не запушено: спершу git push, потім запустіть workflow «Build».');
+  const runs = JSON.parse(run('gh', ['run', 'list', '--repo', repo, '--workflow', 'build.yml', '--json', 'databaseId,headSha,conclusion,status', '--limit', '30']));
+  const ok = runs.find(r => r.headSha === sha && r.conclusion === 'success');
+  if (!ok) fail(`Немає успішної збірки CI для коміту ${sha.slice(0, 7)}. Запустіть: gh workflow run build.yml --repo ${repo} (потім зачекайте завершення).`);
+  fs.rmSync(dist, { recursive: true, force: true });
+  run('gh', ['run', 'download', String(ok.databaseId), '--repo', repo, '--name', 'dist', '--dir', dist]);
+  const sums = fs.readFileSync(path.join(dist, 'SHA256SUMS.txt'), 'utf8');
+  const crypto = require('crypto');
+  for (const line of sums.split(/\r?\n/).filter(Boolean)) {
+    const [hash, name] = line.split(/\s+\*?/);
+    const file = path.join(dist, name);
+    if (!fs.existsSync(file)) fail('У артефакті немає файлу з SHA256SUMS: ' + name);
+    if (crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex') !== hash.toLowerCase()) fail('Контрольна сума не збігається: ' + name);
+  }
+  console.log(`Взято збірку GitHub Actions #${ok.databaseId} для коміту ${sha.slice(0, 7)}; контрольні суми перевірено.`);
+}
+const ci = process.argv.indexOf('--from-ci');
+if (ci > 0) fetchCiBuild(process.argv[ci + 1] || fail('Вкажіть репозиторій: --from-ci owner/repo'));
 
 const version = require('../package.json').version;
 if (!fs.existsSync(keyFile)) fail('Немає приватного ключа підпису (build/keys/update-private.pem). Запустіть: npm run keygen');
