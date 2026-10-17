@@ -2,7 +2,6 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const { app } = require('electron');
 const { Vault } = require('../../src/vault');
 const { ok, sleep, tmp } = require('../lib');
 
@@ -230,7 +229,8 @@ async function walletTests(ctx) {
   await waitApproval();
   await decide(true, MASTER);
   res = await pr;
-  const { EIP712Domain, ...tt } = td.types;
+  const tt = { ...td.types };
+  delete tt.EIP712Domain;
   ok(E.verifyTypedData(td.domain, tt, td.message, res.ok) === addr0, 'wallet: підпис EIP-712 коректний');
 
   // зміна та додавання мереж

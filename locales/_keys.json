@@ -119,7 +119,7 @@
   "pages/dashboard.js:69"
  ],
  "{0} запитує доступ до {1}": [
-  "src/context.js:466"
+  "src/context.js:499"
  ],
  "{0} мс": [
   "pages/dashboard.js:36"
@@ -145,7 +145,7 @@
   "src/threats.js:153"
  ],
  "{0}Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам. Завантажуйте лише те, на що маєте право.": [
-  "src/app-window.js:384"
+  "src/app-window.js:397"
  ],
  "**←** і **→** — по історії вкладки; **⟳** — оновити (під час завантаження перетворюється на ✕ — зупинити); **⌂** — домашня сторінка (змінюється в налаштуваннях).": [
   "pages/help-data.js:23"
@@ -280,7 +280,7 @@
   "pages/passwords.js:72"
  ],
  "Адреса сторінки не збігається із записом — заповнення скасовано": [
-  "src/app-window.js:524"
+  "src/app-window.js:537"
  ],
  "Адреса чи пошук": [
   "pages/help-data.js:17"
@@ -305,17 +305,17 @@
   "pages/wallet.js:106"
  ],
  "Без назви": [
-  "src/app-window.js:799",
+  "src/app-window.js:812",
   "src/tab-groups.js:235"
  ],
  "Без фрази відновлення доступ до коштів буде втрачено назавжди. Переконайтеся, що фразу збережено.": [
-  "src/ipc.js:236"
+  "src/ipc.js:237"
  ],
  "Безпека": [
-  "pages/wallet.js:145"
+  "pages/wallet.js:139"
  ],
  "Більше не питати": [
-  "src/app-window.js:385",
+  "src/app-window.js:398",
   "src/downloads.js:84"
  ],
  "Більше не пропонувати зберігати паролі для цього сайту": [
@@ -371,7 +371,7 @@
   "pages/warning.js:31"
  ],
  "Браузер закриється, і приблизно за 30 секунд нова версія встановиться та запуститься сама (під час встановлення вікон не буде — не відкривайте браузер вручну). Вкладки можна відновити через «При запуску → Відновити попередню сесію». Оновлення перевірено підписом випускача.": [
-  "src/app-window.js:1108"
+  "src/app-window.js:1121"
  ],
  "Браузер може **віддавати ШІ-помічнику** (наприклад, Claude Code) окреме вікно для роботи в інтернеті: відкривати сторінки, читати їх, натискати кнопки й вводити текст. Вимкнено за замовчуванням: **Налаштування → Керування браузером ШІ** → увімкніть і скопіюйте готову команду підключення.": [
   "pages/help-data.js:88"
@@ -410,13 +410,10 @@
   "src/wallet.js:385"
  ],
  "вашого місцезнаходження": [
-  "src/context.js:65"
+  "src/context.js:66"
  ],
  "Вбудований гаманець для мереж **EVM** (Ethereum, Polygon, Base, Arbitrum, Optimism, BNB Chain, Avalanche та власні). Сайти бачать його як `window.ethereum` та «W3IR Wallet» у списку гаманців. Працює у звичайних вікнах на https-сайтах.": [
   "pages/help-data.js:154"
- ],
- "Вбудований перегляд колекції потребує сторонніх сервісів з API-ключами, тому не вмикається за замовчуванням (приватність). Швидкі посилання для першого рахунку:": [
-  "pages/wallet.js:136"
  ],
  "Вбудовані: gh owner/repo, ghi, ghp, gha, ghc, npm, mdn, yt, wiki, crates, pypi": [
   "pages/settings.js:286"
@@ -430,6 +427,9 @@
  "Введіть слово, пробіл і запит — браузер одразу відкриє потрібний сервіс:": [
   "pages/help-data.js:20"
  ],
+ "Введіть txId або ar://...": [
+  "pages/wallet.js:167"
+ ],
  "Вводьте кілька слів у будь-якому порядку — показуються лише збіги. ↑ ↓ — вибір, **Enter** — виконати, **Shift+Enter** — відкрити адресу в новій вкладці, **Esc** — закрити. На сторінках репозиторіїв GitHub з’являються додаткові команди (git clone, ZIP, github.dev…).": [
   "pages/help-data.js:49"
  ],
@@ -440,8 +440,8 @@
   "pages/settings.js:95"
  ],
  "Вертикальні вкладки": [
-  "src/app-window.js:801",
-  "src/app-window.js:841",
+  "src/app-window.js:814",
+  "src/app-window.js:854",
   "pages/settings.js:253"
  ],
  "Ви в режимі інкогніто: історія та cookie не зберігаються.": [
@@ -480,11 +480,11 @@
   "pages/history.js:4"
  ],
  "Видалити гаманець": [
-  "src/ipc.js:235",
-  "pages/wallet.js:154"
+  "src/ipc.js:236",
+  "pages/wallet.js:148"
  ],
  "Видалити гаманець із цього пристрою?": [
-  "src/ipc.js:235"
+  "src/ipc.js:236"
  ],
  "Видалити з групи": [
   "src/tab-groups.js:240"
@@ -502,17 +502,17 @@
   "src/ipc.js:89"
  ],
  "Видаляє ключі з цього пристрою. Без фрази відновлення кошти недоступні.": [
-  "pages/wallet.js:154"
+  "pages/wallet.js:148"
  ],
  "Видаляє cookie й локальні дані цього сайту: ви вийдете з акаунтів на ньому": [
   "ui/overlay.js:95"
  ],
  "Виділити все": [
-  "src/app-window.js:934"
+  "src/app-window.js:947"
  ],
  "Вийти": [
-  "src/app-window.js:824",
-  "src/app-window.js:861"
+  "src/app-window.js:837",
+  "src/app-window.js:874"
  ],
  "Виклик контракту": [
   "src/wallet.js:61"
@@ -533,7 +533,7 @@
   "pages/dashboard.js:47"
  ],
  "Вимкніть, якщо не користуєтеся dApp — сайти не зможуть навіть побачити гаманець": [
-  "pages/wallet.js:147"
+  "pages/wallet.js:141"
  ],
  "Вимкніть, якщо сайт працює неправильно: виняток діє лише для цього сайту, сторінка перезавантажиться": [
   "ui/overlay.js:89"
@@ -543,13 +543,13 @@
   "pages/settings.js:211"
  ],
  "Вимкнути блокування реклами": [
-  "src/app-window.js:802"
+  "src/app-window.js:815"
  ],
  "Вимкнути звук": [
-  "src/app-window.js:895"
+  "src/app-window.js:908"
  ],
  "Вирізати": [
-  "src/app-window.js:933"
+  "src/app-window.js:946"
  ],
  "Від": [
   "src/wallet.js:83",
@@ -600,12 +600,12 @@
   "pages/dashboard.js:50"
  ],
  "Відкрити": [
-  "src/app-window.js:399",
+  "src/app-window.js:412",
   "pages/profiles.js:17",
   "pages/settings.js:270"
  ],
  "Відкрити в {0}": [
-  "src/app-window.js:382"
+  "src/app-window.js:395"
  ],
  "Відкрити в торент-клієнті": [
   "src/downloads.js:82"
@@ -614,10 +614,10 @@
   "pages/help-data.js:188"
  ],
  "Відкрити зображення в новій вкладці": [
-  "src/app-window.js:925"
+  "src/app-window.js:938"
  ],
  "Відкрити зовнішню програму?": [
-  "src/app-window.js:400"
+  "src/app-window.js:413"
  ],
  "Відкрити інсталятор": [
   "src/updater.js:210"
@@ -632,28 +632,31 @@
   "pages/settings.js:251"
  ],
  "Відкрити посилання в інкогніто": [
-  "src/app-window.js:920"
+  "src/app-window.js:933"
  ],
  "Відкрити посилання в новій вкладці": [
-  "src/app-window.js:919"
+  "src/app-window.js:932"
  ],
  "Відкрити сайт один раз попри попередження?": [
   "pages/warning.js:40"
  ],
+ "Відкрити ar://": [
+  "pages/wallet.js:203"
+ ],
  "Відкрити magnet-посилання у торент-клієнті?": [
-  "src/app-window.js:383"
+  "src/app-window.js:396"
  ],
  "Відкриття й закриття": [
   "pages/help-data.js:30"
  ],
  "Відкріпити вкладку": [
-  "src/app-window.js:894"
+  "src/app-window.js:907"
  ],
  "Відновити з копії": [
   "pages/passwords.js:116"
  ],
  "Відновити закриту вкладку": [
-  "src/app-window.js:793"
+  "src/app-window.js:806"
  ],
  "Відновити його неможливо — це особливість надійного шифрування. Якщо у вас є резервна копія та її пароль, створіть нове сховище та відновіть дані з копії.": [
   "pages/help-data.js:203"
@@ -683,7 +686,7 @@
   "src/profiles.js:45"
  ],
  "Вкажіть https-адресу теки з оновленнями або github:власник/репозиторій.": [
-  "src/ipc.js:304"
+  "src/ipc.js:350"
  ],
  "Вкладка відтворює звук. Клік — вимкнути": [
   "ui/renderer.js:128"
@@ -726,22 +729,25 @@
   "ui/overlay.js:60"
  ],
  "Вперед": [
-  "src/app-window.js:945"
+  "src/app-window.js:958"
  ],
  "Вперед (Alt+→) — на наступну сторінку цієї вкладки": [
   "ui/index.html:19"
  ],
+ "Всі NFT та постійні медіафайли у W3IR Browser завантажуються та верифікуються напряму через децентралізоване сховище Arweave (шлюзи Irys / Arweave) без посередників чи платних API.": [
+  "pages/wallet.js:212"
+ ],
  "Вставити": [
-  "src/app-window.js:933"
+  "src/app-window.js:946"
  ],
  "Встановити оновлення {0}?": [
-  "src/app-window.js:1107"
+  "src/app-window.js:1120"
  ],
  "Встановити та перезапустити": [
   "pages/settings.js:98"
  ],
  "Встановіть торент-клієнт (наприклад, qBittorrent або Transmission) — і magnet-посилання відкриватимуться в ньому.": [
-  "src/app-window.js:373"
+  "src/app-window.js:386"
  ],
  "Встановлення йде у фоні без вікон і триває 15–30 секунд: браузер закривається, оновлюється й запускається сам. Не відкривайте його вручну під час цього. Якщо версія не змінилась, при наступному запуску браузер запропонує відкрити інсталятор. Хід оновлення записується в журнал `updater.log` (шлях — у налаштуваннях).": [
   "pages/help-data.js:208"
@@ -764,18 +770,18 @@
   "pages/wallet.html:5"
  ],
  "Гаманець (Web3)": [
-  "src/app-window.js:810",
-  "src/app-window.js:848",
+  "src/app-window.js:823",
+  "src/app-window.js:861",
   "pages/wallet.js:19"
  ],
  "Гаманець вимкнено": [
-  "src/ipc.js:353"
+  "src/ipc.js:399"
  ],
  "Гаманець дозволяє підключатися до децентралізованих застосунків (dApp), підписувати повідомлення, надсилати транзакції та керувати NFT на мережах, сумісних з Ethereum (EVM).": [
   "pages/wallet.js:50"
  ],
  "Гаманець доступний лише на https-сайтах": [
-  "src/ipc.js:352"
+  "src/ipc.js:398"
  ],
  "Гаманець заблоковано — розблокуйте сховище паролів": [
   "src/wallet.js:104"
@@ -825,8 +831,8 @@
   "ui/index.html:33"
  ],
  "Горизонтальні вкладки": [
-  "src/app-window.js:801",
-  "src/app-window.js:841"
+  "src/app-window.js:814",
+  "src/app-window.js:854"
  ],
  "Готово —": [
   "pages/import.js:25"
@@ -859,10 +865,10 @@
   "src/wallet.js:428"
  ],
  "Дані сайту очищено": [
-  "src/app-window.js:1255"
+  "src/app-window.js:1273"
  ],
  "Дані сайту очищено (cookie: {0})": [
-  "src/app-window.js:1255"
+  "src/app-window.js:1273"
  ],
  "Дані сховища пошкоджено.": [
   "src/vault.js:159"
@@ -878,6 +884,9 @@
  ],
  "Де зберігаються мої дані?": [
   "pages/help-data.js:206"
+ ],
+ "Децентралізоване сховище & NFT (Arweave / Irys)": [
+  "pages/wallet.js:133"
  ],
  "Джерело оновлень": [
   "pages/settings.js:103"
@@ -913,11 +922,11 @@
   "ui/overlay.js:103"
  ],
  "Для цієї сторінки режим читання недоступний": [
-  "src/app-window.js:693"
+  "src/app-window.js:706"
  ],
  "Довідка": [
-  "src/app-window.js:822",
-  "src/app-window.js:860",
+  "src/app-window.js:835",
+  "src/app-window.js:873",
   "pages/newtab.js:23"
  ],
  "Довідка з описом усіх функцій і гарячих клавіш.": [
@@ -978,7 +987,7 @@
   "pages/settings.js:263"
  ],
  "Дозволити": [
-  "src/context.js:463",
+  "src/context.js:496",
   "ui/overlay.js:72"
  ],
  "Дозволити ШІ керувати браузером": [
@@ -1007,7 +1016,7 @@
   "src/threats.js:253"
  ],
  "Дослідити елемент": [
-  "src/app-window.js:955"
+  "src/app-window.js:968"
  ],
  "доступ до адреси вашого рахунку та право пропонувати транзакції": [
   "src/wallet.js:348"
@@ -1028,15 +1037,15 @@
   "pages/help-data.js:60"
  ],
  "Друк…": [
-  "src/app-window.js:819",
-  "src/app-window.js:854",
-  "src/app-window.js:950"
+  "src/app-window.js:832",
+  "src/app-window.js:867",
+  "src/app-window.js:963"
  ],
  "Дублювати": [
-  "src/app-window.js:896"
+  "src/app-window.js:909"
  ],
  "Дублювати вкладку": [
-  "src/app-window.js:795"
+  "src/app-window.js:808"
  ],
  "Дуже висока комісія за газ.": [
   "src/wallet.js:490"
@@ -1054,7 +1063,7 @@
   "pages/dashboard.js:78"
  ],
  "Журнал дій": [
-  "pages/wallet.js:143"
+  "pages/wallet.js:137"
  ],
  "Журнал оновлень": [
   "pages/settings.js:104"
@@ -1090,21 +1099,24 @@
   "pages/settings.js:53"
  ],
  "Заблокувати": [
-  "src/context.js:463",
+  "src/context.js:496",
   "pages/passwords.js:129",
   "ui/overlay.js:72"
  ],
  "Заблокувати сховище паролів": [
-  "src/app-window.js:814"
+  "src/app-window.js:827"
  ],
  "Завантаження": [
-  "src/app-window.js:807",
-  "src/app-window.js:845",
+  "src/app-window.js:820",
+  "src/app-window.js:858",
   "pages/downloads.js:5"
  ],
  "Завантаження (Ctrl+J): прогрес, пауза, відкриття файлів": [
   "ui/renderer.js:225",
   "ui/index.html:32"
+ ],
+ "Завантаження з Arweave шлюзів…": [
+  "pages/wallet.js:174"
  ],
  "Завантаження заблоковано: сайт розповсюджує шкідливе ПЗ або шахрайський": [
   "src/downloads.js:45"
@@ -1152,11 +1164,11 @@
   "pages/help-data.js:193"
  ],
  "Закладка для цієї сторінки": [
-  "src/app-window.js:803"
+  "src/app-window.js:816"
  ],
  "Закладки": [
-  "src/app-window.js:805",
-  "src/app-window.js:843",
+  "src/app-window.js:818",
+  "src/app-window.js:856",
   "pages/bookmarks.js:4"
  ],
  "Закладки з усіх пристроїв об’єднуються, для кожної перемагає найновіша зміна, видалення поширюється. Синхронізація йде при змінах, при запуску та кожні 3 хвилини; кнопка «Синхронізувати зараз» запускає її одразу. Якщо файл змінено стороннім, браузер це виявить і нічого не зіпсує.": [
@@ -1200,9 +1212,9 @@
   "pages/dashboard.js:50"
  ],
  "Закрити": [
-  "src/app-window.js:903",
+  "src/app-window.js:916",
   "pages/passwords.js:94",
-  "pages/wallet.js:167"
+  "pages/wallet.js:161"
  ],
  "Закрити без збереження": [
   "ui/index.html:39"
@@ -1211,10 +1223,10 @@
   "pages/settings.js:188"
  ],
  "Закрити вкладки праворуч": [
-  "src/app-window.js:905"
+  "src/app-window.js:918"
  ],
  "Закрити вкладку": [
-  "src/app-window.js:792",
+  "src/app-window.js:805",
   "pages/help-data.js:188"
  ],
  "Закрити вкладку (Ctrl+W)": [
@@ -1224,10 +1236,10 @@
   "src/tab-groups.js:221"
  ],
  "Закрити інші": [
-  "src/app-window.js:904"
+  "src/app-window.js:917"
  ],
  "Закрити інші вкладки групи": [
-  "src/app-window.js:797",
+  "src/app-window.js:810",
   "src/tab-groups.js:241"
  ],
  "Закрити меню, підказки, вікно підтвердження": [
@@ -1244,10 +1256,10 @@
   "pages/help-data.js:81"
  ],
  "Закріпити / відкріпити вкладку": [
-  "src/app-window.js:794"
+  "src/app-window.js:807"
  ],
  "Закріпити вкладку": [
-  "src/app-window.js:894"
+  "src/app-window.js:907"
  ],
  "Закріпити/відкріпити, вимкнути звук, дублювати, приспати, закрити, закрити інші, закрити праворуч.": [
   "pages/help-data.js:33"
@@ -1271,7 +1283,7 @@
   "pages/help-data.js:19"
  ],
  "Запам'ятати вибір для цього сайту": [
-  "src/context.js:467"
+  "src/context.js:500"
  ],
  "Запис не знайдено.": [
   "src/ipc.js:53",
@@ -1281,13 +1293,13 @@
   "pages/import.js:24"
  ],
  "Запит дозволу": [
-  "src/context.js:465"
+  "src/context.js:498"
  ],
  "Запит заблоковано": [
   "pages/error.js:18"
  ],
  "Запит застарів.": [
-  "src/app-window.js:631"
+  "src/app-window.js:644"
  ],
  "Запит надто великий": [
   "src/wallet.js:285"
@@ -1354,7 +1366,7 @@
   "src/github.js:80"
  ],
  "Зачекайте приблизно 30 секунд — браузер запуститься сам після завершення.": [
-  "main.js:62"
+  "main.js:63"
  ],
  "Зашифрована резервна копія": [
   "src/ipc.js:73"
@@ -1368,7 +1380,7 @@
   "ui/index.html:37"
  ],
  "Зберегти зображення як…": [
-  "src/app-window.js:926"
+  "src/app-window.js:939"
  ],
  "Зберегти пароль для {0}{1}?": [
   "ui/renderer.js:393"
@@ -1377,7 +1389,7 @@
   "pages/passwords.js:105"
  ],
  "Зберегти як закладку": [
-  "src/app-window.js:948"
+  "src/app-window.js:961"
  ],
  "Збережених дозволів і винятків немає. Їх можна змінити кліком на замок в адресному рядку.": [
   "pages/settings.js:51"
@@ -1395,10 +1407,10 @@
   "pages/wallet.js:71"
  ],
  "Збільшити": [
-  "src/app-window.js:850"
+  "src/app-window.js:863"
  ],
  "Збільшити масштаб": [
-  "src/app-window.js:816"
+  "src/app-window.js:829"
  ],
  "Збільшує масштаб поточного сайту.": [
   "src/tips.js:19"
@@ -1431,10 +1443,10 @@
   "pages/help-data.js:124"
  ],
  "Зменшити": [
-  "src/app-window.js:851"
+  "src/app-window.js:864"
  ],
  "Зменшити масштаб": [
-  "src/app-window.js:817"
+  "src/app-window.js:830"
  ],
  "Зменшує масштаб поточного сайту.": [
   "src/tips.js:20"
@@ -1459,12 +1471,15 @@
  "Змінює ширину панелей розділеного екрана.": [
   "src/tips.js:32"
  ],
+ "Знайдено в постійному сховищі Arweave.": [
+  "pages/wallet.js:182"
+ ],
  "Знайдено версію {0}": [
   "pages/settings.js:84"
  ],
  "Знайти на сторінці": [
-  "src/app-window.js:804",
-  "src/app-window.js:853",
+  "src/app-window.js:817",
+  "src/app-window.js:866",
   "ui/index.html:42"
  ],
  "Зовнішні програми": [
@@ -1477,7 +1492,7 @@
   "ui/renderer.js:164"
  ],
  "Зупинити керування браузером ШІ": [
-  "src/app-window.js:823"
+  "src/app-window.js:836"
  ],
  "Зупинити: перемикач у налаштуваннях, команда «Зупинити керування браузером ШІ» (Ctrl+K) або закриття вікна ШІ. Токен — секрет: нікому його не передавайте; «Новий токен» робить старий недійсним.": [
   "pages/help-data.js:91"
@@ -1496,8 +1511,8 @@
   "pages/help-data.js:136"
  ],
  "Імпорт з Chrome / Firefox": [
-  "src/app-window.js:811",
-  "src/app-window.js:858"
+  "src/app-window.js:824",
+  "src/app-window.js:871"
  ],
  "Імпорт із Chrome, Edge, Firefox": [
   "pages/settings.js:270"
@@ -1528,8 +1543,8 @@
   "ui/index.html:14"
  ],
  "Інструменти розробника": [
-  "src/app-window.js:821",
-  "src/app-window.js:856",
+  "src/app-window.js:834",
+  "src/app-window.js:869",
   "pages/help-data.js:193"
  ],
  "Інструменти розробника: елементи, консоль, мережа.": [
@@ -1551,8 +1566,8 @@
   "pages/settings.js:183"
  ],
  "Історія": [
-  "src/app-window.js:806",
-  "src/app-window.js:844",
+  "src/app-window.js:819",
+  "src/app-window.js:857",
   "pages/history.js:7"
  ],
  "Історія відвідувань за днями з пошуком і видаленням.": [
@@ -1568,7 +1583,7 @@
   "pages/settings.js:47"
  ],
  "камери та/або мікрофона": [
-  "src/context.js:64"
+  "src/context.js:65"
  ],
  "КБ": [
   "pages/common.js:19"
@@ -1589,10 +1604,10 @@
   "pages/help-data.js:88"
  ],
  "Керування браузером ШІ вимкнено": [
-  "src/app-window.js:1217"
+  "src/app-window.js:1230"
  ],
  "Керування профілями": [
-  "src/app-window.js:812"
+  "src/app-window.js:825"
  ],
  "Керувати паролями": [
   "ui/overlay.js:237"
@@ -1693,18 +1708,18 @@
   "src/wallet.js:451"
  ],
  "Копіювати": [
-  "src/app-window.js:933",
-  "src/app-window.js:936",
+  "src/app-window.js:946",
+  "src/app-window.js:949",
   "pages/dashboard.js:30"
  ],
  "Копіювати адресу зображення": [
-  "src/app-window.js:928"
+  "src/app-window.js:941"
  ],
  "Копіювати адресу посилання": [
-  "src/app-window.js:921"
+  "src/app-window.js:934"
  ],
  "Копіювати зображення": [
-  "src/app-window.js:927"
+  "src/app-window.js:940"
  ],
  "Корисно для порівняння сторінок, документації поруч із кодом, перекладу.": [
   "pages/help-data.js:84"
@@ -1757,8 +1772,8 @@
   "pages/common.js:19"
  ],
  "Менеджер паролів": [
-  "src/app-window.js:808",
-  "src/app-window.js:846",
+  "src/app-window.js:821",
+  "src/app-window.js:859",
   "pages/passwords.js:22"
  ],
  "Менеджер паролів заблоковано — клік, щоб розблокувати": [
@@ -1837,8 +1852,8 @@
   "pages/help-data.js:159"
  ],
  "На весь екран": [
-  "src/app-window.js:820",
-  "src/app-window.js:855"
+  "src/app-window.js:833",
+  "src/app-window.js:868"
  ],
  "На сайті натисніть «Connect wallet» → «W3IR Wallet». З’явиться вікно підтвердження браузера. Сайт отримає лише адресу рахунку.": [
   "pages/help-data.js:156"
@@ -1859,16 +1874,16 @@
   "pages/help-data.js:130"
  ],
  "Надавати провайдер сайтам (window.ethereum)": [
-  "pages/wallet.js:147"
+  "pages/wallet.js:141"
  ],
  "надсилання сповіщень": [
-  "src/context.js:66"
+  "src/context.js:67"
  ],
  "Надсилати «Не відстежувати» (DNT / GPC)": [
   "pages/settings.js:261"
  ],
  "Назад": [
-  "src/app-window.js:944"
+  "src/app-window.js:957"
  ],
  "Назад (Alt+←) — на попередню сторінку цієї вкладки": [
   "ui/index.html:18"
@@ -1896,8 +1911,8 @@
   "pages/profiles.js:39"
  ],
  "Налаштування": [
-  "src/app-window.js:815",
-  "src/app-window.js:859",
+  "src/app-window.js:828",
+  "src/app-window.js:872",
   "pages/newtab.js:25"
  ],
  "Налаштування (очищення даних)": [
@@ -1947,7 +1962,7 @@
   "pages/error.html:5"
  ],
  "Не вдалося відкрити торент-клієнт": [
-  "src/app-window.js:390"
+  "src/app-window.js:403"
  ],
  "Не вдалося зв’язатися з RPC-вузлом мережі. Вкажіть інший RPC на сторінці гаманця або перевірте з’єднання.": [
   "pages/help-data.js:205"
@@ -1962,10 +1977,10 @@
   "src/wallet.js:485"
  ],
  "Не вдалося поділитися вкладкою": [
-  "src/app-window.js:1213"
+  "src/app-window.js:1226"
  ],
  "Не вдалося прочитати завантажений файл.": [
-  "src/update-verify.js:33"
+  "src/update-verify.js:40"
  ],
  "Не вдалося прочитати файл — закрийте цей браузер і повторіть.": [
   "src/importer.js:81"
@@ -1974,7 +1989,7 @@
   "src/sync.js:87"
  ],
  "Не вдалося увімкнути режим читання": [
-  "src/app-window.js:696"
+  "src/app-window.js:709"
  ],
  "Не відстежувати": [
   "pages/help-data.js:98"
@@ -2036,13 +2051,23 @@
  "Негайно припиняє доступ ШІ до цієї вкладки.": [
   "src/tips.js:34"
  ],
+ "Недійсний формат посилання ar://": [
+  "src/ipc.js:265"
+ ],
+ "Недійсний хеш транзакції Arweave (має бути 43 символи base64url).": [
+  "src/ipc.js:269"
+ ],
+ "Недійсний хеш транзакції Arweave.": [
+  "src/ipc.js:280",
+  "src/ipc.js:287"
+ ],
  "Недоступно": [
-  "src/ipc.js:350"
+  "src/ipc.js:396"
  ],
  "Недоступно.": [
   "src/dashboard.js:79",
   "src/dashboard.js:85",
-  "src/ipc.js:201"
+  "src/ipc.js:202"
  ],
  "Некоректна адреса": [
   "src/wallet.js:400"
@@ -2069,13 +2094,13 @@
   "src/wallet.js:469"
  ],
  "Некоректне magnet-посилання": [
-  "src/app-window.js:366"
+  "src/app-window.js:379"
  ],
  "Некоректний запит": [
   "src/wallet.js:281"
  ],
  "Некоректний номер версії.": [
-  "src/update-verify.js:31"
+  "src/update-verify.js:38"
  ],
  "Некоректний пароль.": [
   "src/vault.js:231"
@@ -2145,8 +2170,8 @@
  ],
  "Нова вкладка": [
   "src/app-window.js:201",
-  "src/app-window.js:787",
-  "src/app-window.js:834"
+  "src/app-window.js:800",
+  "src/app-window.js:847"
  ],
  "Нова вкладка — **Ctrl+T** або кнопка «+». Закрити — **Ctrl+W**, хрестик або клік середньою кнопкою миші. Повернути закриту — **Ctrl+Shift+T**. Подвійний клік по порожньому місцю панелі вкладок відкриває нову вкладку.": [
   "pages/help-data.js:30"
@@ -2158,19 +2183,19 @@
   "src/tab-groups.js:218"
  ],
  "Нова група з поточної вкладки": [
-  "src/app-window.js:798"
+  "src/app-window.js:811"
  ],
  "Нова мережа": [
   "src/wallet.js:365"
  ],
  "Нове вікно": [
-  "src/app-window.js:788",
-  "src/app-window.js:835",
+  "src/app-window.js:801",
+  "src/app-window.js:848",
   "pages/help-data.js:189"
  ],
  "Нове вікно інкогніто": [
-  "src/app-window.js:789",
-  "src/app-window.js:836"
+  "src/app-window.js:802",
+  "src/app-window.js:849"
  ],
  "Новий запис": [
   "pages/passwords.js:82"
@@ -2212,6 +2237,9 @@
   "pages/wallet.js:102",
   "pages/wallet.js:123"
  ],
+ "Оглядач блоків": [
+  "pages/wallet.js:204"
+ ],
  "Один рядок для всього: відкриті вкладки, команди браузера, закладки, історія й вільний пошук або адреса. Порожній рядок показує вкладки та найкорисніші команди.": [
   "pages/help-data.js:48"
  ],
@@ -2222,7 +2250,7 @@
   "pages/profiles.js:16"
  ],
  "Оновити": [
-  "src/app-window.js:946",
+  "src/app-window.js:959",
   "ui/overlay.js:183",
   "ui/renderer.js:394"
  ],
@@ -2233,7 +2261,7 @@
   "ui/renderer.js:164"
  ],
  "Оновити браузер до {0} (перезапуск)": [
-  "src/app-window.js:833"
+  "src/app-window.js:846"
  ],
  "Оновити пароль для {0}{1}?": [
   "ui/renderer.js:393"
@@ -2245,10 +2273,10 @@
   "ui/index.html:20"
  ],
  "Оновити та перезапустити": [
-  "src/app-window.js:1106"
+  "src/app-window.js:1119"
  ],
  "Оновлення {0} готове й перевірене — натисніть ⬆ у панелі, щоб встановити": [
-  "main.js:77"
+  "main.js:78"
  ],
  "Оновлення {0} готове й перевірене. Клік — встановити та перезапустити": [
   "ui/renderer.js:182"
@@ -2260,7 +2288,7 @@
   "pages/help-data.js:209"
  ],
  "Оновлення не містить підпису випускача.": [
-  "src/update-verify.js:30"
+  "src/update-verify.js:37"
  ],
  "Оновлено": [
   "pages/dashboard.js:70"
@@ -2290,7 +2318,7 @@
   "pages/reader.js:59"
  ],
  "Основний": [
-  "src/context.js:101",
+  "src/context.js:102",
   "src/profiles.js:10"
  ],
  "Основний профіль": [
@@ -2350,8 +2378,8 @@
   "pages/dashboard.html:5"
  ],
  "Панель (стан браузера)": [
-  "src/app-window.js:809",
-  "src/app-window.js:847",
+  "src/app-window.js:822",
+  "src/app-window.js:860",
   "pages/help-data.js:85"
  ],
  "Панель закладок": [
@@ -2367,13 +2395,13 @@
   "pages/settings.js:267"
  ],
  "Папка розпакованого розширення": [
-  "src/ipc.js:470"
+  "src/ipc.js:517"
  ],
  "Папка синхронізації": [
   "pages/settings.js:219"
  ],
  "Папка синхронізації (наприклад, у OneDrive або Dropbox)": [
-  "src/ipc.js:322"
+  "src/ipc.js:368"
  ],
  "Папка синхронізації недоступна.": [
   "src/sync.js:148"
@@ -2399,7 +2427,7 @@
   "pages/passwords.js:74"
  ],
  "Пароль збережено": [
-  "src/app-window.js:564"
+  "src/app-window.js:577"
  ],
  "Пароль копіюється в буфер на 20 секунд. Автозаповнення працює лише за вашою командою (кнопка 🔑) і лише на сайті з точно такою самою адресою.": [
   "pages/passwords.js:132"
@@ -2483,7 +2511,10 @@
   "pages/help-data.js:112"
  ],
  "Переглянути код сторінки": [
-  "src/app-window.js:952"
+  "src/app-window.js:965"
+ ],
+ "Переглянути NFT": [
+  "pages/wallet.js:215"
  ],
  "Перед відкриттям сторінки браузер звіряє її адресу зі списками відомих **фішингових** і **шкідливих** сайтів (URLhaus, Phishing.Database, MetaMask eth-phishing-detect; оновлюються раз на добу) та шукає ознаки підробки: літери різних алфавітів в одній назві (омогліфи), імітацію відомих сервісів (`paypa1.com`, `paypal.com.evil.net`, `metamask-wallet-claim.xyz`), обманні адреси виду `google.com@evil.example`. При збігу замість сайту з’являється **червоне попередження**.": [
   "pages/help-data.js:93"
@@ -2504,10 +2535,10 @@
   "ui/overlay.js:302"
  ],
  "Перейти до групи «{0}»": [
-  "src/app-window.js:799"
+  "src/app-window.js:812"
  ],
  "Перейти до профілю «{0}»": [
-  "src/app-window.js:813"
+  "src/app-window.js:826"
  ],
  "Перейти до розділу «{0}»": [
   "pages/help.js:54"
@@ -2522,7 +2553,7 @@
   "src/wallet.js:80"
  ],
  "Перекази NFT в оглядачі": [
-  "pages/wallet.js:140"
+  "pages/wallet.js:222"
  ],
  "Перемикає вкладки між верхнім рядом і боковою панеллю.": [
   "src/tips.js:14"
@@ -2534,10 +2565,10 @@
   "pages/help-data.js:31"
  ],
  "Перемістити в нове вікно": [
-  "src/app-window.js:897"
+  "src/app-window.js:910"
  ],
  "Перемістити вкладку в нове вікно": [
-  "src/app-window.js:796"
+  "src/app-window.js:809"
  ],
  "Перенесення закладок, історії та паролів з Chrome, Edge, Brave, Vivaldi та Firefox.": [
   "src/tips.js:43"
@@ -2572,11 +2603,8 @@
  "Підказки при наведенні": [
   "pages/help-data.js:10"
  ],
- "Підключайте гаманець на маркетплейсах («Connect wallet» → W3IR Wallet): перегляд, купівля й продаж NFT працюють у вкладці, а кожна дія підтверджується окремим вікном.": [
-  "pages/wallet.js:135"
- ],
  "Підключені сайти": [
-  "pages/wallet.js:141"
+  "pages/wallet.js:135"
  ],
  "Підключення": [
   "src/wallet.js:354",
@@ -2607,7 +2635,7 @@
   "src/wallet.js:455"
  ],
  "Підпис оновлення недійсний — файл не від випускача або змінений.": [
-  "src/update-verify.js:34"
+  "src/update-verify.js:41"
  ],
  "Підпис повідомлення": [
   "src/wallet.js:426",
@@ -2644,10 +2672,10 @@
   "src/vault.js:228"
  ],
  "Підтримуються мережі EVM (Ethereum, Polygon, Base, Arbitrum, Optimism, BNB, Avalanche та власні). Solana, Bitcoin та апаратні гаманці (Ledger/Trezor) не підтримуються. Це новий, незалежно не аудитований код — для великих сум використовуйте апаратний гаманець.": [
-  "pages/wallet.js:159"
+  "pages/wallet.js:153"
  ],
  "Пізніше": [
-  "src/app-window.js:1106",
+  "src/app-window.js:1119",
   "src/updater.js:210"
  ],
  "Після входу на сайті браузер запитає, чи зберегти пароль": [
@@ -2681,7 +2709,7 @@
   "pages/help-data.js:61"
  ],
  "Повторити": [
-  "src/app-window.js:932"
+  "src/app-window.js:945"
  ],
  "Повторіть майстер-пароль": [
   "pages/passwords.js:30"
@@ -2704,7 +2732,7 @@
  "Показати": [
   "pages/passwords.js:153",
   "pages/settings.js:172",
-  "pages/wallet.js:153"
+  "pages/wallet.js:147"
  ],
  "Показати в папці": [
   "pages/downloads.js:28"
@@ -2713,7 +2741,7 @@
   "src/split-view.js:57"
  ],
  "Показати фразу відновлення": [
-  "pages/wallet.js:149"
+  "pages/wallet.js:143"
  ],
  "Показувати закладки під адресним рядком": [
   "pages/settings.js:252"
@@ -2732,8 +2760,14 @@
  ],
  "Помилка": [
   "src/ipc.js:40",
-  "src/ipc.js:358",
+  "src/ipc.js:404",
   "pages/settings.js:143"
+ ],
+ "Помилка завантаження NFT.": [
+  "pages/wallet.js:178"
+ ],
+ "Помилка звернення до Arweave": [
+  "src/ipc.js:294"
  ],
  "Помилка мережі: {0}": [
   "src/github.js:155"
@@ -2781,7 +2815,7 @@
   "ui/index.html:15"
  ],
  "Потрібен майстер-пароль": [
-  "pages/wallet.js:149"
+  "pages/wallet.js:143"
  ],
  "Потрібен classic personal access token зі scope «notifications» (для приватних репозиторіїв — також «repo»). Токен шифрується захистом Windows і недоступний сайтам.": [
   "pages/settings.js:126"
@@ -2821,7 +2855,7 @@
   "ui/overlay.js:257"
  ],
  "Пошук по вкладках і командах": [
-  "src/app-window.js:839"
+  "src/app-window.js:852"
  ],
  "Пошук серед вкладок": [
   "pages/help-data.js:189"
@@ -2887,7 +2921,7 @@
   "src/wallet.js:73"
  ],
  "припинено в налаштуваннях": [
-  "src/ipc.js:212"
+  "src/ipc.js:213"
  ],
  "припинено з панелі": [
   "src/dashboard.js:89"
@@ -2899,7 +2933,7 @@
   "pages/dashboard.js:59"
  ],
  "Приспати вкладку": [
-  "src/app-window.js:898"
+  "src/app-window.js:911"
  ],
  "Приспляти неактивні вкладки": [
   "pages/settings.js:254"
@@ -2928,7 +2962,7 @@
   "pages/import.js:10"
  ],
  "Профілі…": [
-  "src/app-window.js:837"
+  "src/app-window.js:850"
  ],
  "Профіль — окремий «браузер» усередині браузера: **власні** cookie та входи на сайтах, закладки, історія, менеджер паролів, синхронізація й налаштування. Зручно розділяти «Роботу» й «Особисте» або мати кілька акаунтів на одному сайті.": [
   "pages/help-data.js:130"
@@ -2968,9 +3002,9 @@
   "pages/settings.js:105"
  ],
  "Режим читання": [
-  "src/app-window.js:800",
-  "src/app-window.js:840",
-  "src/app-window.js:949"
+  "src/app-window.js:813",
+  "src/app-window.js:853",
+  "src/app-window.js:962"
  ],
  "Режим читання (Ctrl+Shift+R) — лише текст статті, зі зміною шрифту й теми": [
   "ui/index.html:25"
@@ -3085,7 +3119,7 @@
   "src/wallet.js:335"
  ],
  "Сайти зі списків шахрайських ресурсів не можна додати в довірені.": [
-  "src/ipc.js:281"
+  "src/ipc.js:327"
  ],
  "Сайти отримують сигнал, що ви не хочете персоналізації": [
   "pages/settings.js:261"
@@ -3151,9 +3185,9 @@
   "pages/downloads.js:7"
  ],
  "Скасувати": [
-  "src/app-window.js:382",
-  "src/app-window.js:399",
-  "src/app-window.js:932"
+  "src/app-window.js:395",
+  "src/app-window.js:412",
+  "src/app-window.js:945"
  ],
  "Скасувати доступ до NFT колекції": [
   "src/wallet.js:77"
@@ -3171,13 +3205,13 @@
   "pages/settings.js:60"
  ],
  "Скинути масштаб": [
-  "src/app-window.js:818"
+  "src/app-window.js:831"
  ],
  "Скинути масштаб ({0}%)": [
-  "src/app-window.js:852"
+  "src/app-window.js:865"
  ],
  "Скопійовано": [
-  "src/app-window.js:1133",
+  "src/app-window.js:1146",
   "pages/settings.js:153"
  ],
  "скопійовано (20 с)": [
@@ -3196,7 +3230,7 @@
   "pages/settings.js:224"
  ],
  "Спершу розблокуйте сховище паролів.": [
-  "src/ipc.js:249",
+  "src/ipc.js:250",
   "pages/import.js:49"
  ],
  "Спершу створіть [сховище паролів](w3ir://passwords) — гаманець зберігається в ньому. Потім відкрийте [гаманець](w3ir://wallet): «Створити новий» (з’явиться фраза з 12 слів) або «Імпортувати» вашу фразу.": [
@@ -3410,7 +3444,7 @@
   "src/wallet.js:83"
  ],
  "Торент-клієнт не знайдено": [
-  "src/app-window.js:372"
+  "src/app-window.js:385"
  ],
  "Торенти": [
   "pages/help-data.js:166"
@@ -3419,7 +3453,7 @@
   "src/wallet.js:502"
  ],
  "Триває встановлення оновлення": [
-  "main.js:62"
+  "main.js:63"
  ],
  "Тут описано всі функції браузера. Використовуйте пошук ліворуч або натискайте розділи. Наведіть курсор на кнопки в інтерфейсі — підказки з’являться одразу.": [
   "pages/help.js:60"
@@ -3452,7 +3486,7 @@
   "src/sync.js:101"
  ],
  "У папці немає manifest.json": [
-  "src/ipc.js:473"
+  "src/ipc.js:520"
  ],
  "У приватному вікні дозволи діють лише до його закриття. Зміни дозволів набувають чинності після перезавантаження сторінки.": [
   "pages/help-data.js:78"
@@ -3482,10 +3516,10 @@
   "pages/settings.js:58"
  ],
  "Увімкнути блокування реклами": [
-  "src/app-window.js:802"
+  "src/app-window.js:815"
  ],
  "Увімкнути звук": [
-  "src/app-window.js:895"
+  "src/app-window.js:908"
  ],
  "Увімкнути синхронізацію": [
   "pages/settings.js:228"
@@ -3534,7 +3568,7 @@
   "pages/dashboard.js:68"
  ],
  "Фраза відновлення": [
-  "pages/wallet.js:165"
+  "pages/wallet.js:159"
  ],
  "Фраза відновлення (12 слів) — єдиний спосіб повернути кошти. Її бачите лише ви; ми її не зберігаємо в хмарі й не можемо відновити.": [
   "pages/wallet.js:51"
@@ -3543,7 +3577,7 @@
   "src/vault.js:157"
  ],
  "Хибний майстер-пароль.": [
-  "src/app-window.js:640",
+  "src/app-window.js:653",
   "src/ipc.js:50",
   "src/ipc.js:72"
  ],
@@ -3587,7 +3621,7 @@
   "pages/settings.js:185"
  ],
  "читання буфера обміну": [
-  "src/context.js:67"
+  "src/context.js:68"
  ],
  "Читання буфера обміну": [
   "pages/settings.js:47",
@@ -3601,6 +3635,9 @@
  ],
  "Швидкий старт": [
   "pages/help-data.js:11"
+ ],
+ "Швидкі посилання маркетплейсів для першого рахунку:": [
+  "pages/wallet.js:219"
  ],
  "Шифроване сховище: AES-256-GCM + scrypt + захист акаунтом Windows": [
   "pages/settings.js:274"
@@ -3616,13 +3653,13 @@
   "src/agent.js:478"
  ],
  "ШІ може керувати цією вкладкою": [
-  "src/app-window.js:1212"
+  "src/app-window.js:1225"
  ],
  "ШІ може керувати цією вкладкою (меню вкладки → припинити)": [
   "ui/renderer.js:121"
  ],
  "ШІ може читати цю вкладку": [
-  "src/app-window.js:1212"
+  "src/app-window.js:1225"
  ],
  "ШІ може читати цю вкладку (меню вкладки → припинити)": [
   "ui/renderer.js:121"
@@ -3657,7 +3694,7 @@
   "src/tips.js:17"
  ],
  "Шукати «{0}» ({1})": [
-  "src/app-window.js:940"
+  "src/app-window.js:953"
  ],
  "Шукати:": [
   "ui/overlay.js:43"
@@ -3769,25 +3806,25 @@
   "src/github.js:142"
  ],
  "GitHub: відкрити в GitHub Desktop — {0}": [
-  "src/app-window.js:772"
+  "src/app-window.js:785"
  ],
  "GitHub: відкрити в github.dev (редактор) — {0}": [
-  "src/app-window.js:767"
+  "src/app-window.js:780"
  ],
  "GitHub: відкрити у VS Code — {0}": [
-  "src/app-window.js:773"
+  "src/app-window.js:786"
  ],
  "GitHub: відкрити Raw-файл": [
-  "src/app-window.js:777"
+  "src/app-window.js:790"
  ],
  "GitHub: завантажити ZIP — {0}": [
-  "src/app-window.js:766"
+  "src/app-window.js:779"
  ],
  "GitHub: копіювати git clone (HTTPS) — {0}": [
-  "src/app-window.js:764"
+  "src/app-window.js:777"
  ],
  "GitHub: копіювати git clone (SSH) — {0}": [
-  "src/app-window.js:765"
+  "src/app-window.js:778"
  ],
  "GitHub: сповіщення та запити на рев’ю": [
   "ui/index.html:29"
@@ -3811,7 +3848,7 @@
   "pages/settings.js:269"
  ],
  "Passkeys і ключі безпеки поки не підтримуються в W3IR Browser: увійдіть паролем (🔑 менеджер паролів) або іншим способом.": [
-  "src/ipc.js:382"
+  "src/ipc.js:428"
  ],
  "RPC має бути https:// (або localhost).": [
   "src/wallet.js:209"

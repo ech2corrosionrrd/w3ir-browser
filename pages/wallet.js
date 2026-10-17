@@ -130,14 +130,8 @@ async function renderDashboard(st) {
     h('h2', null, 'Рахунки'),
     accounts,
     h('div', { class: 'bar', style: 'margin-top:10px' }, info.accounts.length < 10 ? h('button', { onclick: async () => { const r = await call('wallet:addAccount'); if (!r.ok) alert(r.error); render(); } }, '+ Додати рахунок') : ''),
-    h('h2', null, 'NFT'),
-    h('div', { class: 'card', style: 'max-width:none;margin:0' },
-      h('p', { style: 'margin-top:0' }, 'Підключайте гаманець на маркетплейсах («Connect wallet» → W3IR Wallet): перегляд, купівля й продаж NFT працюють у вкладці, а кожна дія підтверджується окремим вікном.'),
-      h('p', { class: 'note' }, 'Вбудований перегляд колекції потребує сторонніх сервісів з API-ключами, тому не вмикається за замовчуванням (приватність). Швидкі посилання для першого рахунку:'),
-      h('div', { class: 'tools' },
-        h('a', { href: `https://opensea.io/${first}` }, 'OpenSea'),
-        h('a', { href: `https://rarible.com/user/${first}` }, 'Rarible'),
-        net.explorer ? h('a', { href: `${net.explorer}/address/${first}#nfttransfers` }, 'Перекази NFT в оглядачі') : '')),
+    h('h2', null, 'Децентралізоване сховище & NFT (Arweave / Irys)'),
+    buildArweaveSection(first, net),
     h('h2', null, 'Підключені сайти'),
     connected,
     h('h2', null, 'Журнал дій'),
@@ -167,6 +161,65 @@ function showPhraseOnly(phrase) {
       h('div', { class: 'mbtns' }, h('button', { class: 'primary', onclick: () => box.remove() }, 'Закрити'))));
   document.body.append(box);
   setTimeout(() => box.remove(), 60000);
+}
+
+function buildArweaveSection(first, net) {
+  const input = h('input', { type: 'text', placeholder: 'Введіть txId або ar://...', spellcheck: false, style: 'flex:1' });
+  const statusMsg = h('div', { class: 'note', style: 'margin-top:6px' });
+  const cardContainer = h('div', { class: 'nft-grid' });
+
+  const inspect = async () => {
+    const val = input.value.trim();
+    if (!val) return;
+    statusMsg.textContent = 'Завантаження з Arweave шлюзів…';
+    cardContainer.textContent = '';
+    const res = await call('arweave:nft', { txId: val });
+    if (!res.ok) {
+      statusMsg.textContent = res.error || 'Помилка завантаження NFT.';
+      return;
+    }
+    const meta = res.metadata;
+    statusMsg.textContent = 'Знайдено в постійному сховищі Arweave.';
+
+    const imgEl = h('img', {
+      class: 'nft-thumb',
+      src: meta.imageGateway || meta.image,
+      alt: meta.name,
+      onerror: () => { imgEl.style.display = 'none'; }
+    });
+
+    const traitsEls = (meta.attributes || []).map(a =>
+      h('div', { class: 'nft-trait' }, `${a.trait_type}: `, h('strong', null, a.value))
+    );
+
+    const card = h('div', { class: 'nft-card' },
+      meta.image ? imgEl : '',
+      h('div', { class: 'nft-body' },
+        h('span', { class: 'nft-badge' }, '⚡ Arweave Permanent'),
+        h('div', { class: 'nft-title' }, meta.name),
+        meta.description ? h('div', { class: 'nft-desc' }, meta.description) : '',
+        traitsEls.length ? h('div', { class: 'nft-traits' }, traitsEls) : '',
+        h('div', { class: 'tools', style: 'margin-top:8px' },
+          h('a', { href: meta.arweaveUrl, target: '_blank' }, 'Відкрити ar://'),
+          h('a', { href: `https://viewblock.io/arweave/tx/${meta.txId}`, target: '_blank' }, 'Оглядач блоків'))));
+
+    cardContainer.append(card);
+  };
+
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') inspect(); });
+
+  return h('div', { class: 'card', style: 'max-width:none;margin:0' },
+    h('p', { style: 'margin-top:0' }, 'Всі NFT та постійні медіафайли у W3IR Browser завантажуються та верифікуються напряму через децентралізоване сховище Arweave (шлюзи Irys / Arweave) без посередників чи платних API.'),
+    h('div', { class: 'bar', style: 'margin:12px 0 6px' },
+      input,
+      h('button', { class: 'primary', onclick: inspect }, 'Переглянути NFT')),
+    statusMsg,
+    cardContainer,
+    h('div', { class: 'tools', style: 'margin-top:10px' },
+      h('span', { class: 'note' }, 'Швидкі посилання маркетплейсів для першого рахунку:'),
+      h('a', { href: `https://opensea.io/${first}` }, 'OpenSea'),
+      h('a', { href: `https://rarible.com/user/${first}` }, 'Rarible'),
+      net && net.explorer ? h('a', { href: `${net.explorer}/address/${first}#nfttransfers` }, 'Перекази NFT в оглядачі') : ''));
 }
 
 render();

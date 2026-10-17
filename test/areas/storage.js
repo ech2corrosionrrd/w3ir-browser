@@ -158,7 +158,6 @@ async function syncTests() {
 
 async function e2eTests(ctx) {
   const w = [...ctx.windows][0];
-  const v = ctx.vault;
   // вимикаємо реальні дані користувача: тестове сховище в тимчасовій папці
   const dir = tmp('e2e');
   const real = ctx.vault;
@@ -266,7 +265,7 @@ async function torrentTests(ctx) {
   await sleep(100);
   ok(calls.length === 2, 'torrent: ін\u2019єкція лапок у mailto відхилена');
   app.getApplicationNameForProtocol = () => '';
-  await new Promise((resolve) => { const t = setTimeout(resolve, 300); w.openMagnet(`magnet:?xt=urn:btih:${hash}`); });
+  await new Promise((resolve) => { setTimeout(resolve, 300); w.openMagnet(`magnet:?xt=urn:btih:${hash}`); });
   ok(calls.length === 2, 'torrent: без клієнта нічого не запускається');
   shell.openExternal = origOpen; app.getApplicationNameForProtocol = origName; cfg.torrentConfirm = prev;
 }

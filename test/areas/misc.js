@@ -139,7 +139,7 @@ async function auditTests(ctx) {
   const mainSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'main.js'), 'utf8');
   const ipcSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'ipc.js'), 'utf8');
   ok(/!app\.isPackaged && process\.env\.W3IR_SMOKE/.test(mainSrc), 'audit: тестовий хук W3IR_SMOKE не підключається в упакованій збірці');
-  ok(/allowFileAccess: false/.test(ipcSrc) && !/allowFileAccess: true/.test(ipcSrc), 'audit: розпаковані розширення не отримують доступ до файлової системи');
+  ok(/allowFileAccess: false/.test(ipcSrc) && !/allowFileAccess: true/.test(ipcSrc) && !/allowFileAccess: true/.test(mainSrc), 'audit: розпаковані розширення не отримують доступ до файлової системи');
 }
 
 async function webauthnTests(ctx) {
@@ -192,7 +192,7 @@ async function ipcPolicyTests() {
   const bad = cases.filter(([n, u, exp]) => permitted(n, u) !== exp).map(([n, u, exp]) => `${n} @ ${u} → очікувалось ${exp}`);
   ok(bad.length === 0, `ipc: єдина таблиця прав — ${cases.length} випадків (команда × сторінка) поводяться правильно`, bad);
   // кожна група команд із клієнтських сторінок має запис у таблиці (щоб нова група не лишилась без правил)
-  const fs2 = require('fs'), path2 = require('path');
+  const fs2 = require('fs');
   const used = new Set();
   for (const f of fs2.readdirSync(path.join(__dirname, '..', '..', 'pages')).filter(x => x.endsWith('.js'))) {
     const t = fs2.readFileSync(path.join(__dirname, '..', '..', 'pages', f), 'utf8');
@@ -241,7 +241,7 @@ async function brandTests() {
 async function dashboardTests(ctx) {
   const { pingNetworks } = require('../../src/dashboard');
   const rpc = http.createServer((req, res) => {
-    let b = ''; req.on('data', c => { b += c; });
+    req.on('data', () => {});
     req.on('end', () => {
       if (req.url === '/slow') return;
       if (req.url === '/err') { res.statusCode = 500; return res.end('{}'); }

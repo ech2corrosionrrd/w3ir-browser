@@ -265,6 +265,11 @@ class AppWindow {
     const url = this.ctx.resolveInput(input);
     if (!url) return;
     if (tab.sleep) tab.sleep = null;
+    if (/^https:\/\/accounts\.(google|youtube)\.[a-z.]+\//i.test(url)) {
+      tab.view.webContents.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0');
+    } else if (!url.startsWith('w3ir:')) {
+      tab.view.webContents.setUserAgent(this.ses.getUserAgent());
+    }
     tab.view.webContents.loadURL(url).catch(() => { /* помилки показує did-fail-load */ });
   }
 
@@ -287,6 +292,14 @@ class AppWindow {
     wc.on('page-favicon-updated', (e, favicons) => { if (!tab.sleep) { tab.favicon = favicons[0] || ''; push(); } });
     wc.on('did-start-navigation', (d) => {
       if (d.isMainFrame && !d.isSameDocument) tab.blocked = 0;
+      if (d.isMainFrame && d.url) {
+        // Вхід Google: для accounts.google.* використовуємо сумісний Firefox UA, що знімає блокування
+        if (/^https:\/\/accounts\.(google|youtube)\.[a-z.]+\//i.test(d.url)) {
+          wc.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0');
+        } else if (!d.url.startsWith('w3ir:')) {
+          wc.setUserAgent(this.ses.getUserAgent());
+        }
+      }
     });
     wc.on('did-navigate', (e, url) => {
       if (tab.sleep) return;
@@ -323,7 +336,7 @@ class AppWindow {
     }
     wc.on('will-navigate', (e, url) => {
       if (EXTERNAL_SCHEME.test(url)) { e.preventDefault(); this.openExternal(url); }
-      else if (!/^(https?|w3ir|file|about|blob|data|view-source):/i.test(url)) e.preventDefault();
+      else if (!/^(https?|w3ir|file|about|blob|data|view-source|ar):/i.test(url)) e.preventDefault();
     });
     wc.setWindowOpenHandler((d) => {
       if (this.agent) { this.ctx.agent.pageNavigation(this, tab, d.url, 'popup'); return { action: 'deny' }; }
@@ -331,7 +344,7 @@ class AppWindow {
       if (d.disposition === 'new-window') {
         return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true, icon: ICON, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } } };
       }
-      if (/^(https?|w3ir|file|about):/i.test(d.url)) this.createTab(d.url, { activate: d.disposition !== 'background-tab', opener: tab });
+      if (/^(https?|w3ir|file|about|ar):/i.test(d.url)) this.createTab(d.url, { activate: d.disposition !== 'background-tab', opener: tab });
       return { action: 'deny' };
     });
     wc.on('did-create-window', (w) => {
@@ -1220,7 +1233,12 @@ class AppWindow {
       case 'zoomOut': if (wc) wc.setZoomLevel(Math.max(-4, wc.getZoomLevel() - 0.5)); break;
       case 'zoomReset': if (wc) wc.setZoomLevel(0); break;
       case 'print': if (wc) wc.print(); break;
-      case 'devtools': if (wc) wc.toggleDevTools(); break;
+      case 'devtools':
+        if (wc) {
+          if (wc.debugger && wc.debugger.isAttached()) { try { wc.debugger.detach(); } catch { /* ignore */ } }
+          wc.toggleDevTools();
+        }
+        break;
       case 'fullscreen': if (this.htmlFullscreen) this.exitHtmlFullscreen(); else { this.userFs = !this.win.isFullScreen(); this.win.setFullScreen(this.userFs); } break;
       case 'quit': app.quit(); break;
       case 'find': this.chrome.focus(); this.chrome.send('find-open'); break;

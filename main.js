@@ -14,6 +14,7 @@ if (require('./src/launch-guard').shouldBlock({ argv: process.argv, packaged: ap
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'w3ir', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+  { scheme: 'ar', privileges: { secure: true, supportFetchAPI: true, corsEnabled: true } },
 ]);
 
 // Лише для розробки/тестів: окрема тека даних (ізоляція від встановленої копії та власне блокування одного екземпляра)
@@ -91,7 +92,7 @@ app.whenReady().then(async () => {
 
   // Розширення Chrome (експериментально) та розумний блокувальник — у фоні, щоб не гальмувати запуск.
   for (const item of ctx.extStore.data.items) {
-    ctx.session.extensions.loadExtension(item.path, { allowFileAccess: true })
+    ctx.session.extensions.loadExtension(item.path, { allowFileAccess: false })
       .catch(e => console.error('Extension failed', item.path, e.message));
   }
   initBlocker(ctx).then(() => manager.all().forEach(c => c.pushAll())).catch(e => console.error('Adblock engine unavailable, using built-in list:', e.message));

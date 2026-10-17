@@ -123,3 +123,15 @@ progress { accent-color: #00f2fe; }
 .rail a:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--fg); text-decoration: none; }
 .rail a.on { color: var(--fg); border-left-color: #00f2fe; background: color-mix(in srgb, var(--accent) 18%, transparent); }
 @media (max-width: 1320px) { .rail { display: none; } }
+
+/* Arweave NFT картки */
+.nft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin: 16px 0; }
+.nft-card { border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; display: flex; flex-direction: column; }
+.nft-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; background: rgba(0,0,0,.2); }
+.nft-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.nft-title { font-weight: 600; font-size: 15px; }
+.nft-desc { font-size: 12px; color: var(--dim); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nft-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--link); width: fit-content; }
+.nft-traits { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.nft-trait { font-size: 11px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; color: var(--dim); }
+.nft-trait strong { color: var(--fg); }
