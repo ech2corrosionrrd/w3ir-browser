@@ -463,13 +463,8 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     });
     ses.webRequest.onBeforeSendHeaders((details, cb) => {
       if (ctx.cfg().sendGpc) { details.requestHeaders['Sec-GPC'] = '1'; details.requestHeaders['DNT'] = '1'; }
-      // Вхід Google: accounts.google.* блокує вхід через перевірку Chromium/Client Hints; для нього використовуємо Firefox UA
-      if (/^https:\/\/accounts\.(google|youtube)\.[a-z.]+\//i.test(details.url)) {
-        details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0';
-        for (const k of Object.keys(details.requestHeaders)) {
-          if (/^sec-ch-ua/i.test(k)) delete details.requestHeaders[k];
-        }
-      } else if (/^https:\/\/([\w-]+\.)?(google|youtube)\.[a-z.]+\//i.test(details.url)) {
+      // Вхід Google відхиляє клієнтів без бренду «Google Chrome» (узгоджено з navigator.userAgentData, див. app-window.js)
+      if (/^https:\/\/([\w-]+\.)?(google|youtube)\.[a-z.]+\//i.test(details.url)) {
         const major = process.versions.chrome.split('.')[0];
         const h = details.requestHeaders;
         for (const k of Object.keys(h)) if (k.toLowerCase() === 'sec-ch-ua') delete h[k];
