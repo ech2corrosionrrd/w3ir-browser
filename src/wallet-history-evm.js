@@ -3,11 +3,29 @@
 // повної історії не отримати: публічні RPC обмежують діапазон журналів, а переказ основної монети подій не залишає — тому показується
 // наближена історія токенів, а для основної монети — власний журнал гаманця (зі статусами). Адреса рахунку йде лише вашим вузлам RPC.
 const { getAddress, zeroPadValue, id: topicId, formatUnits } = require('ethers');
+const { BUILTIN } = require('./wallet-evm-tokens');
 
 const T_TRANSFER = topicId('Transfer(address,address,uint256)');
 const MAX_ITEMS = 60;
 const MAX_TOKENS = 12;
 const MAX_BLOCK_TIMES = 20;
+// Назви токенів-розсилок: посилання, «claim», «reward» тощо — шахраї вставляють їх у назву, щоб заманити на свій сайт
+const SPAM_NAME = /https?:|www\.|\.(com|io|net|org|xyz|app|cc|vip|top|ltd|club|site|online|info)\b|t\.me|claim|reward|airdrop|voucher|bonus|gift|visit|free\b/i;
+
+// Клітинка CSV: лапки подвоюються, а початок на = + - @ нейтралізується (назви токенів задають чужі люди: захист від формул у таблицях)
+function csvCell(v) {
+  let t = String(v === undefined || v === null ? '' : v);
+  if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+  return /[",\n\r;]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+function toCsv(items, { network = '', tr = (x) => x } = {}) {
+  const head = ['Час (UTC)', 'Мережа', 'Напрям', 'Тип', 'Токен/колекція', 'Символ', 'Кількість/ID', 'Контрагент', "Ім'я контакту", 'Підозріле', 'Транзакція'];
+  const rows = items.map(it => [
+    it.time ? new Date(it.time).toISOString() : '', network, it.dir === 'in' ? tr('Отримано') : tr('Надіслано'), it.kind === 'nft' ? 'NFT' : 'ERC-20',
+    it.token, it.symbol || '', it.kind === 'nft' ? it.id : (it.amount !== undefined ? it.amount : it.raw), it.peer, it.peerName || '', it.suspicious ? tr('так') : '', it.hash,
+  ]);
+  return '\uFEFF' + [head.map(h => tr(h)), ...rows].map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
 
 function install(Wallet, { RpcError, clip, unauthorized }) {
   const proto = Wallet.prototype;
@@ -58,16 +76,37 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     const times = new Map();
     const blockNums = [...new Set(items.map(x => x.block))].slice(0, MAX_BLOCK_TIMES);
     await Promise.all(blockNums.map(async (n) => { try { const b = await timed(provider.getBlock(n), 6000); if (b) times.set(n, Number(b.timestamp) * 1000); } catch { /* час необов'язковий */ } }));
+    const names = new Map(((s.contacts || [])).filter(c => c && c.address).map(c => [String(c.address).toLowerCase(), c.name]));
+    const known = new Set([...(BUILTIN[chainId] || []).map(([a]) => a), ...((this._customTokens ? this._customTokens(chainId) : []).map(c => c.address))].map(a => String(a).toLowerCase()));
+    const sentTokens = new Set(items.filter(x => x.dir === 'out').map(x => x.token));
     for (const it of items) {
       it.time = times.get(it.block) || 0;
+      it.peerName = names.get(it.peer.toLowerCase()) || '';
       if (it.kind === 'erc20') {
         const info = infos.get(it.token);
         if (info) { it.symbol = info.symbol; it.decimals = info.decimals; it.amount = formatUnits(it.raw, info.decimals); }
-      }
+        // розсилка: токен чужий (не вбудований і не доданий вами), прийшов від невідомої адреси, ви його не відправляли — або назва схожа на рекламу
+        const label = info ? `${info.symbol} ${info.name}` : '';
+        it.suspicious = it.dir === 'in' && ((SPAM_NAME.test(label) && !it.peerName) || (!known.has(it.token.toLowerCase()) && !it.peerName && !sentTokens.has(it.token)));
+      } else it.suspicious = false;
       delete it.index;
     }
+    this._historyCache = this._historyCache || new Map();
+    this._historyCache.set(`${chainId}|${owner}`, { chainId, items });
     return { chainId, items, scanned: Math.min(blocks, head + 1), partial };
+  };
+
+  proto.evmHistoryCsv = function (index, tr) {
+    const data = this.data();
+    if (!data) throw unauthorized('Гаманець не створено');
+    const owner = this.evmView(index);
+    const chainId = this.activeChain();
+    const hit = this._historyCache && this._historyCache.get(`${chainId}|${owner}`);
+    if (!hit) throw new RpcError(-32602, 'Спершу відкрийте історію цього рахунку.');
+    const net = this.network(chainId);
+    return toCsv(hit.items, { network: net ? net.name : String(chainId), tr });
   };
 }
 
-module.exports = { install, T_TRANSFER };
+// CSV історії для експорту: останній результат пошуку цього рахунку (без повторного сканування)
+module.exports = { install, T_TRANSFER, toCsv, csvCell };

@@ -13,6 +13,8 @@ async function historyEvmTests() {
   const PEER = E.getAddress('0x00000000000000000000000000000000000000b2');
   const TOKEN = E.getAddress('0x00000000000000000000000000000000000000c1');
   const COLL = E.getAddress('0x00000000000000000000000000000000000000c3');
+  const SPAM = E.getAddress('0x00000000000000000000000000000000000000c4');
+  const STRANGER = E.getAddress('0x00000000000000000000000000000000000000b9');
   const T = E.id('Transfer(address,address,uint256)');
   const pad = (a) => E.zeroPadValue(a, 32);
   const id7 = E.zeroPadValue('0x07', 32);
@@ -21,6 +23,7 @@ async function historyEvmTests() {
     { address: TOKEN, topics: [T, pad(owner), pad(PEER)], data: coder.encode(['uint256'], [2500000n]), block: 9000, tx: h(1) },
     { address: TOKEN, topics: [T, pad(PEER), pad(owner)], data: coder.encode(['uint256'], [7000000n]), block: 9500, tx: h(2) },
     { address: COLL, topics: [T, pad(PEER), pad(owner), id7], data: '0x', block: 9800, tx: h(3) },
+    { address: SPAM, topics: [T, pad(STRANGER), pad(owner)], data: coder.encode(['uint256'], [5000000000n]), block: 9100, tx: h(5) },
     { address: TOKEN, topics: [T, pad(PEER), pad(PEER)], data: coder.encode(['uint256'], [1n]), block: 9900, tx: h(4) }, // чужий переказ
   ];
   let failLogs = false;
@@ -44,6 +47,11 @@ async function historyEvmTests() {
           case 'eth_call': {
             const { to, data } = j.params[0];
             const sel = String(data).slice(0, 10);
+            if (E.getAddress(to) === SPAM) {
+              if (sel === '0x313ce567') return r(coder.encode(['uint8'], [18]));
+              if (sel === '0x95d89b41') return r(coder.encode(['string'], ['=Claim reward']));
+              if (sel === '0x06fdde03') return r(coder.encode(['string'], ['Visit usdc-gift.com to claim']));
+            }
             if (E.getAddress(to) === TOKEN) {
               if (sel === '0x313ce567') return r(coder.encode(['uint8'], [6]));
               if (sel === '0x95d89b41') return r(coder.encode(['string'], ['USDC']));
@@ -65,9 +73,11 @@ async function historyEvmTests() {
 
   class FakeWallet {
     constructor() { this.p = new FailoverProvider([url], net, { timeout: 4000 }); }
-    data() { return {}; }
+    data() { return { contacts: [{ name: 'Аліса', address: PEER, chain: 'evm' }] }; }
     evmView() { return owner; }
+    section() { return {}; }
     activeChain() { return 1; }
+    network() { return { name: 'Ethereum' }; }
     provider() { return this.p; }
     _ethCall(chainId, to, data) { return this.p.call({ to, data }); }
   }
@@ -77,11 +87,17 @@ async function historyEvmTests() {
   const w = new FakeWallet();
 
   const r1 = await w.evmHistory(0, { blocks: 10001, chunk: 5000 });
-  ok(r1.items.length === 3 && !r1.partial, 'history-evm: знайдено лише перекази, що стосуються рахунку (чужий ігнорується)');
+  ok(r1.items.length === 4 && !r1.partial, 'history-evm: знайдено лише перекази, що стосуються рахунку (чужий ігнорується)');
   ok(r1.items[0].kind === 'nft' && r1.items[0].dir === 'in' && r1.items[0].id === '7' && r1.items[0].hash === h(3), 'history-evm: найновіший — вхідний NFT (ERC-721), впорядковано від нових');
   const inc = r1.items.find(x => x.hash === h(2)), out = r1.items.find(x => x.hash === h(1));
   ok(inc && inc.dir === 'in' && inc.peer === PEER && inc.symbol === 'USDC' && inc.amount === '7.0', 'history-evm: вхідний ERC-20 з назвою токена й сумою');
   ok(out && out.dir === 'out' && out.amount === '2.5' && out.time > 0, 'history-evm: вихідний ERC-20 із сумою і часом блоку');
+  ok(inc.peerName === 'Аліса' && inc.suspicious === false && out.suspicious === false, 'history-evm: відправник з адресної книги підписано іменем, його токен не вважається розсилкою');
+  const spam = r1.items.find(x => x.hash === h(5));
+  ok(spam && spam.suspicious === true && spam.peerName === '', 'history-evm: невідомий токен з рекламною назвою від невідомої адреси позначено як розсилку');
+  const csv = w.evmHistoryCsv(0);
+  const lines = csv.split('\r\n').filter(Boolean);
+  ok(lines.length === 5 && lines[0].startsWith('\uFEFFЧас (UTC)') && csv.includes('Аліса') && csv.includes("'=Claim reward"), 'history-evm: CSV містить усі рядки, імена контактів, а початок на «=» нейтралізовано (захист від формул)');
   const r2 = await w.evmHistory(0, { blocks: 100, chunk: 50 });
   ok(r2.items.length === 0 && r2.scanned === 100, 'history-evm: події поза діапазоном блоків не потрапляють');
   failLogs = true;

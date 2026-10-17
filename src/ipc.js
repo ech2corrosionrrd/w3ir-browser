@@ -287,6 +287,14 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:scanApprovals': return { ok: true, ...(await w.scanApprovals(arg.index)) };
       case 'wallet:approvals': return { ok: true, ...(await w.listApprovals(arg.index)) };
       case 'wallet:evmHistory': return { ok: true, ...(await w.evmHistory(arg.index)) };
+      case 'wallet:evmHistoryCsv': {
+        const csv = w.evmHistoryCsv(arg.index, tr);
+        const stamp = new Date().toISOString().slice(0, 10);
+        const r = await require('electron').dialog.showSaveDialog(entry.win.win, { title: tr('Зберегти історію (CSV)'), defaultPath: `w3ir-history-${stamp}.csv`, filters: [{ name: 'CSV', extensions: ['csv'] }] });
+        if (r.canceled || !r.filePath) return { ok: false, error: 'Збереження скасовано.' };
+        require('fs').writeFileSync(r.filePath, csv);
+        return { ok: true, path: r.filePath };
+      }
       case 'wallet:revokeApproval': return { ok: true, hash: await w.revokeApproval(entry.win, () => entry.win.tabs.includes(entry.tab), { index: arg.index, kind: String(arg.kind), token: arg.token, spender: arg.spender }) };
       case 'wallet:backupQuiz': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, ...w.backupQuiz() };
       case 'wallet:backupCheck': return { ok: true, correct: w.backupCheck(arg.answers) };

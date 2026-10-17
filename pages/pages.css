@@ -194,3 +194,8 @@ body.wallet .nft-title { font-size: 14px; }
 body.wallet .warnbox { border-radius: 14px; }
 @media (max-width: 600px) { body.wallet main { padding: 20px 12px 48px; } body.wallet .wsum, body.wallet .acct { padding: 14px; } }
 @media (prefers-reduced-motion: reduce) { body.wallet * { transition: none !important; } }
+
+/* історія EVM: згорнуті підозрілі перекази */
+.spam-box { border-top: 1px solid var(--line); background: color-mix(in srgb, var(--danger) 6%, var(--card)); }
+.spam-box > summary { cursor: pointer; padding: 12px 16px; color: var(--danger); font-size: 13px; }
+.spam-box .item { opacity: .85; }

@@ -2,7 +2,7 @@
 
 Статичний аналіз: `npm run lint` (запускати перед випуском).
 
-Автоматичний набір (1076 перевірок; усі проходять; для швидкої перевірки областей: `W3IR_ONLY=agentTests,updateTests`, назви — імена функцій у `test/security.js`) — `test/security.js` (запускач) і області в `test/areas/*.js` (storage, web3, solana, fuzz, qr, places, injection, assistant, arweave, updates-threats, tabs, ai, i18n, misc; спільні помічники — `test/lib.js`) (**490 перевірок**, повний прогін ≈ 3–5 хв). Запускається всередині Electron, тому використовує справжні вікна, вкладки, сеанси й IPC.
+Автоматичний набір (1086 перевірок; усі проходять; для швидкої перевірки областей: `W3IR_ONLY=agentTests,updateTests`, назви — імена функцій у `test/security.js`) — `test/security.js` (запускач) і області в `test/areas/*.js` (storage, web3, solana, fuzz, qr, places, injection, assistant, arweave, updates-threats, tabs, ai, i18n, misc; спільні помічники — `test/lib.js`) (**490 перевірок**, повний прогін ≈ 3–5 хв). Запускається всередині Electron, тому використовує справжні вікна, вкладки, сеанси й IPC.
 
 ```
 set W3IR_USER_DATA=%TEMP%\w3ir-test-data
@@ -81,6 +81,10 @@ npx electron .
 
 - `ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron.exe build/mainnet-sim-check.js` — **симуляція на mainnet** без підписів і коштів: знаходить справжнього власника USDC, будує створення токен-акаунта (ATA) + `TransferChecked` і переказ SOL, виконує `simulateTransaction` із `sigVerify:false`; мережа має прийняти правильні варіанти й відхилити хибні (неіснуючий ATA, неправильні decimals, сума більша за баланс). Публічні вузли обмежують частоту запитів — скрипт сам повторює спроби; код виходу 2 означає «пропущено» (немає підходящого власника чи вузол відмовив).
 - `ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron.exe build/devnet-check.js [rpc]` — **повний цикл на Devnet з реальними транзакціями**: безкоштовний airdrop, переказ SOL, створення токена, асоційованих акаунтів, випуск і переказ токенів. Потребує, щоб faucet видав тестові SOL (публічний faucet часто обмежує за IP: код виходу 2 — повторіть пізніше або вкажіть інший RPC).
+
+Нові області гаманця (кожна запускається окремо через `W3IR_ONLY=<функція>`): `nftTests`, `nftSourcesTests` (безпечне завантаження, ?ext= Irys, запасні RPC), `signguardTests`, `approvalsTests`, `portfolioTests`, `simulateTests`, `solanaExtrasTests` (імена .sol, пріоритетна комісія), `historyEvmTests` (історія EVM, розсилки, CSV). Вони працюють на імітаціях RPC; справжню мережу перевіряють `build/check-rpc.js` і скрипти mainnet/devnet вище.
+
+Збірка інсталятора на сервері GitHub: workflow `Build` (`.github/workflows/build.yml`) запускається вручну чи за тегом; `npm run release:ci` бере його артефакт для поточного коміту (див. [RELEASING.md](RELEASING.md)).
 
 `test/areas/fuzz.js` — fuzz-перевірки парсерів із фіксованим зерном (запускаються в складі `npm test`).
 

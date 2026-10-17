@@ -479,16 +479,28 @@ async function renderDashboard(st) {
     if (!r.ok) { evHistMsg.textContent = r.error || 'Помилка'; return; }
     const net2 = info.networks.find(x => x.chainId === r.chainId);
     evHistMsg.textContent = (r.items.length ? '' : t('Переказів токенів і NFT у цьому проміжку не знайдено.') + ' ') + t('Переглянуто останні {0} блоків. Переказ основної монети подій не залишає: дивіться «Журнал» нижче.', r.scanned) + (r.partial ? ' ' + t('Мережа відповіла не повністю.') : '');
+    const spamBox = h('details', { class: 'spam-box' }, h('summary', null, ''));
+    let spamCount = 0;
     for (const it of r.items) {
       const sign = it.dir === 'in' ? '+' : '−';
       const what = it.kind === 'nft' ? `NFT #${it.id.length > 12 ? it.id.slice(0, 6) + '…' : it.id}` : (it.amount !== undefined ? `${sign}${it.amount.replace(/(\.\d{6})\d+$/, '$1')} ${it.symbol}` : t('Токен {0}', short(it.token)));
-      evHistList.append(h('div', { class: 'item' },
+      const row = h('div', { class: 'item' },
         h('span', { class: 'time' }, it.time ? new Date(it.time).toLocaleString(LOCALE) : ''),
-        h('div', { class: 'main' }, h('div', { class: 't' }, (it.kind === 'nft' ? sign + ' ' : '') + what), h('div', { class: 's pw' }, t(it.dir === 'in' ? 'від {0}' : 'до {0}', short(it.peer)) + ' · ' + short(it.hash))),
+        h('div', { class: 'main' }, h('div', { class: 't' }, (it.kind === 'nft' ? sign + ' ' : '') + what), h('div', { class: 's pw', title: it.peer }, t(it.dir === 'in' ? 'від {0}' : 'до {0}', it.peerName || short(it.peer)) + ' · ' + short(it.hash))),
         h('span', { class: 'chip ' + (it.dir === 'in' ? 'ok' : '') }, it.dir === 'in' ? t('Отримано') : t('Надіслано')),
-        net2 && net2.explorer ? h('a', { href: `${net2.explorer}/tx/${it.hash}` }, 'Оглядач') : ''));
+        net2 && net2.explorer ? h('a', { href: `${net2.explorer}/tx/${it.hash}` }, 'Оглядач') : '');
+      if (it.suspicious) { spamCount++; spamBox.append(row); } else evHistList.append(row);
     }
+    if (spamCount) {
+      spamBox.firstChild.textContent = t('Підозрілі перекази ({0}): токени-розсилки від невідомих адрес. Не взаємодійте з ними й не переходьте за посиланнями з їхніх назв.', spamCount);
+      evHistList.append(spamBox);
+    }
+    evHistCsv.hidden = !r.items.length;
   }
+  const evHistCsv = h('button', { hidden: true, onclick: async () => {
+    const r = await call('wallet:evmHistoryCsv', { index: Number(evHistAcct.value) });
+    evHistMsg.textContent = r.ok ? t('Збережено: {0}', r.path) : (r.error || 'Помилка');
+  } }, 'Зберегти CSV');
   const evHistAcct = h('select', { 'aria-label': 'Рахунок', onchange: loadEvmHistory }, viewOptions().filter(o => o.chain !== 'sol').map(o => h('option', { value: String(o.id) }, o.label)));
   const histAcct = h('select', { 'aria-label': 'Рахунок', onchange: loadHistory }, [...info.accounts.map((a, i) => h('option', { value: String(i) }, nameOf(i))), ...imp.filter(a => a.chain === 'sol').map(a => h('option', { value: String(a.id) }, a.name || short(a.address))), ...watch.filter(a => a.chain === 'sol').map(a => h('option', { value: String(a.id) }, `${a.name || short(a.address)} (${t('перегляд')})`))]);
 
@@ -768,7 +780,7 @@ async function renderDashboard(st) {
     h('div', { class: 'bar' }, tokAcct, tokChain, h('button', { onclick: () => loadTokens() }, 'Оновити')),
     tokMsg, tokList, nftMsg, nftGrid, nftMore, tokAddBar, nftAddBar,
     h('h2', null, 'Історія EVM'),
-    h('div', { class: 'bar' }, evHistAcct, h('button', { onclick: loadEvmHistory }, 'Показати')),
+    h('div', { class: 'bar' }, evHistAcct, h('button', { onclick: loadEvmHistory }, 'Показати'), evHistCsv),
     evHistMsg, evHistList,
     h('h2', null, 'Історія Solana'),
     h('div', { class: 'bar' }, histAcct, h('button', { onclick: loadHistory }, 'Оновити')),
