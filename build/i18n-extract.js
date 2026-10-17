@@ -9,8 +9,8 @@ const espree = require('espree');
 
 const root = path.join(__dirname, '..');
 const CYR = /[\u0400-\u04FF]/;
-// Файли, де українські рядки бачить користувач. agent.js (описи інструментів для моделі) і журнали не перекладаються.
-const SKIP = new Set(['agent.js', 'i18n.js', 'i18n-dom.js', 'help-data.js']);
+// Файли, де українські рядки бачить користувач. agent.js, injection-guard.js (тексти для моделі) і журнали не перекладаються.
+const SKIP = new Set(['agent.js', 'injection-guard.js', 'i18n.js', 'i18n-dom.js', 'help-data.js']);
 // agent.js здебільшого описи для моделі (не перекладаються); з нього беремо лише видимі користувачу рядки
 const AGENT_VISIBLE = new Set(['title', 'label', 'message', 'detail']);
 const dirs = [['src', '.js'], ['pages', '.js'], ['ui', '.js'], ['', '.js'], ['pages', '.html'], ['ui', '.html']];

@@ -809,6 +809,7 @@ class AppWindow {
       { label: tr('Завантаження'), hint: 'Ctrl+J', cmd: 'openPage', arg: 'downloads' },
       { label: tr('Менеджер паролів'), cmd: 'openPage', arg: 'passwords' },
       { label: tr('Панель (стан браузера)'), cmd: 'openPage', arg: 'dashboard' },
+      { label: tr('ШІ-помічник (локальна модель)'), cmd: 'openPage', arg: 'assistant' },
       { label: tr('Гаманець (Web3)'), cmd: 'openPage', arg: 'wallet' },
       { label: tr('Імпорт з Chrome / Firefox'), cmd: 'openPage', arg: 'import' },
       { label: tr('Керування профілями'), cmd: 'openPage', arg: 'profiles' },
@@ -1143,6 +1144,7 @@ class AppWindow {
       case 'vaultSaveAnswer': this.saveAnswer(arg); break;
       case 'openPage': {
         const url = 'w3ir://' + String(arg).replace(/[^a-z]/g, '');
+        if (arg === 'assistant') this.assistantFrom = this.active(); // вкладка, яку помічник зможе прочитати за згодою
         const existing = this.tabs.find(x => !x.sleep && x.view.webContents.getURL().startsWith(url));
         if (existing) this.switchTab(existing.id); else this.createTab(url);
         break;
