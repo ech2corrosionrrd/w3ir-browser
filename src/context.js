@@ -442,6 +442,13 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     });
     ses.webRequest.onBeforeSendHeaders((details, cb) => {
       if (ctx.cfg().sendGpc) { details.requestHeaders['Sec-GPC'] = '1'; details.requestHeaders['DNT'] = '1'; }
+      // Вхід Google відхиляє клієнтів без бренду «Google Chrome» у Client Hints
+      if (/^https:\/\/([\w-]+\.)?(google|youtube)\.[a-z.]+\//i.test(details.url)) {
+        const major = process.versions.chrome.split('.')[0];
+        const h = details.requestHeaders;
+        for (const k of Object.keys(h)) if (k.toLowerCase() === 'sec-ch-ua') delete h[k];
+        h['sec-ch-ua'] = `"Chromium";v="${major}", "Google Chrome";v="${major}", "Not_A Brand";v="24"`;
+      }
       cb({ requestHeaders: details.requestHeaders });
     });
 
