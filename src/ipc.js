@@ -162,6 +162,7 @@ const PAGE_RE = /^w3ir:\/\/([a-z]+)\/?(\?[^#]*)?(#.*)?$/;
 const POLICY = {
   'wallet:': { wallet: '*' },
   'arweave:': { wallet: '*', dashboard: '*' },
+  'assistant:': { assistant: '*' },
   'import:': { import: '*' },
   'sites:': { settings: '*' }, 'update:': { settings: '*' }, 'sync:': { settings: '*' }, 'github:': { settings: '*' }, 'agent:': { settings: '*' },
   'profiles:': { profiles: '*' },
@@ -213,6 +214,31 @@ async function agentApi(ctx, name, arg) {
       default: throw new Error('unknown');
     }
   } catch (e) { return { ok: false, error: e.message }; }
+}
+
+// Локальний ШІ-помічник (Ollama): лише зі сторінки w3ir://assistant, лише з не приватного вікна
+async function assistantApi(ctx, entry, name, arg) {
+  const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
+  const a = base.assistant;
+  if (!a || entry.win.incognito || entry.win.agent) return { ok: false, error: 'Недоступно у приватному вікні та у вікні ШІ.' };
+  try {
+    switch (name) {
+      case 'assistant:status': return { ok: true, config: a.config(), ...a.snapshot() };
+      case 'assistant:models': return { ok: true, models: await a.models() };
+      case 'assistant:save': return { ok: true, config: a.save({ url: arg.url, model: arg.model }) };
+      case 'assistant:run': a.start(arg.prompt); return { ok: true };
+      case 'assistant:poll': return { ok: true, ...a.snapshot() };
+      case 'assistant:stop': return { ok: true, was: a.stop() };
+      case 'assistant:share': {
+        // вкладка, з якої користувач відкрив помічника: лише читання, зі згодою у довіреному вікні
+        const src = entry.win.assistantFrom;
+        if (!src || !entry.win.tabs.includes(src)) return { ok: false, error: 'Вкладку, з якої ви відкрили помічника, закрито. Відкрийте потрібну сторінку й викличте помічника знову (Ctrl+K).' };
+        await base.agent.share(entry.win, src, 'read', { local: true });
+        return { ok: true };
+      }
+      default: throw new Error('unknown');
+    }
+  } catch (e) { return { ok: false, error: String(e.message || 'Помилка').slice(0, 400) }; }
 }
 
 async function walletApi(ctx, entry, name, arg) {
@@ -467,6 +493,7 @@ function registerIpc(resolve) {
     // Єдина таблиця прав (POLICY / PAGE_ONLY): яка внутрішня сторінка може викликати яку команду
     if (!permitted(name, frame.url)) throw new Error('forbidden');
     if (name.startsWith('wallet:')) return walletApi(ctx, entry, name, arg);
+    if (name.startsWith('assistant:')) return assistantApi(ctx, entry, name, arg || {});
     if (name.startsWith('arweave:')) return arweaveApi(ctx, name, arg);
     if (name.startsWith('sites:')) return sitesApi(ctx, name, arg);
     if (name.startsWith('safe:')) return safeApi(ctx, name, arg);

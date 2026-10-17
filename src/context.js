@@ -14,6 +14,7 @@ const { Agent } = require('./agent');
 const { Wallet } = require('./wallet');
 const { Threats } = require('./threats');
 const { Places, BookmarkStore } = require('./places');
+const { Assistant } = require('./assistant');
 const arweave = require('./arweave');
 const { parse: parseHost } = require('tldts-experimental');
 const { attachCosmetic } = require('./adblock');
@@ -28,6 +29,8 @@ const DEFAULT_SETTINGS = {
   homepage: 'w3ir://newtab',
   searchEngine: 'google',
   startup: 'newtab', // newtab | restore
+  ollamaUrl: '', // локальна адреса Ollama (порожньо = http://127.0.0.1:11434)
+  ollamaModel: '',
   adblock: true,
   sendGpc: true,
   showBookmarksBar: true,
@@ -133,6 +136,8 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     // керування браузером ШІ (MCP): вимкнено, доки користувач не ввімкне в налаштуваннях
     ctx.agent = new Agent({ ctx, dir: userData, onChange: () => { for (const w of ctx.windows) w.push(); } });
     if (ctx.agent.state.enabled) setTimeout(() => ctx.agent.start(), 3000);
+    // локальний ШІ-помічник (Ollama): працює лише за запитом користувача зі сторінки w3ir://assistant
+    ctx.assistant = new Assistant({ ctx, agent: () => ctx.agent });
   }
   if (ctx.sync.state.data.enabled) { ctx.sync.start(); setTimeout(() => ctx.sync.syncNow(), 4000); }
 

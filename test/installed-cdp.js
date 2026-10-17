@@ -63,7 +63,7 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   ok(/^object\|[1-9]\d*\|url\|/.test(uiState), 'інтерфейс: панель вкладок і адресний рядок є', uiState);
 
   // ---- 2. внутрішні сторінки ----
-  const pages = { settings: '#app', dashboard: '.bento', help: '#app', history: '#app', bookmarks: '#app', downloads: '#app', wallet: '#app', passwords: '#app', import: '#app', profiles: '#app' };
+  const pages = { settings: '#app', dashboard: '.bento', help: '#app', history: '#app', bookmarks: '#app', downloads: '#app', wallet: '#app', passwords: '#app', import: '#app', profiles: '#app', assistant: '#app' };
   for (const [name, sel] of Object.entries(pages)) {
     await ev(ui, `api.cmd('openPage', '${name}')`);
     const t = await waitFor(async () => (await find(x => new RegExp('^w3ir://' + name + '/?(\\?.*)?$').test(x.url)))[0], 8000);
