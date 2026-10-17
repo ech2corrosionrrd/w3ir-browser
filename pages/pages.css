@@ -164,3 +164,5 @@ progress { accent-color: #00f2fe; }
 .chip.ok { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
 .chip.bad { background: color-mix(in srgb, var(--danger) 20%, transparent); color: var(--danger); }
 .chip.wait { background: color-mix(in srgb, #e0a100 22%, transparent); color: #b88400; }
+
+.acct .avatar.imp { background: linear-gradient(135deg, #0ea5e9, #14b8a6); }

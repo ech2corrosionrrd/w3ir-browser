@@ -63,10 +63,8 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
   proto.evmTokens = async function (index) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    index = Number(index);
-    if (!Number.isInteger(index) || index < 0 || index >= s.addresses.length) throw new RpcError(-32602, 'Невідомий рахунок');
+    const owner = this.evmAccount(index);
     const chainId = this.activeChain();
-    const owner = s.addresses[index];
     const custom = this._customTokens(chainId);
     const entries = [...(BUILTIN[chainId] || []).filter(([a]) => !custom.some(c => c.address === a)).map(([address, symbol]) => ({ address, expect: symbol, custom: false })), ...custom.map(c => ({ ...c, custom: true }))];
     const data = ERC20.encodeFunctionData('balanceOf', [owner]);
@@ -109,8 +107,7 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
   proto.sendToken = async function (win, sameTab, { index, token, to, amount, speed }) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    index = Number(index);
-    if (!Number.isInteger(index) || index < 0 || index >= s.addresses.length) throw new RpcError(-32602, 'Невідомий рахунок');
+    const owner = this.evmAccount(index);
     if (typeof token !== 'string' || !isAddress(token)) throw new RpcError(-32602, 'Некоректна адреса контракту токена.');
     if (typeof to !== 'string' || !isAddress(to)) throw new RpcError(-32602, 'Некоректна адреса отримувача (або неправильна контрольна сума регістру).');
     const toAddr = getAddress(to);
@@ -122,12 +119,11 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     if (typeof amount !== 'string' || !/^\d{1,30}(\.\d{1,36})?$/.test(amount) || (amount.split('.')[1] || '').length > info.decimals) throw new RpcError(-32602, 'Некоректна сума.');
     const raw = parseUnits(amount, info.decimals);
     if (raw <= 0n) throw new RpcError(-32602, 'Сума має бути більшою за нуль.');
-    const owner = s.addresses[index];
     let balance;
     try { balance = ERC20.decodeFunctionResult('balanceOf', await this._ethCall(chainId, tokenAddr, ERC20.encodeFunctionData('balanceOf', [owner])))[0]; }
     catch (e) { throw new RpcError(-32000, `Не вдалося прочитати баланс токена: ${clip(e.shortMessage || e.message, 160)}`); }
     if (balance < raw) throw new RpcError(-32602, `Недостатньо токенів: на рахунку ${formatUnits(balance, info.decimals)} ${info.symbol}.`);
-    const { warnings, danger } = this.recipientWarnings(toAddr, s.addresses);
+    const { warnings, danger } = this.recipientWarnings(toAddr, this.ownEvm());
     try {
       const code = await timed(this.provider(chainId).getCode(toAddr), 6000);
       if (code && code !== '0x') warnings.push('Отримувач — смарт-контракт: токени, надіслані на контракт, який не вміє їх повертати, можуть бути втрачені.');

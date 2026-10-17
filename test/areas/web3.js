@@ -408,6 +408,42 @@ async function walletTests(ctx) {
   ok(/не зареєстровано|не вказує/.test(await ensErr('empty.eth')), 'wallet: ENS — резолвер без адреси → зрозуміла відмова');
   wal._ethCall = origCall;
 
+  // ---------- імпорт рахунку EVM за приватним ключем ----------
+  const impWallet = E.Wallet.createRandom();
+  const impHex = impWallet.privateKey.slice(2);
+  const impErr = (k, n) => { try { wal.importKey(k, n); return ''; } catch (e) { return e.message; } };
+  const badKeys = ['', '   ', '0x' + '00'.repeat(32), 'ab'.repeat(31), 'zz'.repeat(32), 'x'.repeat(600), '0x' + 'ff'.repeat(32), '[1,2,3]', 'не ключ', S.b58encode(Buffer.alloc(32, 7)), S.b58encode(Buffer.alloc(63, 7))];
+  const impBadRes = badKeys.map(k => impErr(k, 'x'));
+  ok(impBadRes.every(m => m.length > 0) && wal.importedAccounts().length === 0, 'import: порожні, нульові, завеликі, нерозпізнані ключі, а також адреса Solana замість ключа відхиляються');
+  ok(/адресу/.test(impBadRes[9]) && /Некоректний приватний ключ EVM/.test(impBadRes[2]), 'import: адресу Solana (32 байти) не приймають за ключ; нульовий ключ EVM відхилено зрозуміло');
+  ok(/уже є в гаманці/.test(impErr(priv0, 'дубль')) && wal.importedAccounts().length === 0, 'import: ключ власного похідного рахунку не імпортується вдруге');
+  const a1 = wal.importKey('0X' + impHex.toUpperCase(), '  Робочий\u202E \u200B ');
+  ok(a1.id === 1000 && a1.chain === 'evm' && a1.address === impWallet.address && a1.name === 'Робочий' && !JSON.stringify(a1).includes(impHex), 'import: ключ EVM (будь-який регістр, з 0x) приймається, ім\u2019я очищено, ключ у відповіді відсутній');
+  ok(/уже є в гаманці/.test(impErr(impHex, 'дубль')) && wal.info().imported.length === 1 && wal.info().imported[0].address === impWallet.address && !JSON.stringify(wal.info()).includes(impHex), 'import: повторний імпорт відхилено; info() показує адресу без секрету');
+  ok(wal.evmAccount(1000) === impWallet.address && wal.ownEvm().includes(impWallet.address) && wal.isOwnEvm(impWallet.address) && !wal.isOwnSol(impWallet.address), 'import: рахунок визнається власним у EVM');
+  let evmWrong = ''; try { wal.solAccount(1000); } catch (e) { evmWrong = e.message; }
+  ok(/Невідомий рахунок/.test(evmWrong), 'import: рахунок EVM не підміняє адресу Solana');
+  const impBal = (await wal.balances()).find(b => b.address === impWallet.address);
+  ok(impBal && impBal.balance !== null, 'import: баланс імпортованого рахунку читається');
+  let ip = wal.sendNative(w, () => true, { index: 1000, to: rcpt, amount: '0.02' });
+  const apImp = await waitApproval();
+  ok(apImp.spec.lines.some(l => l[0] === 'Від' && l[1] === impWallet.address), 'import: у підтвердженні відправник — імпортований рахунок');
+  await decide(true, MASTER);
+  await ip;
+  const impTx = E.Transaction.from(rawTxs[rawTxs.length - 1]);
+  ok(impTx.from === impWallet.address && impTx.to === rcpt && impTx.value === 2n * 10n ** 16n, 'import: транзакцію підписано імпортованим ключем (відправник збігається)');
+  ok((await wal.evmTokens(1000)).chainId === 31337, 'import: токени імпортованого рахунку доступні');
+  ok(wal.rename(1000, 'Мій імпорт') === 'Мій імпорт' && wal.info().imported[0].name === 'Мій імпорт', 'import: імпортований рахунок перейменовується');
+  ok(wal.revealKey(1000) === '0x' + impHex.toLowerCase() && (() => { try { wal.revealKey(1500); return false; } catch { return true; } })(), 'import: ключ можна показати (для резервної копії) у форматі, який приймає імпорт');
+  const qrImp = wal.qrFor(impWallet.address);
+  ok(qrImp.size >= 21 && qrImp.rows.length === qrImp.size, 'qr: для адреси власного рахунку матрицю побудовано');
+  let qrBad = ''; try { wal.qrFor('https://evil.example/' + 'x'.repeat(30)); } catch (e) { qrBad = e.message; }
+  ok(/лише для адреси/.test(qrBad) && wal.qrFor(wal.section().addresses[0]).size >= 21, 'qr: довільний текст кодувати не можна, лише власні адреси й контакти');
+  ok(wal.removeImported(1000) === true && wal.importedAccounts().length === 0 && (() => { try { wal.evmAccount(1000); return false; } catch { return true; } })() && !wal.isOwnEvm(impWallet.address), 'import: видалення стирає рахунок і ключ');
+  let afterRemove = ''; try { await wal.sendNative(w, () => true, { index: 1000, to: rcpt, amount: '0.01' }); } catch (e) { afterRemove = e.message; }
+  ok(/Невідомий рахунок/.test(afterRemove) && !w.approval, 'import: після видалення переказ із цього рахунку неможливий');
+  ok(!JSON.stringify(wal.section()).includes(impHex), 'import: після видалення ключа немає в даних гаманця');
+
   ok(wal.removeToken(TOKEN) === true && (await wal.evmTokens(0)).tokens.length === 0 && wal.removeToken(TOKEN) === false, 'tokens: токен можна прибрати зі списку');
   const evmSt = await wal.txStatuses([{ hash: tokHash, chainId: 31337 }, { hash: '0x' + 'ab'.repeat(32), chainId: 31337 }, { hash: 'не хеш', chainId: 31337 }, { hash: tokHash, chainId: 999999 }]);
   ok(evmSt[tokHash] === 'confirmed' && evmSt['0x' + 'ab'.repeat(32)] === 'pending' && Object.keys(evmSt).length === 2, 'tokens: статуси транзакцій EVM (підтверджено / очікує); хибні записи ігноруються');
@@ -419,7 +455,7 @@ async function walletTests(ctx) {
   ok(ap4.spec.warnings.some(x => /Необмежений/.test(x)) && ap4.spec.danger === true, 'wallet: необмежений approve — червоне попередження');
   await decide(false);
   res = await pr;
-  ok(res.err === 4001 && rawTxs.length === 9, 'wallet: відхилення → код 4001, нічого не надіслано');
+  ok(res.err === 4001 && rawTxs.length === 10, 'wallet: відхилення → код 4001, нічого не надіслано');
   pr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: token, data: iface.encodeFunctionData('setApprovalForAll', [spender, true]) }]);
   const ap5 = await waitApproval();
   ok(ap5.spec.warnings.some(x => /ВСІ/.test(x)), 'wallet: setApprovalForAll — попередження про ВСІ NFT');
@@ -461,7 +497,7 @@ async function walletTests(ctx) {
   w.exec('switchTab', w.tabs.find(t => t.view.webContents === wcA).id);
   ok((await call(wcA, 'eth_accounts')).ok.length === 0, 'wallet: при блокуванні сховища сайти не бачать рахунків');
   res = await call(wcA, 'eth_sendTransaction', [{ from: addr0, to, value: '0x1' }]);
-  ok(res.err === 4100 && rawTxs.length === 9, 'wallet: заблокований гаманець нічого не підписує');
+  ok(res.err === 4100 && rawTxs.length === 10, 'wallet: заблокований гаманець нічого не підписує');
   pr = call(wcA, 'eth_requestAccounts');
   const ap6 = await waitApproval();
   ok(ap6.spec.kind === 'connect' && w.approvalPayload(ap6).needsUnlock === true, 'wallet: запит при заблокованому сховищі вимагає майстер-пароль');

@@ -278,6 +278,18 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:addContact': return { ok: true, contact: w.addContact(arg.name, arg.address) };
       case 'wallet:removeContact': return { ok: true, removed: w.removeContact(String(arg.address)) };
       case 'wallet:resolveName': return { ok: true, address: await w.resolveName(arg.name) };
+      case 'wallet:importKey': return { ok: true, account: w.importKey(arg.key, arg.name) };
+      case 'wallet:revealKey': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, key: w.revealKey(arg.id) };
+      case 'wallet:removeImported': {
+        if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
+        const r = await dialog.showMessageBox(entry.win.win, {
+          type: 'warning', buttons: [tr('Видалити рахунок'), tr('Скасувати')], defaultId: 1, cancelId: 1, message: tr('Видалити імпортований рахунок із гаманця?'),
+          detail: tr('Приватний ключ буде стерто з цього пристрою. Без окремої резервної копії ключа доступ до коштів на цьому рахунку буде втрачено назавжди.'),
+        });
+        if (r.response !== 0) return { ok: false, error: '' };
+        return { ok: true, removed: w.removeImported(arg.id) };
+      }
+      case 'wallet:qr': return { ok: true, qr: w.qrFor(arg.text) };
       case 'wallet:rename': return { ok: true, name: w.rename(arg.index, arg.name) };
       case 'wallet:send': {
         const sameTab = () => entry.win.tabs.includes(entry.tab);

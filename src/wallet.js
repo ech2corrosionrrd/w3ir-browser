@@ -5,7 +5,7 @@ const { t: tr } = require('./i18n');
 // Кожен підпис і транзакція потребують явного підтвердження у довіреному вікні браузера, яке сторінка підробити не може.
 const {
   Mnemonic, HDNodeWallet, JsonRpcProvider, Network, formatEther, getAddress, isAddress, isHexString,
-  hexlify, getBytes, TypedDataEncoder, randomBytes, toUtf8String, MaxUint256, Interface, parseUnits, formatUnits,
+  hexlify, getBytes, TypedDataEncoder, randomBytes, toUtf8String, MaxUint256, Interface, parseUnits, formatUnits, Wallet: EthWallet,
 } = require('ethers');
 
 const BUILTIN_NETWORKS = [
@@ -188,7 +188,7 @@ class Wallet {
   remove() {
     const s = this.section();
     s.mnemonic = null; s.addresses = []; s.connections = {}; s.log = [];
-    s.solAddresses = []; s.solConnections = {}; s.pending = []; s.contacts = []; s.tokens = {}; s.names = []; s.recipients = [];
+    s.solAddresses = []; s.solConnections = {}; s.pending = []; s.contacts = []; s.tokens = {}; s.names = []; s.recipients = []; s.imported = [];
     this.vault.persist();
     this.ctx.cfg().walletEnabled = false;
     this.ctx.settingsStore.save();
@@ -202,7 +202,7 @@ class Wallet {
     return {
       exists: true, accounts: s.addresses, activeChain: s.activeChain,
       networks: this.networks(), connections: Object.entries(s.connections).map(([origin, c]) => ({ origin, accounts: c.accounts, chainId: c.chainId })),
-      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''),
+      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(),
     };
   }
 
@@ -231,7 +231,7 @@ class Wallet {
     const chain = s.activeChain;
     const net = this.network(chain);
     const p = this.provider(chain);
-    return Promise.all(s.addresses.map(async (a) => {
+    return Promise.all(this.ownEvm().map(async (a) => {
       try { return { address: a, balance: formatEther(await Promise.race([p.getBalance(a), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 8000))])), symbol: net.symbol }; }
       catch { return { address: a, balance: null, symbol: net.symbol }; }
     }));
@@ -433,7 +433,11 @@ class Wallet {
   signerFor(address) {
     const s = this.section();
     const i = s.addresses.indexOf(address);
-    if (i < 0) throw unauthorized('Невідомий рахунок');
+    if (i < 0) {
+      const secret = this._importedSecret(address, 'evm'); // імпортований за приватним ключем
+      if (!secret) throw unauthorized('Невідомий рахунок');
+      return new EthWallet(secret);
+    }
     return this._derive(s.mnemonic, i);
   }
 
@@ -486,7 +490,7 @@ class Wallet {
   async sendTransaction(win, origin, tx, sameTab, opts = {}) {
     if (!tx || typeof tx !== 'object') throw new RpcError(-32602, 'Некоректна транзакція');
     const from = opts.internal ? getAddress(tx.from) : this.requireConnected(origin, tx.from);
-    if (opts.internal && !this.section().addresses.includes(from)) throw unauthorized('Невідомий рахунок');
+    if (opts.internal && !this.isOwnEvm(from)) throw unauthorized('Невідомий рахунок');
     const chain = opts.internal ? this.activeChain() : this.chainOf(origin);
     if (tx.chainId !== undefined && Number(tx.chainId) !== chain) throw new RpcError(-32602, 'chainId транзакції не збігається з поточною мережею');
     const net = this.network(chain);
@@ -545,8 +549,15 @@ class Wallet {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
     index = Number(index);
-    if (!Number.isInteger(index) || index < 0 || index >= s.addresses.length) throw new Error('Невідомий рахунок');
     const clean = String(name == null ? '' : name).replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, '').trim().slice(0, 32);
+    if (Number.isInteger(index) && index >= 1000) {
+      const a = this._imported()[index - 1000];
+      if (!a) throw new Error('Невідомий рахунок');
+      a.name = clean;
+      this.vault.persist();
+      return clean;
+    }
+    if (!Number.isInteger(index) || index < 0 || index >= s.addresses.length) throw new Error('Невідомий рахунок');
     s.names = s.names || [];
     while (s.names.length < s.addresses.length) s.names.push('');
     s.names[index] = clean;
@@ -588,19 +599,18 @@ class Wallet {
   async sendNative(win, sameTab, { index, to, amount, speed }) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    index = Number(index);
-    if (!Number.isInteger(index) || index < 0 || index >= s.addresses.length) throw new RpcError(-32602, 'Невідомий рахунок');
+    const from = this.evmAccount(index);
     if (typeof to !== 'string' || !isAddress(to)) throw new RpcError(-32602, 'Некоректна адреса отримувача (або неправильна контрольна сума регістру).');
     const toAddr = getAddress(to);
     if (typeof amount !== 'string' || !/^\d{1,30}(\.\d{1,18})?$/.test(amount)) throw new RpcError(-32602, 'Некоректна сума.');
     const value = parseUnits(amount, 18);
     if (value <= 0n) throw new RpcError(-32602, 'Сума має бути більшою за нуль.');
-    const { warnings, danger } = this.recipientWarnings(toAddr, s.addresses);
+    const { warnings, danger } = this.recipientWarnings(toAddr, this.ownEvm());
     try {
       const code = await Promise.race([this.provider(this.activeChain()).getCode(toAddr), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 6000))]);
       if (code && code !== '0x') warnings.push('Отримувач — смарт-контракт: простий переказ на контракт може бути втрачений безповоротно, якщо він не призначений приймати кошти.');
     } catch { /* RPC недоступний: перевірку пропущено */ }
-    const hash = await this.sendTransaction(win, 'w3ir://wallet', { from: s.addresses[index], to: toAddr, value: '0x' + value.toString(16) }, sameTab, { internal: true, warnings, danger, speed });
+    const hash = await this.sendTransaction(win, 'w3ir://wallet', { from, to: toAddr, value: '0x' + value.toString(16) }, sameTab, { internal: true, warnings, danger, speed });
     this.rememberRecipient(toAddr);
     return hash;
   }
@@ -609,5 +619,6 @@ class Wallet {
 require('./wallet-solana').install(Wallet, { RpcError, isSafeRpc, clip, unauthorized });
 require('./wallet-evm-tokens').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-extras').install(Wallet, { RpcError, clip, unauthorized });
+require('./wallet-import').install(Wallet, { RpcError, unauthorized });
 
 module.exports = { Wallet, RpcError, BUILTIN_NETWORKS, describeCall, hexChain, isSafeRpc };

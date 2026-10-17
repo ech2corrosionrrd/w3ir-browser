@@ -79,6 +79,32 @@ async function renderDashboard(st) {
   const sol = info.sol;
   const net = info.networks.find(n => n.chainId === info.activeChain) || info.networks[0];
   const nameOf = (i) => info.names[i] || `Рахунок ${i + 1}`;
+  const imp = info.imported || [];
+  const impTag = (a) => (a.chain === 'sol' ? 'SOL' : 'EVM');
+  // усі рахунки для вибору: похідні від фрази (EVM+Solana) та імпортовані за ключем (одна мережа)
+  const acctOptions = () => [...info.accounts.map((a, i) => ({ id: i, label: nameOf(i), chain: null })), ...imp.map(a => ({ id: a.id, label: `${a.name || short(a.address)} (${impTag(a)})`, chain: a.chain }))];
+  const solAddrOf = (id) => (id >= 1000 ? (imp.find(a => a.id === id && a.chain === 'sol') || {}).address : sol.addresses[id]);
+  const optionEls = (selected) => acctOptions().map(o => h('option', { value: String(o.id), selected: o.id === selected }, o.label));
+  // QR-код адреси (малюється DOM-елементами з матриці, без innerHTML)
+  async function showQr(title, address) {
+    const r = await call('wallet:qr', { text: address });
+    if (!r.ok) { alert(r.error); return; }
+    const q = r.qr, cell = 6, quiet = 4, dim = (q.size + quiet * 2) * cell;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', `0 0 ${dim} ${dim}`); svg.setAttribute('width', '240'); svg.setAttribute('height', '240'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'QR-код адреси');
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bg.setAttribute('width', String(dim)); bg.setAttribute('height', String(dim)); bg.setAttribute('fill', '#fff'); svg.append(bg);
+    let d = '';
+    for (let y = 0; y < q.size; y++) for (let x = 0; x < q.size; x++) if (q.rows[y][x] === '1') d += `M${(x + quiet) * cell} ${(y + quiet) * cell}h${cell}v${cell}h-${cell}z`;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d); path.setAttribute('fill', '#000'); svg.append(path);
+    const box = h('div', { class: 'modal', onmousedown: (e) => { if (e.target === box) box.remove(); } },
+      h('div', { class: 'mbox', style: 'text-align:center' }, h('h2', { class: 'mtitle' }, title), h('div', { style: 'display:inline-block;padding:6px;background:#fff;border-radius:10px' }, svg),
+        h('div', { class: 'pw', style: 'user-select:text;word-break:break-all;margin:12px 0;font-size:12px' }, address),
+        h('p', { class: 'note' }, 'Покажіть цей код відправнику. Перевірте, що адреса під кодом збігається з адресою у вашого гаманця.'),
+        h('div', { class: 'mbtns' }, h('button', { class: 'primary', onclick: () => box.remove() }, 'Закрити'))));
+    document.body.append(box);
+  }
   const solExplorer = (a, cluster) => `https://explorer.solana.com/address/${a}` + (cluster === 'mainnet-beta' ? '' : `?cluster=${cluster}`);
   const copy = (text, btn) => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -113,6 +139,8 @@ async function renderDashboard(st) {
     evmBal[a] = eb; solBal[sa] = sb;
     const copyBtnE = h('button', { class: 'link', onclick: () => copy(a, copyBtnE) }, 'Копіювати');
     const copyBtnS = h('button', { class: 'link', onclick: () => copy(sa, copyBtnS) }, 'Копіювати');
+    const qrE = h('button', { class: 'link', onclick: () => showQr(`${nameOf(i)} · EVM`, a) }, 'QR');
+    const qrS = h('button', { class: 'link', onclick: () => showQr(`${nameOf(i)} · Solana`, sa) }, 'QR');
     return h('div', { class: 'acct' },
       h('div', { class: 'ahead' },
         h('span', { class: 'avatar' }, String(i + 1)),
@@ -120,9 +148,27 @@ async function renderDashboard(st) {
         h('div', { class: 'aact' },
           h('button', { class: 'primary', onclick: () => sendDialog(i) }, 'Надіслати'),
           h('button', { onclick: () => { tokAcct.value = String(i); loadTokens(i); document.getElementById('tokens-anchor').scrollIntoView({ behavior: 'smooth' }); } }, 'Токени та NFT'))),
-      h('div', { class: 'chain' }, h('span', { class: 'tag' }, 'EVM'), h('code', null, a), eb, copyBtnE, net.explorer ? h('a', { href: `${net.explorer}/address/${a}` }, 'Оглядач') : ''),
-      h('div', { class: 'chain' }, h('span', { class: 'tag sol' }, 'SOL'), h('code', null, sa), sb, copyBtnS, h('a', { href: solExplorer(sa, sol.cluster) }, 'Оглядач')));
+      h('div', { class: 'chain' }, h('span', { class: 'tag' }, 'EVM'), h('code', null, a), eb, copyBtnE, qrE, net.explorer ? h('a', { href: `${net.explorer}/address/${a}` }, 'Оглядач') : ''),
+      h('div', { class: 'chain' }, h('span', { class: 'tag sol' }, 'SOL'), h('code', null, sa), sb, copyBtnS, qrS, h('a', { href: solExplorer(sa, sol.cluster) }, 'Оглядач')));
   }));
+  // імпортовані рахунки
+  const impCards = imp.map((a) => {
+    const bal = h('span', { class: 'bal' }, '…');
+    (a.chain === 'sol' ? solBal : evmBal)[a.address] = bal;
+    const cp = h('button', { class: 'link', onclick: () => copy(a.address, cp) }, 'Копіювати');
+    return h('div', { class: 'acct' },
+      h('div', { class: 'ahead' }, h('span', { class: 'avatar imp' }, '\u2193'),
+        h('div', { class: 'aname' }, a.name || t('Імпортований рахунок'), h('button', { class: 'link', title: 'Перейменувати', onclick: () => rename(a.id) }, '\u270E')),
+        h('div', { class: 'aact' }, h('button', { class: 'primary', onclick: () => sendDialog(a.id, { chain: a.chain }) }, 'Надіслати'),
+          h('button', { onclick: () => { tokAcct.value = String(a.id); loadTokens(a.id); document.getElementById('tokens-anchor').scrollIntoView({ behavior: 'smooth' }); } }, 'Токени та NFT'))),
+      h('div', { class: 'chain' }, h('span', { class: 'tag' + (a.chain === 'sol' ? ' sol' : '') }, impTag(a)), h('code', null, a.address), bal, cp,
+        h('button', { class: 'link', onclick: () => showQr(a.name || impTag(a), a.address) }, 'QR'),
+        h('a', { href: a.chain === 'sol' ? solExplorer(a.address, sol.cluster) : (net.explorer ? `${net.explorer}/address/${a.address}` : '#') }, 'Оглядач')),
+      h('div', { class: 'chain' }, h('span', { class: 'note' }, 'Імпортовано за приватним ключем: не відновлюється з фрази гаманця й недоступний сайтам (dApp).'),
+        h('button', { class: 'link', onclick: async () => { const r = await withAuth((x) => call('wallet:revealKey', { id: a.id, ...x })); if (r && r.ok) showSecret(r.key); else if (r && r.error) alert(r.error); } }, 'Показати ключ'),
+        h('button', { class: 'link danger', onclick: async () => { const r = await withAuth((x) => call('wallet:removeImported', { id: a.id, ...x })); if (r && r.ok) render(); else if (r && r.error) alert(r.error); } }, 'Видалити')));
+  });
+  const accountsAll = h('div', { class: 'accts' }, [...accounts.childNodes, ...impCards]);
   call('wallet:balances').then(r => {
     if (r.ok) for (const b of r.balances) if (evmBal[b.address]) evmBal[b.address].textContent = b.balance === null ? 'баланс недоступний' : `${Number(b.balance).toFixed(5)} ${b.symbol}`;
   });
@@ -131,7 +177,7 @@ async function renderDashboard(st) {
   });
 
   // ----- токени й NFT обох мереж -----
-  const tokAcct = h('select', { 'aria-label': 'Рахунок', onchange: () => loadTokens() }, info.accounts.map((a, i) => h('option', { value: String(i) }, nameOf(i))));
+  const tokAcct = h('select', { 'aria-label': 'Рахунок', onchange: () => loadTokens() }, optionEls());
   const tokChain = h('select', { 'aria-label': 'Мережа', onchange: () => loadTokens() },
     h('option', { value: 'evm' }, net.name), h('option', { value: 'sol' }, `Solana ${sol.clusters.find(c => c.id === sol.cluster).name}`));
   const tokMsg = h('div', { class: 'note', style: 'margin:8px 0' });
@@ -149,12 +195,16 @@ async function renderDashboard(st) {
   async function loadTokens(i, chain) {
     if (i !== undefined) tokAcct.value = String(i);
     if (chain) tokChain.value = chain;
-    const idx = Number(tokAcct.value), isSol = tokChain.value === 'sol';
+    const idx = Number(tokAcct.value);
+    const picked = acctOptions().find(o => o.id === idx);
+    if (picked && picked.chain) tokChain.value = picked.chain;
+    tokChain.disabled = !!(picked && picked.chain);
+    const isSol = tokChain.value === 'sol';
     tokMsg.textContent = '…'; tokList.textContent = ''; nftGrid.textContent = '';
     tokList.style.display = 'none';
     tokAddBar.style.display = isSol ? 'none' : '';
     if (isSol) {
-      const r = await call('wallet:solTokens', { address: sol.addresses[idx] });
+      const r = await call('wallet:solTokens', { address: solAddrOf(idx) });
       if (!r.ok) { tokMsg.textContent = r.error || 'Помилка'; return; }
       if (!r.tokens.length) { tokMsg.textContent = 'Токенів і NFT на цьому рахунку немає.'; return; }
       tokMsg.textContent = (r.total > r.shown ? t('Показано {0} із {1}.', r.shown, r.total) + ' ' : '') + 'Назви токенів задають їхні творці й можуть вводити в оману: звіряйте адресу mint.';
@@ -194,7 +244,7 @@ async function renderDashboard(st) {
   const fmtTok = (d) => { const n = BigInt(d.delta); const sign = n < 0n ? '-' : '+'; const a = n < 0n ? -n : n; const s = a.toString().padStart(d.decimals + 1, '0'); const w = s.slice(0, s.length - d.decimals), f = s.slice(s.length - d.decimals).replace(/0+$/, ''); return `${sign}${w}${f ? '.' + f : ''} ${short(d.mint)}`; };
   async function loadHistory() {
     histMsg.textContent = '…'; histList.textContent = '';
-    const r = await call('wallet:solHistory', { address: sol.addresses[Number(histAcct.value)] });
+    const r = await call('wallet:solHistory', { address: solAddrOf(Number(histAcct.value)) });
     if (!r.ok) { histMsg.textContent = r.error || 'Помилка'; return; }
     histMsg.textContent = r.items.length ? '' : 'Транзакцій поки немає.';
     for (const it of r.items) {
@@ -208,7 +258,7 @@ async function renderDashboard(st) {
         h('a', { href: `https://explorer.solana.com/tx/${it.signature}` + (r.cluster === 'mainnet-beta' ? '' : `?cluster=${r.cluster}`) }, 'Оглядач')));
     }
   }
-  const histAcct = h('select', { 'aria-label': 'Рахунок', onchange: loadHistory }, info.accounts.map((a, i) => h('option', { value: String(i) }, nameOf(i))));
+  const histAcct = h('select', { 'aria-label': 'Рахунок', onchange: loadHistory }, [...info.accounts.map((a, i) => h('option', { value: String(i) }, nameOf(i))), ...imp.filter(a => a.chain === 'sol').map(a => h('option', { value: String(a.id) }, a.name || short(a.address)))]);
 
   // ----- підключені сайти (EVM і Solana разом) -----
   const connected = h('div', { class: 'list' });
@@ -283,9 +333,39 @@ async function renderDashboard(st) {
     }
   }
 
+  // ----- імпорт рахунку за приватним ключем -----
+  function importDialog() {
+    const key = h('textarea', { rows: 3, placeholder: 'Приватний ключ: EVM — 64 шістнадцяткові символи; Solana — base58 (формат Phantom) або JSON-масив із файлу keypair', spellcheck: false, autocomplete: 'off', style: 'width:100%;font-family:Consolas,monospace' });
+    const name = h('input', { type: 'text', placeholder: 'Назва рахунку (необов\u2019язково)', spellcheck: false });
+    const msg = h('div', { class: 'merr' });
+    const go = h('button', { class: 'primary', onclick: async () => {
+      msg.textContent = ''; go.disabled = true;
+      const r = await call('wallet:importKey', { key: key.value, name: name.value });
+      go.disabled = false;
+      if (!r.ok) { msg.textContent = r.error; return; }
+      key.value = ''; box.remove(); render();
+    } }, 'Імпортувати');
+    const box = h('div', { class: 'modal', onmousedown: (e) => { if (e.target === box) { key.value = ''; box.remove(); } } },
+      h('div', { class: 'mbox' }, h('h2', { class: 'mtitle' }, 'Імпорт за приватним ключем'),
+        h('div', { class: 'warnbox' }, 'Приватний ключ дає повний контроль над рахунком. Вставляйте його лише тут і ніколи не показуйте сторонім. Імпортований рахунок не відновлюється з фрази відновлення гаманця: зробіть окрему резервну копію ключа. Для великих сум краще апаратний гаманець.'),
+        h('label', { class: 'mfield' }, h('span', null, 'Приватний ключ'), key), h('label', { class: 'mfield' }, h('span', null, 'Назва'), name),
+        msg, h('div', { class: 'mbtns' }, h('button', { onclick: () => { key.value = ''; box.remove(); } }, 'Скасувати'), go)));
+    document.body.append(box);
+    key.focus();
+  }
+  function showSecret(secret) {
+    const box = h('div', { class: 'modal', onmousedown: (e) => { if (e.target === box) box.remove(); } },
+      h('div', { class: 'mbox' }, h('h2', { class: 'mtitle' }, 'Приватний ключ'),
+        h('div', { class: 'warnbox' }, 'Не показуйте цей ключ нікому й не вставляйте його на сайтах: хто його знає, контролює рахунок. Вікно закриється автоматично через хвилину.'),
+        h('div', { class: 'pw', style: 'user-select:text;word-break:break-all;margin:12px 0;font-size:12px' }, secret),
+        h('div', { class: 'mbtns' }, h('button', { class: 'primary', onclick: () => box.remove() }, 'Закрити'))));
+    document.body.append(box);
+    setTimeout(() => box.remove(), 60000);
+  }
+
   // ----- скасування дозволу токена -----
   function revokeDialog() {
-    const acct = h('select', null, info.accounts.map((a, i) => h('option', { value: String(i) }, nameOf(i))));
+    const acct = h('select', null, acctOptions().filter(o => o.chain !== 'sol').map(o => h('option', { value: String(o.id) }, o.label)));
     const token = h('input', { type: 'text', class: 'pw', placeholder: 'Адреса контракту токена (ERC-20)', spellcheck: false, autocomplete: 'off' });
     const spender = h('input', { type: 'text', class: 'pw', placeholder: 'Кому видано дозвіл (адреса)', spellcheck: false, autocomplete: 'off' });
     const msg = h('div', { class: 'merr' }), done = h('div', { class: 'note' });
@@ -323,8 +403,8 @@ async function renderDashboard(st) {
   app.append(
     h('h2', null, 'Огляд'), summary,
     h('h2', null, 'Рахунки'),
-    accounts,
-    h('div', { class: 'bar', style: 'margin-top:10px' }, info.accounts.length < 10 ? h('button', { onclick: async () => { const r = await call('wallet:addAccount'); if (!r.ok) alert(r.error); render(); } }, '+ Додати рахунок') : ''),
+    accountsAll,
+    h('div', { class: 'bar', style: 'margin-top:10px' }, info.accounts.length < 10 ? h('button', { onclick: async () => { const r = await call('wallet:addAccount'); if (!r.ok) alert(r.error); render(); } }, '+ Додати рахунок') : '', h('button', { onclick: importDialog }, 'Імпортувати ключ\u2026')),
     h('h2', { id: 'tokens-anchor' }, 'Токени та NFT'),
     h('div', { class: 'bar' }, tokAcct, tokChain, h('button', { onclick: () => loadTokens() }, 'Оновити')),
     tokMsg, tokList, nftGrid, tokAddBar,
@@ -371,7 +451,7 @@ async function renderDashboard(st) {
 
   // ----- вікно «Надіслати» (основна валюта або токен) -----
   function sendDialog(index, preset = {}) {
-    const acct = h('select', { onchange: () => loadAssets() }, info.accounts.map((a, i) => h('option', { value: String(i), selected: i === index }, nameOf(i))));
+    const acct = h('select', { onchange: () => loadAssets() }, optionEls(index));
     const chain = h('select', { onchange: () => loadAssets() },
       h('option', { value: 'evm', selected: preset.chain !== 'sol' }, `${net.name} (${net.symbol})`),
       h('option', { value: 'sol', selected: preset.chain === 'sol' }, `Solana ${sol.clusters.find(c => c.id === sol.cluster).name}`));
@@ -406,12 +486,15 @@ async function renderDashboard(st) {
     let token = 0;
     async function loadAssets() {
       const my = ++token;
+      const picked = acctOptions().find(o => o.id === Number(acct.value));
+      if (picked && picked.chain) chain.value = picked.chain;
+      chain.disabled = !!(picked && picked.chain);
       const isSol = chain.value === 'sol';
       speedRow.style.display = isSol ? 'none' : '';
       loadBook();
       asset.textContent = '';
       asset.append(h('option', { value: '' }, isSol ? 'SOL' : net.symbol));
-      const r = isSol ? await call('wallet:solTokens', { address: sol.addresses[Number(acct.value)] }) : await call('wallet:evmTokens', { index: Number(acct.value) });
+      const r = isSol ? await call('wallet:solTokens', { address: solAddrOf(Number(acct.value)) }) : await call('wallet:evmTokens', { index: Number(acct.value) });
       if (my !== token || !r.ok) return;
       const list = isSol ? r.tokens.filter(x => !x.nft).map(x => ({ id: x.mint, label: `${x.symbol || x.name || short(x.mint)} (${x.amount})` }))
         : r.tokens.filter(x => x.amount !== null && x.raw !== '0').map(x => ({ id: x.address, label: `${x.symbol} (${x.amount})` }));
