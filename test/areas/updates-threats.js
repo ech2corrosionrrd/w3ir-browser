@@ -243,6 +243,7 @@ async function threatTests(ctx) {
     ['https://paypa1.com/login', 'lookalike'], ['https://gooogle.com/', 'lookalike'], ['https://githhub.com/', 'lookalike'], ['https://amaz0n.com/', 'lookalike'],
     ['https://paypal.com.evil-site.net/', 'lookalike'], ['https://login.metamask.example-wallet.io/', 'lookalike'],
     ['https://metamask-wallet-claim.xyz/', 'lookalike'], ['https://uniswap-airdrop.xyz/', 'lookalike'],
+    ['https://metamask-support.app.link/x', 'lookalike'], ['https://login.metamask.app.link/x', 'lookalike'],
     ['https://google.com@evil.example/', 'userinfo'],
     [new URL('https://p\u0430ypal.com/').href, 'homograph'], [new URL('https://\u043e\u043a\u0445.com/').href, 'homograph'],
   ];
@@ -250,7 +251,7 @@ async function threatTests(ctx) {
   // --- легітимні сайти не чіпаємо ---
   const good = ['https://www.google.com/', 'https://accounts.google.com/', 'https://www.google.com.ua/', 'https://google.de/', 'https://user.github.io/', 'https://microsoft.github.io/', 'https://paypal.me/x',
     'https://app.uniswap.org/', 'https://metamask.io/download', 'https://diia.gov.ua/', 'https://www.ukr.net/', 'https://example.com/', 'https://xn--d1acpjx3f.xn--p1ai/', 'http://127.0.0.1:8080/',
-    'https://github.com/login', 'https://gmail.google.com/', 'https://docs.google.com/', 'https://monobank.ua/', 'https://www.amazon.de/', 'https://opensea.io/', 'https://support.apple.com/', 'file:///c:/x.html'];
+    'https://github.com/login', 'https://gmail.google.com/', 'https://docs.google.com/', 'https://monobank.ua/', 'https://www.amazon.de/', 'https://opensea.io/', 'https://support.apple.com/', 'https://metamask.app.link/r9ZhePHOx3b?sig=x&_p=y', 'file:///c:/x.html'];
   const fp = good.filter(u => t.check(u));
   ok(fp.length === 0, 'threats: легітимні сайти без хибних спрацювань' + (fp.length ? ' — хибно: ' + fp.join(', ') : ''));
 
