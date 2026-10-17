@@ -4,6 +4,9 @@ const { t: tr } = require('./src/i18n');
 const path = require('path');
 
 app.enableSandbox(); // усі рендерери — в пісочниці
+// Вікно, перекрите іншими вікнами, лишається «видимим» для Chromium: інакше віддалені кліки й знімки ШІ-агента (вікно агента часто
+// під іншими) мовчки не виконуються, бо рендерер перекритого вікна не обробляє введення.
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 
 // Встановлена збірка не запускається з параметрами налагодження (відкритий порт керування сторінками): див. src/launch-guard.js
 if (require('./src/launch-guard').shouldBlock({ argv: process.argv, packaged: app.isPackaged, env: process.env })) {

@@ -280,10 +280,69 @@ async function dashboardTests(ctx) {
   w.closeTab(tab.id);
 }
 
+// Провайдер із запасними вузлами: мертвий вузол, повільний, помилка виконання (не повторюється), «вже відома» транзакція
+async function failoverTests() {
+  const { FailoverProvider } = require('../../src/rpc-failover');
+  const { Network, keccak256 } = require('ethers');
+  const hits = { a: 0, b: 0, c: 0 };
+  let sendMode = 'ok';
+  const srv = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const j = JSON.parse(body); const node = req.url.slice(1); hits[node]++;
+      if (node === 'a') return; // «повільний»: не відповідає
+      res.setHeader('content-type', 'application/json');
+      const r = (o) => res.end(JSON.stringify(Object.assign({ jsonrpc: '2.0', id: j.id }, o)));
+      if (j.method === 'eth_blockNumber') return r({ result: node === 'b' ? '0x10' : '0x20' });
+      if (j.method === 'eth_call') return r({ error: { code: 3, message: 'execution reverted' } });
+      if (j.method === 'eth_sendRawTransaction') return sendMode === 'known' ? r({ error: { code: -32000, message: 'already known' } }) : r({ result: keccak256(j.params[0]) });
+      r({ result: '0x1' });
+    });
+  });
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  const dead = 'http://127.0.0.1:1';
+  const net = Network.from(1);
+  const p = new FailoverProvider([dead, base + '/b', base + '/c'], net, { timeout: 800 });
+  const bn1 = await p.getBlockNumber();
+  const first = p.activeUrl;
+  const bn2 = await p.getBlockNumber();
+  const okFail = bn1 === 16 && bn2 === 16 && first === base + '/b' && hits.b >= 1 && hits.c === 0;
+  // повільний першим: тайм-аут, потім наступний
+  const p2 = new FailoverProvider([base + '/a', base + '/b'], net, { timeout: 500 });
+  const bn3 = await p2.getBlockNumber();
+  // помилка виконання контракту — відповідь вузла, а не відмова: запасні не опитуються
+  const before = hits.c;
+  const p3 = new FailoverProvider([base + '/b', base + '/c'], net, { timeout: 800 });
+  let reverted = false;
+  try { await p3.call({ to: '0x0000000000000000000000000000000000000001', data: '0x' }); } catch (e) { reverted = /revert/i.test(e.message); }
+  // усі вузли недоступні — помилка, а не зависання
+  const p4 = new FailoverProvider([dead, 'http://127.0.0.1:2'], net, { timeout: 500 });
+  let allDead = false;
+  try { await p4.getBlockNumber(); } catch { allDead = true; }
+  // повторна розсилка: перший вузол мовчить, запасний каже «вже відома» → успіх із хешем транзакції
+  sendMode = 'known';
+  const raw = '0x02f8aa';
+  const p5 = new FailoverProvider([base + '/a', base + '/b'], net, { timeout: 400 });
+  const resp = await p5._send({ id: 7, jsonrpc: '2.0', method: 'eth_sendRawTransaction', params: [raw] });
+  const known = resp[0].result === keccak256(raw) && !resp[0].error;
+  // але «вже відома» від першого (основного) вузла лишається помилкою
+  const p6 = new FailoverProvider([base + '/b'], net, { timeout: 400 });
+  const resp6 = await p6._send({ id: 8, jsonrpc: '2.0', method: 'eth_sendRawTransaction', params: [raw] });
+  const direct = !!resp6[0].error;
+  srv.closeAllConnections(); srv.close();
+  return okFail && bn3 === 16 && reverted && hits.c === before && allDead && known && direct;
+}
+
 async function rpcListTests() {
   const { BUILTIN_NETWORKS, isSafeRpc } = require('../../src/wallet');
   ok(BUILTIN_NETWORKS.every(n => isSafeRpc(n.rpc) && n.rpc.startsWith('https://') && !/key|token|\$\{/i.test(n.rpc)), 'wallet: вбудовані RPC — https, без ключів у адресі');
   ok(new Set(BUILTIN_NETWORKS.map(n => n.chainId)).size === BUILTIN_NETWORKS.length && new Set(BUILTIN_NETWORKS.map(n => n.rpc)).size === BUILTIN_NETWORKS.length, 'wallet: chainId і RPC вбудованих мереж унікальні');
+
+  ok(BUILTIN_NETWORKS.every(n => (n.rpcFallback || []).every(u => isSafeRpc(u) && u.startsWith('https://') && !/key|token|\$\{/i.test(u) && u !== n.rpc)), 'wallet: запасні RPC — https, без ключів, відмінні від основного');
+  const failover = await failoverTests();
+  ok(failover, 'wallet: запасні RPC працюють');
 
   // --- особа Chrome лише для Google (інакше Cloudflare Turnstile не пускає браузер, напр. tensor.trade) ---
   const { isGoogleUrl, cleanUserAgent } = require('../../src/chrome-identity');
@@ -292,4 +351,4 @@ async function rpcListTests() {
   ok(cleanUserAgent('Mozilla/5.0 (X) W3IRBrowser/1.29.0 Chrome/146.0.0.0 Electron/41.0.0 Safari/537.36') === 'Mozilla/5.0 (X) Chrome/146.0.0.0 Safari/537.36', 'identity: з User-Agent для Google прибрано ознаки Electron і W3IR');
 }
 
-module.exports = { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };
+module.exports = { failoverTests, auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };

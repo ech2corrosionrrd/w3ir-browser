@@ -1,5 +1,6 @@
 'use strict';
 const { t: tr } = require('./i18n');
+const { FailoverProvider } = require('./rpc-failover');
 // Вбудований EVM-гаманець (EIP-1193 / EIP-6963). Фраза відновлення зберігається всередині зашифрованого сховища паролів
 // (AES-256-GCM + scrypt + DPAPI); приватні ключі виводяться лише на мить підпису й ніколи не кешуються.
 // Кожен підпис і транзакція потребують явного підтвердження у довіреному вікні браузера, яке сторінка підробити не може.
@@ -9,14 +10,14 @@ const {
 } = require('ethers');
 
 const BUILTIN_NETWORKS = [
-  { chainId: 1, name: 'Ethereum', symbol: 'ETH', rpc: 'https://ethereum-rpc.publicnode.com', explorer: 'https://etherscan.io' },
+  { chainId: 1, name: 'Ethereum', symbol: 'ETH', rpc: 'https://ethereum-rpc.publicnode.com', rpcFallback: ['https://cloudflare-eth.com', 'https://1rpc.io/eth', 'https://eth.drpc.org'], explorer: 'https://etherscan.io' },
   { chainId: 10, name: 'Optimism', symbol: 'ETH', rpc: 'https://mainnet.optimism.io', explorer: 'https://optimistic.etherscan.io' },
   { chainId: 56, name: 'BNB Smart Chain', symbol: 'BNB', rpc: 'https://bsc-dataseed.binance.org', explorer: 'https://bscscan.com' },
-  { chainId: 137, name: 'Polygon', symbol: 'POL', rpc: 'https://polygon-bor-rpc.publicnode.com', explorer: 'https://polygonscan.com' },
+  { chainId: 137, name: 'Polygon', symbol: 'POL', rpc: 'https://polygon-bor-rpc.publicnode.com', rpcFallback: ['https://1rpc.io/matic', 'https://polygon.drpc.org'], explorer: 'https://polygonscan.com' },
   { chainId: 8453, name: 'Base', symbol: 'ETH', rpc: 'https://mainnet.base.org', explorer: 'https://basescan.org' },
   { chainId: 42161, name: 'Arbitrum One', symbol: 'ETH', rpc: 'https://arb1.arbitrum.io/rpc', explorer: 'https://arbiscan.io' },
   { chainId: 43114, name: 'Avalanche C-Chain', symbol: 'AVAX', rpc: 'https://api.avax.network/ext/bc/C/rpc', explorer: 'https://snowtrace.io' },
-  { chainId: 11155111, name: 'Sepolia (тестова)', symbol: 'ETH', rpc: 'https://ethereum-sepolia-rpc.publicnode.com', explorer: 'https://sepolia.etherscan.io' },
+  { chainId: 11155111, name: 'Sepolia (тестова)', symbol: 'ETH', rpc: 'https://ethereum-sepolia-rpc.publicnode.com', rpcFallback: ['https://1rpc.io/sepolia'], explorer: 'https://sepolia.etherscan.io' },
 ];
 
 // Лише читання — проксуємо до RPC вибраної мережі
@@ -122,7 +123,7 @@ class Wallet {
   networks() {
     const custom = this.unlocked() ? (this.section().networks || []) : [];
     const rpc = this.unlocked() ? (this.section().rpc || {}) : {};
-    return [...BUILTIN_NETWORKS, ...custom].map(n => ({ ...n, rpc: rpc[n.chainId] || n.rpc, builtin: BUILTIN_NETWORKS.some(b => b.chainId === n.chainId) }));
+    return [...BUILTIN_NETWORKS, ...custom].map(n => ({ ...n, rpc: rpc[n.chainId] || n.rpc, rpcFallback: rpc[n.chainId] ? [] : (n.rpcFallback || []), builtin: BUILTIN_NETWORKS.some(b => b.chainId === n.chainId) }));
   }
   network(chainId) { return this.networks().find(n => n.chainId === Number(chainId)) || null; }
   activeChain() { return this.unlocked() && this.data() ? this.section().activeChain : (this.ctx.cfg().walletChain || 1); }
@@ -142,7 +143,8 @@ class Wallet {
     let p = this.providers.get(key);
     if (!p) {
       const n = Network.from(chainId);
-      p = new JsonRpcProvider(net.rpc, n, { staticNetwork: n, batchMaxCount: 1 });
+      const backups = (net.rpcFallback || []).filter(u => this.allowInsecureRpc || isSafeRpc(u));
+      p = backups.length ? new FailoverProvider([net.rpc, ...backups], n) : new JsonRpcProvider(net.rpc, n, { staticNetwork: n, batchMaxCount: 1 });
       this.providers.set(key, p);
     }
     return p;
