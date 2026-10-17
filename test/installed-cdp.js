@@ -50,8 +50,9 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   let ui = await waitFor(async () => (await find(t => t.url === 'w3ir://ui/index.html'))[0], 15000);
   ok(!!ui, 'запуск: вікно інтерфейсу створене');
   const ver = await (await fetch(`http://127.0.0.1:${PORT}/json/version`)).json();
-  ok(ver['User-Agent'].includes('W3IRBrowser/' + V) && /Electron\/41\./.test(ver['User-Agent']), `версія: ${V} на Electron 41.x`, ver['User-Agent']);
-  ok(!/Electron\/|W3IRBrowser/.test(await ev((await find(t => t.url.startsWith('w3ir://newtab')))[0] || ui, 'navigator.userAgent')), 'приватність: User-Agent сторінок без «Electron» і «W3IRBrowser»');
+  ok(ver['User-Agent'].includes('W3IRBrowser/' + V) && /Electron\/\d+\./.test(ver['User-Agent']), `версія: ${V} (User-Agent браузера містить W3IRBrowser і Electron)`, ver['User-Agent']);
+  // З 1.29.1 User-Agent чесний (з Electron/W3IRBrowser): особа Chrome діє лише на сторінках Google (інакше Cloudflare Turnstile не пускав)
+  ok(/Chrome\//.test(await ev((await find(t => t.url.startsWith('w3ir://newtab')))[0] || ui, 'navigator.userAgent')), 'User-Agent містить Chrome (чесний User-Agent поза Google)');
   const newtab = await waitFor(async () => (await find(t => t.url.startsWith('w3ir://newtab')))[0], 10000);
   ok(!!newtab, 'нова вкладка відкрита');
   if (newtab) {
@@ -185,7 +186,7 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   const sh = await waitFor(async () => JSON.parse(txt(await call('browser_tabs'))).find(t => t.scope === 'shared'), 10000);
   ok(sh && sh.mode === 'read', 'спільна вкладка: після підтвердження ШІ бачить вкладку (читання)', sh);
   if (sh) {
-    ok(await ev(ui, `!!document.querySelector('.tab.active .ai')`), 'спільна вкладка: на вкладці значок «ШІ»');
+    ok(await waitFor(async () => (await ev(ui, `!!document.querySelector('.tab.active .ai')`)) || null, 5000), 'спільна вкладка: на вкладці значок «ШІ»'); // інтерфейс оновлюється асинхронно
     r = await call('browser_read', { tab: sh.id });
     ok(/Example Domain/.test(txt(r)), 'спільна вкладка: читання вмісту вкладки користувача');
     r = await call('browser_snapshot', { tab: sh.id });

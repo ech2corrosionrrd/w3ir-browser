@@ -14,17 +14,24 @@ async function pingNetworks(networks, { timeout = PING_TIMEOUT, fetchFn = fetch 
   return Promise.all(networks.map(async (n) => {
     const base = { chainId: n.chainId, name: clean(n.name, 60) };
     if (!isSafeRpc(n.rpc)) return { ...base, ok: false, error: 'небезпечна адреса RPC' };
-    const t0 = Date.now();
-    try {
-      const res = await fetchFn(n.rpc, {
-        method: 'POST', headers: { 'content-type': 'application/json' }, redirect: 'error',
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_chainId', params: [] }), signal: AbortSignal.timeout(timeout),
-      });
-      if (!res.ok) return { ...base, ok: false, error: 'HTTP ' + res.status };
-      const j = await res.json();
-      const ok = j && j.result === '0x' + Number(n.chainId).toString(16);
-      return { ...base, ok, ms: Date.now() - t0, error: ok ? '' : 'інший chainId' };
-    } catch (e) { return { ...base, ok: false, error: e && e.name === 'TimeoutError' ? 'тайм-аут' : 'немає відповіді' }; }
+    // мережа «зелена», якщо відповідає основний вузол або будь-який із запасних (гаманець переходить на запасний сам)
+    const urls = [n.rpc, ...(Array.isArray(n.rpcFallback) ? n.rpcFallback : [])].filter(u => isSafeRpc(u));
+    let last = { ...base, ok: false, error: 'немає відповіді' };
+    for (let i = 0; i < urls.length; i++) {
+      const t0 = Date.now();
+      try {
+        const res = await fetchFn(urls[i], {
+          method: 'POST', headers: { 'content-type': 'application/json' }, redirect: 'error',
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_chainId', params: [] }), signal: AbortSignal.timeout(timeout),
+        });
+        if (!res.ok) { last = { ...base, ok: false, error: 'HTTP ' + res.status }; continue; }
+        const j = await res.json();
+        const ok = !!j && j.result === '0x' + Number(n.chainId).toString(16);
+        if (ok) return { ...base, ok, ms: Date.now() - t0, error: '', ...(i > 0 ? { fallback: true } : {}) };
+        last = { ...base, ok: false, error: 'інший chainId' };
+      } catch (e) { last = { ...base, ok: false, error: e && e.name === 'TimeoutError' ? 'тайм-аут' : 'немає відповіді' }; }
+    }
+    return last;
   }));
 }
 

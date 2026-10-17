@@ -2,7 +2,7 @@
 
 Статичний аналіз: `npm run lint` (запускати перед випуском).
 
-Автоматичний набір (997 перевірок; усі проходять; для швидкої перевірки областей: `W3IR_ONLY=agentTests,updateTests`, назви — імена функцій у `test/security.js`) — `test/security.js` (запускач) і області в `test/areas/*.js` (storage, web3, solana, fuzz, qr, places, injection, assistant, arweave, updates-threats, tabs, ai, i18n, misc; спільні помічники — `test/lib.js`) (**490 перевірок**, повний прогін ≈ 3–5 хв). Запускається всередині Electron, тому використовує справжні вікна, вкладки, сеанси й IPC.
+Автоматичний набір (998 перевірок; усі проходять; для швидкої перевірки областей: `W3IR_ONLY=agentTests,updateTests`, назви — імена функцій у `test/security.js`) — `test/security.js` (запускач) і області в `test/areas/*.js` (storage, web3, solana, fuzz, qr, places, injection, assistant, arweave, updates-threats, tabs, ai, i18n, misc; спільні помічники — `test/lib.js`) (**490 перевірок**, повний прогін ≈ 3–5 хв). Запускається всередині Electron, тому використовує справжні вікна, вкладки, сеанси й IPC.
 
 ```
 set W3IR_USER_DATA=%TEMP%\w3ir-test-data

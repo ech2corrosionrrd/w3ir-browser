@@ -1,6 +1,6 @@
 # Архітектура
 
-Electron 41 (Chromium + Node 24). Увесь код головного процесу — CommonJS у `src/`, інтерфейс — звичайні HTML/CSS/JS без збирача.
+Electron 44 (Chromium 152 + Node 24). Увесь код головного процесу — CommonJS у `src/`, інтерфейс — звичайні HTML/CSS/JS без збирача.
 
 ## Процеси та вікна
 
