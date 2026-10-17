@@ -120,6 +120,15 @@ function renderApprove(p) {
   box.append(el('div', 'aorigin', p.origin));
   const grid = el('div', 'alines');
   for (const [k, v] of p.lines || []) { grid.append(el('div', 'ak', k), el('div', 'av', v)); }
+  let pick = null;
+  if (p.choice) {
+    pick = el('select', 'asel');
+    pick.setAttribute('aria-label', p.choice.label);
+    for (const o of p.choice.options) { const opt = el('option', null, o.label); opt.value = o.value; pick.append(opt); }
+    pick.value = p.choice.value;
+    const cell = el('div', 'av'); cell.append(pick);
+    grid.append(el('div', 'ak', p.choice.label), cell);
+  }
   box.append(grid);
   for (const w of p.warnings || []) box.append(el('div', 'awarn', '⚠ ' + w));
   let pass = null;
@@ -135,7 +144,7 @@ function renderApprove(p) {
   const yes = el('button', 'vbtn primary', 'Підтвердити');
   const decide = async (approve) => {
     yes.disabled = no.disabled = true;
-    const r = await api.cmd('walletDecision', { id: p.id, approve, master: pass ? pass.value : '' });
+    const r = await api.cmd('walletDecision', { id: p.id, approve, master: pass ? pass.value : '', choice: pick ? pick.value : undefined });
     if (pass) pass.value = '';
     yes.disabled = no.disabled = false;
     if (r && !r.ok) { err.textContent = r.error || 'Помилка'; if (pass) pass.focus(); }

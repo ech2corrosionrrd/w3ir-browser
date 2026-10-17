@@ -14,9 +14,11 @@ const BYTES32 = new Interface(['function name() view returns (bytes32)', 'functi
 const BUILTIN = {
   1: [['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 'USDC'], ['0xdAC17F958D2ee523a2206206994597C13D831ec7', 'USDT'], ['0x6B175474E89094C44Da98b954EedeAC495271d0F', 'DAI'], ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 'WETH']],
   10: [['0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', 'USDC']],
+  56: [['0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', 'USDC']],
   137: [['0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', 'USDC']],
   8453: [['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 'USDC']],
   42161: [['0xaf88d065e77c8cC2239327C5EDb3A432268e5831', 'USDC']],
+  43114: [['0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', 'USDC']],
   11155111: [['0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', 'USDC']],
 };
 const MAX_CUSTOM = 40;
@@ -73,7 +75,7 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
         const info = await this.tokenInfo(chainId, e.address);
         if (e.expect && info.symbol !== e.expect) return null; // вбудована адреса не збігається із символом: не показуємо
         const raw = ERC20.decodeFunctionResult('balanceOf', await this._ethCall(chainId, e.address, data))[0];
-        if (!e.custom && raw === 0n) return null;
+        if (!e.custom && raw === 0n && e.expect !== 'USDC') return null; // USDC показується завжди (навіть з нульовим балансом)
         return { address: info.address, symbol: info.symbol, name: info.name, decimals: info.decimals, raw: raw.toString(), amount: formatUnits(raw, info.decimals), custom: e.custom };
       } catch { return e.custom ? { address: e.address, symbol: e.symbol, name: e.name || '', decimals: e.decimals, raw: '0', amount: null, custom: true } : null; }
     }));

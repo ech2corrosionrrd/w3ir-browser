@@ -77,6 +77,7 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 .av { word-break: break-all; user-select: text; }
 .awarn { margin-top: 12px; padding: 8px 10px; border-radius: 6px; background: rgba(229,103,95,.15); color: var(--danger); font-size: 12px; line-height: 1.45; }
 .appr input { margin-top: 10px; }
+.appr .asel { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--input); color: inherit; font: inherit; }
 
 .site { position: absolute; top: 4px; width: 340px; padding: 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 28px var(--shadow); }
 .sconn { margin: 4px 0 8px; font-size: 12px; color: var(--fg2); line-height: 1.45; }

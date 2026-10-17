@@ -249,6 +249,9 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       .filter(a => a.info && a.info.tokenAmount && /^\d+$/.test(String(a.info.tokenAmount.amount)) && a.info.state === 'initialized' && S.isAddress(a.pubkey));
     usable.sort((x, y) => (BigInt(y.info.tokenAmount.amount) > BigInt(x.info.tokenAmount.amount) ? 1 : -1));
     const source = usable[0];
+    if (!source && accs.some(a => a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info && a.account.data.parsed.info.state === 'frozen')) {
+      throw new RpcError(-32602, 'Токен-акаунт заморожено: імовірно, це програмований NFT (pNFT) або токен із замороженням. Гаманець такі токени поки не надсилає; скористайтеся маркетплейсом.');
+    }
     if (!source || BigInt(source.info.tokenAmount.amount) < raw) throw new RpcError(-32602, `Недостатньо токенів: на найбільшому токен-акаунті ${source ? S.formatUnits(BigInt(source.info.tokenAmount.amount), decimals) : '0'}.`);
 
     // 3. одержувач: адреса не має бути токен-акаунтом чи програмою; його токен-акаунт (ATA) може ще не існувати
@@ -369,12 +372,16 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     const pack = (address) => ({ address, publicKey: S.b58decode(address).toString('base64') });
     if (have.length) return pack(have[0]);
     if (p.onlyIfTrusted) throw unauthorized('Сайт ще не підключено до гаманця');
-    const address = this.solAccount(this.dappIndex('sol'));
-    await this.approve(win, origin, sameTab, {
+    const def = this.dappIndex('sol');
+    const options = this.dappChoices('sol');
+    const choose = options.length > 1;
+    const ap = await this.approve(win, origin, sameTab, {
       kind: 'connect', title: tr('Підключення до сайту'),
-      lines: [['Сайт отримає', 'доступ до публічної адреси Solana та право пропонувати підписи'], ['Рахунок Solana', address], ['Мережа', CLUSTERS[this.solCluster()].name]],
+      lines: [['Сайт отримає', 'доступ до публічної адреси Solana та право пропонувати підписи'], ...(choose ? [] : [['Рахунок Solana', this.solAccount(def)]]), ['Мережа', CLUSTERS[this.solCluster()].name]],
+      ...(choose ? { choice: { label: 'Рахунок для сайту', options, value: String(def) } } : {}),
       warnings: ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'],
     });
+    const address = this.solAccount(choose ? this.pickChoice(ap, options, def) : def);
     const s = this.section();
     s.solConnections = s.solConnections || {};
     s.solConnections[origin] = { address, since: Date.now() };

@@ -4,6 +4,7 @@
 const { getAddress, isAddress, formatUnits, MaxUint256, Interface, namehash, ZeroAddress } = require('ethers');
 const S = require('./solana');
 const { injectionClean } = require('./token-text');
+const { Prices, NATIVE_ID, PLATFORM } = require('./prices');
 
 const ALLOWANCE = new Interface(['function allowance(address owner, address spender) view returns (uint256)', 'function approve(address spender, uint256 amount) returns (bool)']);
 const MAX_PENDING = 20;
@@ -17,6 +18,21 @@ const FEE_FACTORS = { low: 85n, standard: 100n, fast: 150n };
 
 function install(Wallet, { RpcError, clip, unauthorized }) {
   const proto = Wallet.prototype;
+  // Орієнтовні ціни в USD (лише показ). Вимкнено налаштуванням walletPrices; тестові мережі й Devnet без цін
+  proto.priceInfo = async function ({ chain, tokens }) {
+    if (this.ctx.cfg().walletPrices === false) return { enabled: false, native: null, tokens: {} };
+    this._prices = this._prices || new Prices();
+    const list = Array.isArray(tokens) ? tokens.slice(0, 50).filter(x => typeof x === 'string') : [];
+    if (chain === 'sol') {
+      if (this.solCluster() !== 'mainnet-beta') return { enabled: true, native: null, tokens: {} };
+      const [native, toks] = await Promise.all([this._prices.native('solana'), this._prices.tokens('solana', list)]);
+      return { enabled: true, native, tokens: toks };
+    }
+    const chainId = this.activeChain();
+    const [native, toks] = await Promise.all([NATIVE_ID[chainId] ? this._prices.native(NATIVE_ID[chainId]) : null, PLATFORM[chainId] ? this._prices.tokens(PLATFORM[chainId], list) : {}]);
+    return { enabled: true, native, tokens: toks };
+  };
+
   const timed = (p, ms = 8000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 
   // ---------- швидкість комісії ----------

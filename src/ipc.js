@@ -249,7 +249,7 @@ async function walletApi(ctx, entry, name, arg) {
     switch (name) {
       case 'wallet:status': {
         const st = v.status();
-        return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, info: st === 'unlocked' && w.exists() ? w.info() : null };
+        return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, prices: ctx.cfg().walletPrices !== false, info: st === 'unlocked' && w.exists() ? w.info() : null };
       }
       case 'wallet:create': return { ok: true, phrase: w.create() };
       case 'wallet:import': w.importPhrase(arg.phrase); return { ok: true };
@@ -267,6 +267,13 @@ async function walletApi(ctx, entry, name, arg) {
       }
       case 'wallet:balances': return { ok: true, balances: await w.balances() };
       case 'wallet:evmTokens': return { ok: true, ...(await w.evmTokens(arg.index)) };
+      case 'wallet:prices': return { ok: true, ...(await w.priceInfo({ chain: arg.chain === 'sol' ? 'sol' : 'evm', tokens: arg.tokens })) };
+      case 'wallet:setPrices': ctx.cfg().walletPrices = !!arg.on; ctx.settingsStore.save(); return { ok: true };
+      case 'wallet:nfts': return { ok: true, ...(await w.evmNfts(arg.index)) };
+      case 'wallet:addNft': return { ok: true, nft: await w.addNft(String(arg.contract), String(arg.id)) };
+      case 'wallet:removeNft': return { ok: true, removed: w.removeNft(String(arg.contract), String(arg.id)) };
+      case 'wallet:discoverNfts': return { ok: true, ...(await w.discoverNfts(arg.index)) };
+      case 'wallet:sendNft': return { ok: true, hash: await w.sendNft(entry.win, () => entry.win.tabs.includes(entry.tab), { index: arg.index, contract: String(arg.contract), tokenId: String(arg.id), to: arg.to, amount: arg.amount === undefined ? undefined : String(arg.amount), speed: arg.speed }) };
       case 'wallet:addToken': return { ok: true, token: await w.addToken(String(arg.address)) };
       case 'wallet:removeToken': return { ok: true, removed: w.removeToken(String(arg.address)) };
       case 'wallet:solHistory': return { ok: true, ...(await w.solHistory(String(arg.address))) };

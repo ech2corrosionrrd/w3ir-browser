@@ -545,7 +545,7 @@ async function walletTests(ctx) {
   ok(wal.dappIndex('evm') === dkAcc.id && wal.info().dapp.evm === dkAcc.id, 'dapp: імпортований рахунок можна зробити типовим для сайтів');
   let prd = call(wcA, 'eth_requestAccounts');
   const apD = await waitApproval();
-  ok(apD.spec.lines.some(l => l[0] === 'Рахунок' && l[1] === dk.address), 'dapp: запит підключення показує вибраний (імпортований) рахунок');
+  ok(apD.spec.choice && apD.spec.choice.value === String(dkAcc.id) && apD.spec.choice.options.some(o => o.value === String(dkAcc.id)), 'dapp: у запиті підключення типовим обрано імпортований рахунок');
   await decide(true, MASTER);
   ok((await prd).ok[0] === dk.address && (await call(wcA, 'eth_accounts')).ok[0] === dk.address, 'dapp: сайт отримав адресу імпортованого рахунку, а не основного');
   prd = call(wcA, 'personal_sign', [E.hexlify(E.toUtf8Bytes('від імпортованого')), dk.address]);
@@ -567,6 +567,19 @@ async function walletTests(ctx) {
   wal.removeImported(dkAcc.id);
   await sleep(300);
   ok((await call(wcA, 'eth_accounts')).ok.length === 0 && wal.dappIndex('evm') === 0 && !wal.info().connections.some(c => c.origin === A.origin) && JSON.stringify(await wcA.executeJavaScript('window.__acc')).endsWith('[]]'), 'dapp: видалення імпортованого рахунку відключає сайти, що ним користувались, і скидає типовий рахунок');
+
+  // --- вибір рахунку під час підключення сайту ---
+  if (wal.info().accounts.length < 2) wal.addAccount();
+  const pickPr = call(wcA, 'eth_requestAccounts');
+  const apPick = await waitApproval();
+  ok(apPick && apPick.spec.choice && apPick.spec.choice.options.length >= 2 && apPick.spec.choice.value === '0' && !apPick.spec.lines.some(l => l[0] === 'Рахунок'), 'dapp: у запиті підключення є вибір рахунку, коли їх кілька');
+  const badPick = await w.decide(apPick.id, true, MASTER, '777');
+  ok(badPick.ok === false && /вибір/i.test(badPick.error) && w.approval && w.approval.id === apPick.id, 'dapp: рахунок, якого не пропонували, відхиляється, запит лишається відкритим');
+  const goodPick = await w.decide(apPick.id, true, MASTER, '1');
+  const pickRes = await pickPr;
+  ok(goodPick.ok && pickRes.ok && pickRes.ok[0] === wal.section().addresses[1] && pickRes.ok[0] !== addr0, 'dapp: сайт підключено саме до вибраного рахунку');
+  ok(wal.info().connections.find(c => c.origin === A.origin).accounts[0] === wal.section().addresses[1], 'dapp: вибраний рахунок збережено для сайту');
+  wal.disconnectSite(A.origin);
 
   A.s.close(); B.s.close(); rpc.close();
   ctx.settingsStore.flush();

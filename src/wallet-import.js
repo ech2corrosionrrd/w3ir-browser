@@ -1,4 +1,5 @@
 'use strict';
+const { t: tr } = require('./i18n');
 // Імпортовані рахунки (за приватним ключем) і QR-коди адрес.
 // Імпортований ключ зберігається лише всередині зашифрованого сховища (розділ wallet), не відновлюється з фрази гаманця
 // і не передається сайтам (dApp бачить основний рахунок): такі рахунки доступні для переказів зі сторінки гаманця.
@@ -135,6 +136,22 @@ function install(Wallet, { RpcError, unauthorized }) {
     const i = ((s.dapp || {})[chain]);
     if (i === undefined || i === 0) return 0;
     try { (chain === 'sol' ? this.solAccount : this.evmAccount).call(this, i); return i; } catch { return 0; }
+  };
+  // Рахунки, які можна запропонувати сайту під час підключення: [{ value: 'індекс', label }]
+  proto.dappChoices = function (chain) {
+    const s = this.data();
+    if (!s) return [];
+    const names = s.names || [];
+    const sh = (a) => `${a.slice(0, 6)}\u2026${a.slice(-4)}`;
+    const out = [];
+    (chain === 'sol' ? this.solAddresses() : s.addresses).forEach((a, i) => out.push({ value: String(i), label: `${names[i] || tr('Рахунок {0}', i + 1)} \u00B7 ${sh(a)}` }));
+    this._imported().forEach((a, i) => { if (a.chain === chain) out.push({ value: String(IMP_BASE + i), label: `${a.name || tr('Імпортований рахунок')} \u00B7 ${sh(a.address)}` }); });
+    return out;
+  };
+  // Індекс рахунку з відповіді підтвердження: лише з тих, що були запропоновані, інакше — типовий
+  proto.pickChoice = function (approval, options, fallback) {
+    const v = approval && approval.choice;
+    return typeof v === 'string' && options.some(o => o.value === v) ? Number(v) : fallback;
   };
   proto.setDappAccount = function (chain, index) {
     const s = this.data();
