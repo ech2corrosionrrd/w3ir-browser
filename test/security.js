@@ -5,6 +5,7 @@ const { sleep, stats, cleanup } = require('./lib');
 const { vaultTests, vaultTests2, syncTests, e2eTests, torrentTests, importTests, profileTests } = require('./areas/storage');
 const { githubTests, walletTests } = require('./areas/web3');
 const { arweaveTests } = require('./areas/arweave');
+const { solanaTests } = require('./areas/solana');
 const { helpTests, updateTests, threatTests } = require('./areas/updates-threats');
 const { groupTests, siteTests, splitTests, fullscreenTests, guardTests, tabCloseTests, tabFeatureTests } = require('./areas/tabs');
 const { agentShareTests, agentTests } = require('./areas/ai');
@@ -14,6 +15,8 @@ const { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTes
 module.exports = async function run(ctx) {
   try {
     await sleep(2000);
+    // наскрізні тести клікають по справжньому вікну: виводимо його вперед, щоб інші застосунки його не перекривали
+    for (const w of ctx.windows) { try { w.win.setAlwaysOnTop(true); w.win.show(); w.win.focus(); w.win.moveTop(); } catch { /* ignore */ } }
     await vaultTests().catch(e => { stats.failed++; console.log('[sec] ERROR vault1', e.stack); });
     await vaultTests2();
     await syncTests();
@@ -24,6 +27,7 @@ module.exports = async function run(ctx) {
     await githubTests(ctx);
     await walletTests(ctx);
     await arweaveTests(ctx);
+    await solanaTests(ctx);
     await helpTests(ctx);
     await updateTests(ctx);
     await threatTests(ctx);

@@ -29,6 +29,9 @@ Electron 41 (Chromium + Node 24). Увесь код головного проц�
 | `store.js` | JSON-сховище з відкладеним атомарним записом (`fsync`), резервною копією `.bak` (не частіше раз на 10 хв) і збереженням пошкодженого файлу як `.corrupt-<час>` |
 | `vault.js` | менеджер паролів (також зберігає розділ гаманця) |
 | `wallet.js` | EVM-гаманець, EIP-1193 запити, розшифровка викликів, підтвердження |
+| `solana.js` | Solana без залежностей: base58, ключі SLIP-0010 Ed25519 (`m/44'/501'/N'/0'`), розбір legacy/v0-транзакцій, підпис, розшифровка інструкцій та попередження про шахрайські шаблони (SetAuthority, Approve, CloseAccount, Assign) |
+| `wallet-solana.js` | Solana-частина гаманця: підключення сайтів, `signMessage`/`signTransaction`/`signAndSendTransaction`, симуляція (`simulateTransaction`) перед підтвердженням, мережі Mainnet/Devnet/Testnet |
+| `chrome-identity.js` | узгоджена особа Chrome для вкладок через CDP (UA без Electron, `userAgentData` із «Google Chrome», `window.chrome`) — потрібна для входу Google |
 | `arweave.js` | децентралізоване сховище Arweave/Irys: протокол `ar://`, резолвінг транзакцій через пул шлюзів (Irys/Arweave), нормалізація NFT-метаданих, GraphQL |
 | `sync.js` | зашифрована синхронізація закладок через теку |
 | `github.js` | сповіщення й запити на рев'ю GitHub (токен у DPAPI) |

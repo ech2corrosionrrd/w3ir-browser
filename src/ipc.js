@@ -241,6 +241,9 @@ async function walletApi(ctx, entry, name, arg) {
         return { ok: true };
       }
       case 'wallet:balances': return { ok: true, balances: await w.balances() };
+      case 'wallet:solBalances': return { ok: true, balances: await w.solBalances() };
+      case 'wallet:solSetCluster': w.setSolCluster(String(arg.id)); return { ok: true };
+      case 'wallet:solSetRpc': w.setSolRpc(String(arg.cluster), arg.url); return { ok: true };
       case 'wallet:setChain': w.setChain(Number(arg.id)); return { ok: true };
       case 'wallet:setRpc': w.setRpc(Number(arg.id), arg.url); return { ok: true };
       case 'wallet:disconnect': w.disconnectSite(String(arg.origin)); return { ok: true };
