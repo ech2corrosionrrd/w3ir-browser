@@ -1,5 +1,6 @@
 'use strict';
-const { app, session, dialog, BrowserWindow, net } = require('electron');
+const { app, session, dialog, BrowserWindow, net, clipboard } = require('electron');
+const { ClipGuard } = require('./clip-guard');
 const { t: tr } = require('./i18n');
 const path = require('path');
 const fs = require('fs');
@@ -87,6 +88,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     session: id === 'default' ? session.defaultSession : session.fromPartition('persist:profile-' + id),
     settingsStore: new Store('settings', DEFAULT_SETTINGS, dataDir),
     places,
+    clipGuard: new ClipGuard(() => clipboard.readText()),
     bookmarksStore: new BookmarkStore(places),
     windowStore: new Store('window', {}, dataDir),
     sessionStore: new Store('session', { windows: [] }, dataDir),

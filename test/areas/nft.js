@@ -84,6 +84,7 @@ async function nftTests() {
     section() { return this.s; }
     data() { return this.s; }
     evmAccount() { return owner; }
+    evmView() { return owner; }
     activeChain() { return 1; }
     provider() { return this.p; }
     _ethCall(chainId, to, data) { return this.p.call({ to, data }); }

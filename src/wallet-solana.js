@@ -105,7 +105,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   };
   proto.solBalances = async function () {
     const cluster = this.solCluster();
-    return Promise.all(this.ownSol().map(async (address) => {
+    return Promise.all([...this.ownSol(), ...this.watchAddrs('sol')].map(async (address) => {
       try { const r = await this.solRpc(cluster, 'getBalance', [address, { commitment: 'confirmed' }], 8000, { fallbackOnError: true }); return { address, balance: S.sol(r.value), symbol: 'SOL' }; }
       catch { return { address, balance: null, symbol: 'SOL' }; }
     }));
@@ -145,7 +145,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   const ARWEAVE_URI = /^(?:ar:\/\/|https:\/\/(?:arweave\.net|gateway\.irys\.xyz|arweave\.dev)\/)([A-Za-z0-9_-]{43})(?:[/?#].*)?$/;
 
   proto.solTokens = async function (address, { maxMints = 60, maxImages = 12 } = {}) {
-    if (!this.isOwnSol(address)) throw unauthorized('Невідомий рахунок');
+    if (!this.isViewSol(address)) throw unauthorized('Невідомий рахунок');
     const cluster = this.solCluster();
     const byMint = new Map();
     for (const [programId, label] of [[S.PROGRAMS.TOKEN, 'SPL Token'], [S.PROGRAMS.TOKEN22, 'Token-2022']]) {
@@ -292,7 +292,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
 
   // ---------- історія рахунку (з блокчейну) і статуси транзакцій ----------
   proto.solHistory = async function (address, { limit = 15 } = {}) {
-    if (!this.isOwnSol(address)) throw unauthorized('Невідомий рахунок');
+    if (!this.isViewSol(address)) throw unauthorized('Невідомий рахунок');
     const cluster = this.solCluster();
     const sigs = await this.solRpc(cluster, 'getSignaturesForAddress', [address, { limit: Math.min(30, limit), commitment: 'confirmed' }], 12000, { fallbackOnError: true });
     const items = (sigs || []).map(x => ({ signature: String(x.signature), slot: Number(x.slot) || 0, time: x.blockTime ? Number(x.blockTime) * 1000 : 0, ok: !x.err, status: x.confirmationStatus || 'confirmed' }));

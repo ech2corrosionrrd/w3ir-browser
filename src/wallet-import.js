@@ -4,13 +4,18 @@ const { t: tr } = require('./i18n');
 // Імпортований ключ зберігається лише всередині зашифрованого сховища (розділ wallet), не відновлюється з фрази гаманця
 // і не передається сайтам (dApp бачить основний рахунок): такі рахунки доступні для переказів зі сторінки гаманця.
 // Показ ключа й видалення потребують майстер-пароля. Віртуальні індекси ≥ 1000 — імпортовані рахунки.
-const { Wallet: EthWallet, getAddress, isAddress } = require('ethers');
+const { Wallet: EthWallet, getAddress, isAddress, ZeroAddress } = require('ethers');
 const S = require('./solana');
 const { injectionClean } = require('./token-text');
 const qr = require('./qr');
 
 const IMP_BASE = 1000;
 const MAX_IMPORTED = 20;
+
+// Рахунки лише для перегляду (адреса без ключа): ідентифікатори з WATCH_BASE; підписувати чи надсилати з них неможливо —
+// їх немає в ownEvm()/ownSol() та в evmAccount()/solAccount(), а читання (баланси, токени, NFT, історія) йде окремими шляхами.
+const WATCH_BASE = 5000;
+const MAX_WATCH = 20;
 
 function install(Wallet, { RpcError, unauthorized }) {
   const proto = Wallet.prototype;
@@ -121,7 +126,7 @@ function install(Wallet, { RpcError, unauthorized }) {
   // QR для власної чи збереженої в адресній книзі адреси (довільний текст кодувати не даємо)
   proto.qrFor = function (text) {
     const t = String(text == null ? '' : text);
-    const known = new Set([...this.ownEvm(), ...this.ownSol(), ...(this.data().contacts || []).map(c => c.address)]);
+    const known = new Set([...this.ownEvm(), ...this.ownSol(), ...this._watch().map(a => a.address), ...(this.data().contacts || []).map(c => c.address)]);
     if (!known.has(t)) throw new RpcError(-32602, 'QR-код можна показати лише для адреси вашого рахунку або контакту.');
     return qr.encode(t);
   };
@@ -137,6 +142,46 @@ function install(Wallet, { RpcError, unauthorized }) {
     if (i === undefined || i === 0) return 0;
     try { (chain === 'sol' ? this.solAccount : this.evmAccount).call(this, i); return i; } catch { return 0; }
   };
+  // ---------- рахунки лише для перегляду ----------
+  proto._watch = function () { const s = this.data(); if (!s) throw unauthorized('Гаманець не створено'); s.watch = s.watch || []; return s.watch; };
+  proto.watchAccounts = function () { return this._watch().map((a, i) => ({ id: WATCH_BASE + i, chain: a.chain, address: a.address, name: a.name || '' })); };
+  proto.watchAddrs = function (chain) { return this._watch().filter(a => a.chain === chain).map(a => a.address); };
+  proto.addWatch = function (address, name) {
+    const raw = String(address == null ? '' : address).trim();
+    let chain, addr;
+    if (isAddress(raw)) { chain = 'evm'; addr = getAddress(raw); if (addr === ZeroAddress) throw new RpcError(-32602, 'Нульова адреса не може бути рахунком для перегляду.'); }
+    else if (S.isAddress(raw)) { chain = 'sol'; addr = raw; }
+    else throw new RpcError(-32602, 'Некоректна адреса (потрібна адреса EVM або Solana).');
+    const own = chain === 'evm' ? this.ownEvm() : this.ownSol();
+    if (own.includes(addr)) throw new RpcError(-32602, 'Це адреса вашого власного рахунку.');
+    const list = this._watch();
+    if (list.some(a => a.address === addr)) throw new RpcError(-32602, 'Цю адресу вже додано.');
+    if (list.length >= MAX_WATCH) throw new RpcError(-32602, `Не більше ${MAX_WATCH} рахунків для перегляду.`);
+    const clean = String(name == null ? '' : name).replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, '').trim().slice(0, 32);
+    list.push({ chain, address: addr, name: clean });
+    this.vault.persist();
+    return { id: WATCH_BASE + list.length - 1, chain, address: addr, name: clean };
+  };
+  proto.removeWatch = function (id) {
+    const list = this._watch();
+    const i = Number(id) - WATCH_BASE;
+    if (!Number.isInteger(i) || i < 0 || i >= list.length) throw new RpcError(-32602, 'Невідомий рахунок.');
+    list.splice(i, 1);
+    this.vault.persist();
+    return true;
+  };
+  // Адреса для ЧИТАННЯ (баланси, токени, NFT): власні рахунки й рахунки лише для перегляду. Для підпису не використовується.
+  proto.evmView = function (index) {
+    index = Number(index);
+    if (Number.isInteger(index) && index >= WATCH_BASE) {
+      const a = this._watch()[index - WATCH_BASE];
+      if (a && a.chain === 'evm') return a.address;
+      throw new RpcError(-32602, 'Невідомий рахунок');
+    }
+    return this.evmAccount(index);
+  };
+  proto.isViewSol = function (address) { return this.ownSol().includes(address) || this.watchAddrs('sol').includes(address); };
+
   // Рахунки, які можна запропонувати сайту під час підключення: [{ value: 'індекс', label }]
   proto.dappChoices = function (chain) {
     const s = this.data();
@@ -190,4 +235,4 @@ function install(Wallet, { RpcError, unauthorized }) {
   };
 }
 
-module.exports = { install, IMP_BASE };
+module.exports = { install, IMP_BASE, WATCH_BASE };

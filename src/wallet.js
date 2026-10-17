@@ -1,6 +1,7 @@
 'use strict';
 const { t: tr } = require('./i18n');
 const { FailoverProvider } = require('./rpc-failover');
+const guard = require('./wallet-signguard');
 // Вбудований EVM-гаманець (EIP-1193 / EIP-6963). Фраза відновлення зберігається всередині зашифрованого сховища паролів
 // (AES-256-GCM + scrypt + DPAPI); приватні ключі виводяться лише на мить підпису й ніколи не кешуються.
 // Кожен підпис і транзакція потребують явного підтвердження у довіреному вікні браузера, яке сторінка підробити не може.
@@ -191,7 +192,7 @@ class Wallet {
   remove() {
     const s = this.section();
     s.mnemonic = null; s.addresses = []; s.connections = {}; s.log = [];
-    s.solAddresses = []; s.solConnections = {}; s.pending = []; s.contacts = []; s.tokens = {}; s.names = []; s.recipients = []; s.imported = [];
+    s.solAddresses = []; s.solConnections = {}; s.pending = []; s.contacts = []; s.tokens = {}; s.names = []; s.recipients = []; s.imported = []; s.watch = [];
     this.vault.persist();
     this.ctx.cfg().walletEnabled = false;
     this.ctx.settingsStore.save();
@@ -205,7 +206,7 @@ class Wallet {
     return {
       exists: true, accounts: s.addresses, activeChain: s.activeChain,
       networks: this.networks(), connections: Object.entries(s.connections).map(([origin, c]) => ({ origin, accounts: c.accounts, chainId: c.chainId })), dapp: { evm: this.dappIndex('evm'), sol: this.dappIndex('sol') },
-      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(),
+      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(), watch: this.watchAccounts(),
     };
   }
 
@@ -234,7 +235,7 @@ class Wallet {
     const chain = s.activeChain;
     const net = this.network(chain);
     const p = this.provider(chain);
-    return Promise.all(this.ownEvm().map(async (a) => {
+    return Promise.all([...this.ownEvm(), ...this.watchAddrs('evm')].map(async (a) => {
       try { return { address: a, balance: formatEther(await Promise.race([p.getBalance(a), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 8000))])), symbol: net.symbol }; }
       catch { return { address: a, balance: null, symbol: net.symbol }; }
     }));
@@ -318,7 +319,10 @@ class Wallet {
     const sameTab = () => win.tabs.includes(tab) && (() => { try { return new URL(tab.view.webContents.getURL()).origin === origin; } catch { return false; } })();
     if (method.startsWith('solana_')) return this.solRequest(win, tab, origin, method, params[0], sameTab);
 
+    const blocked = guard.rejectReason(method);
+    if (blocked) throw new RpcError(4200, blocked);
     switch (method) {
+      case 'wallet_getCapabilities': return {};
       case 'eth_chainId': return hexChain(this.chainOf(origin));
       case 'net_version': return String(this.chainOf(origin));
       case 'web3_clientVersion': return 'W3IR-Wallet/1.0';
@@ -459,10 +463,11 @@ class Wallet {
     if (bytes.length > 10000) throw new RpcError(-32602, 'Повідомлення надто велике');
     let text = null;
     try { const t = toUtf8String(bytes); if (/^[\P{C}\n\r\t]*$/u.test(t)) text = t; } catch { /* не текст */ }
+    const siwe = text !== null ? guard.checkSiwe(text, { origin, account: a, chainId: this.chainOf(origin) }) : null;
     await this.approve(win, origin, sameTab, {
-      kind: 'sign', title: tr('Підпис повідомлення'),
-      lines: [['Рахунок', a], ['Повідомлення', text !== null ? clip(text, 1500) : hexlify(bytes).slice(0, 300)]],
-      warnings: text === null ? ['Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.'] : [],
+      kind: 'sign', title: siwe ? tr('Вхід через Ethereum (SIWE)') : tr('Підпис повідомлення'), danger: !!(siwe && siwe.danger),
+      lines: [['Рахунок', a], ...(siwe ? siwe.lines : []), ['Повідомлення', text !== null ? clip(text, 1500) : hexlify(bytes).slice(0, 300)]],
+      warnings: [...(text === null ? ['Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.'] : []), ...(siwe ? siwe.warnings : [])],
     });
     const sig = await this.signerFor(a).signMessage(bytes);
     this.log({ origin, action: 'Підпис повідомлення' });
@@ -483,9 +488,21 @@ class Wallet {
     try { TypedDataEncoder.hash(td.domain, types, td.message); } catch (e) { throw new RpcError(-32602, `Дані не відповідають типам: ${clip(e.message, 120)}`); }
     const warnings = [];
     if (/permit|order|seaport|delegat|approval|listing/i.test(td.primaryType + JSON.stringify(Object.keys(types)))) warnings.push('Цей підпис може дозволити витрату ваших токенів або продаж NFT БЕЗ окремої транзакції. Підписуйте лише на довірених сайтах.');
+    // розшифровка дозволів: отримувач — контракт чи звичайний рахунок, токен і сума, термін, власник
+    const isContract = new Map(), tokens = new Map();
+    const quick = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+    try {
+      const prov = this.provider(chain);
+      await Promise.all([
+        ...guard.permitSpenders(td).map(async (sp) => { try { const c = await quick(prov.getCode(sp), 5000); isContract.set(sp, !!c && c !== '0x'); } catch { /* невідомо */ } }),
+        ...guard.permitTokens(td).map(async (t) => { try { const i = await quick(this.tokenInfo(chain, t), 5000); tokens.set(t, { symbol: i.symbol, decimals: i.decimals }); } catch { /* не ERC-20 */ } }),
+      ]);
+    } catch { /* RPC недоступний: розшифровка без перевірки отримувача */ }
+    const g = guard.describeTyped({ ...td, types }, { account: a, isContract, tokens });
+    if (g) warnings.push(...g.warnings);
     await this.approve(win, origin, sameTab, {
-      kind: 'typed', title: tr('Підпис структурованих даних'), danger: warnings.length > 0,
-      lines: [['Рахунок', a], ['Тип', clip(td.primaryType, 80)], ['Контракт (verifyingContract)', clip(td.domain.verifyingContract || '—', 60)], ['Мережа', String(chain)], ['Дані', clip(JSON.stringify(td.message, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 1), 2500)]],
+      kind: 'typed', title: tr('Підпис структурованих даних'), danger: warnings.length > 0 || !!(g && g.danger),
+      lines: [['Рахунок', a], ...(g ? g.lines : []), ['Тип', clip(td.primaryType, 80)], ['Контракт (verifyingContract)', clip(td.domain.verifyingContract || '—', 60)], ['Мережа', String(chain)], ['Дані', clip(JSON.stringify(td.message, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 1), 2500)]],
       warnings,
     });
     const sig = await this.signerFor(a).signTypedData(td.domain, types, td.message);
@@ -497,11 +514,16 @@ class Wallet {
   // opts.warnings/danger — додаткові попередження про отримувача
   async sendTransaction(win, origin, tx, sameTab, opts = {}) {
     if (!tx || typeof tx !== 'object') throw new RpcError(-32602, 'Некоректна транзакція');
+    if (guard.hasDelegation(tx)) throw new RpcError(4200, 'Транзакції з делегуванням рахунку (EIP-7702) вимкнено: вони віддають контроль над рахунком коду контракту.');
     const from = opts.internal ? getAddress(tx.from) : this.requireConnected(origin, tx.from);
     if (opts.internal && !this.isOwnEvm(from)) throw unauthorized('Невідомий рахунок');
     const chain = opts.internal ? this.activeChain() : this.chainOf(origin);
     if (tx.chainId !== undefined && Number(tx.chainId) !== chain) throw new RpcError(-32602, 'chainId транзакції не збігається з поточною мережею');
     const net = this.network(chain);
+    try {
+      const del = guard.delegateOf(await Promise.race([this.provider(chain).getCode(from), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))]));
+      if (del) opts = { ...opts, danger: true, warnings: [...(opts.warnings || []), `Ваш рахунок делеговано контракту ${del} (EIP-7702): цей контракт керує виконанням транзакцій рахунку. Якщо ви цього не робили — рахунок скомпрометовано, не підтверджуйте.`] };
+    } catch { /* RPC недоступний: перевірку пропущено */ }
     const num = (v, name) => {
       if (v === undefined || v === null) return undefined;
       if (typeof v === 'string' && /^0x[0-9a-fA-F]*$/.test(v)) return BigInt(v === '0x' ? '0x0' : v);
@@ -558,6 +580,13 @@ class Wallet {
     if (!s) throw unauthorized('Гаманець не створено');
     index = Number(index);
     const clean = String(name == null ? '' : name).replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, '').trim().slice(0, 32);
+    if (Number.isInteger(index) && index >= 5000) {
+      const a = this._watch()[index - 5000];
+      if (!a) throw new Error('Невідомий рахунок');
+      a.name = clean;
+      this.vault.persist();
+      return clean;
+    }
     if (Number.isInteger(index) && index >= 1000) {
       const a = this._imported()[index - 1000];
       if (!a) throw new Error('Невідомий рахунок');
@@ -599,6 +628,12 @@ class Wallet {
         warnings.push(`Адреса дуже схожа на відому вам адресу ${twin}, але не збігається з нею: це типовий прийом підміни адрес (address poisoning). Звірте всі символи.`);
         danger = true;
       }
+    }
+    // адреса, скопійована в цьому браузері, відрізняється від отримувача — можлива підміна в буфері обміну
+    const cb = this.ctx.clipGuard && this.ctx.clipGuard.check(to);
+    if (cb && cb.status === 'changed') {
+      warnings.push(`Ви скопіювали в браузері адресу ${cb.copied}, а отримувач — ${to}. Якщо ви копіювали адресу отримувача, її могла підмінити шкідлива програма в буфері обміну: перевірте адресу.`);
+      if (cb.similar) danger = true;
     }
     return { warnings, danger };
   }

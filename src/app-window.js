@@ -930,10 +930,10 @@ class AppWindow {
     }
     if (p.isEditable) {
       t.push({ role: 'undo', label: tr('Скасувати') }, { role: 'redo', label: tr('Повторити') }, { type: 'separator' });
-      t.push({ role: 'cut', label: tr('Вирізати') }, { role: 'copy', label: tr('Копіювати') }, { role: 'paste', label: tr('Вставити') });
+      t.push({ role: 'cut', label: tr('Вирізати'), click: () => { wc.cut(); this.ctx.clipGuard.noteSoon(); } }, { role: 'copy', label: tr('Копіювати'), click: () => { wc.copy(); this.ctx.clipGuard.noteSoon(); } }, { role: 'paste', label: tr('Вставити') });
       t.push({ role: 'selectAll', label: tr('Виділити все') });
     } else if (p.selectionText) {
-      t.push({ role: 'copy', label: tr('Копіювати') });
+      t.push({ role: 'copy', label: tr('Копіювати'), click: () => { wc.copy(); this.ctx.clipGuard.noteSoon(); } });
       const sel = p.selectionText.trim();
       const short = sel.length > 30 ? sel.slice(0, 30) + '…' : sel;
       t.push({
@@ -961,6 +961,7 @@ class AppWindow {
     if (input.type !== 'keyDown') return;
     const ctrl = input.control || input.meta;
     const key = input.key.toLowerCase();
+    if (ctrl && !input.alt && !input.shift && (key === 'c' || key === 'x' || key === 'insert')) this.ctx.clipGuard.noteSoon(); // запам'ятати скопійовану адресу (захист від підміни в буфері)
     const run = (cmd, arg) => { e.preventDefault(); this.exec(cmd, arg); };
     if (ctrl && !input.alt) {
       if (input.shift) {
