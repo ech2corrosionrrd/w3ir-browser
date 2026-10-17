@@ -107,6 +107,12 @@ function install(Wallet, { RpcError, unauthorized }) {
     const s = this.data();
     // відстежувані транзакції й підключення цього рахунку більше не мають сенсу
     s.pending = (s.pending || []).filter(p => p.from !== gone.address);
+    for (const [origin, c] of Object.entries(s.connections || {})) if ((c.accounts || []).includes(gone.address)) { delete s.connections[origin]; this.emit(origin, 'accountsChanged', []); }
+    for (const [origin, c] of Object.entries(s.solConnections || {})) if (c.address === gone.address) { delete s.solConnections[origin]; this.emit(origin, 'sol:disconnect', null); }
+    if (s.dapp) for (const k of ['evm', 'sol']) if (s.dapp[k] === Number(id)) delete s.dapp[k];
+    // індекси імпортованих зсуваються: типові рахунки для сайтів, що вказують далі, зміщуємо разом із ними
+    if (s.dapp) for (const k of ['evm', 'sol']) if (s.dapp[k] > Number(id)) s.dapp[k] -= 1;
+    this.snapConns();
     this.vault.persist();
     return true;
   };
@@ -120,6 +126,51 @@ function install(Wallet, { RpcError, unauthorized }) {
   };
 
   proto.isEvmAddress = isAddress;
+
+  // ---------- рахунок для сайтів (dApp) ----------
+  // Типовий рахунок для нових підключень (окремо для EVM і Solana) і вибір рахунку для кожного підключеного сайту
+  proto.dappIndex = function (chain) {
+    const s = this.data();
+    if (!s) return 0;
+    const i = ((s.dapp || {})[chain]);
+    if (i === undefined || i === 0) return 0;
+    try { (chain === 'sol' ? this.solAccount : this.evmAccount).call(this, i); return i; } catch { return 0; }
+  };
+  proto.setDappAccount = function (chain, index) {
+    const s = this.data();
+    if (!s) throw unauthorized('Гаманець не створено');
+    if (chain !== 'evm' && chain !== 'sol') throw new RpcError(-32602, 'Невідома мережа.');
+    index = Number(index);
+    (chain === 'sol' ? this.solAccount : this.evmAccount).call(this, index); // перевірка: рахунок існує й належить цій мережі
+    s.dapp = { ...(s.dapp || {}), [chain]: index };
+    this.vault.persist();
+    return index;
+  };
+  proto.setSiteAccount = function (origin, chain, index) {
+    const s = this.data();
+    if (!s) throw unauthorized('Гаманець не створено');
+    origin = String(origin);
+    index = Number(index);
+    if (chain === 'evm') {
+      const c = s.connections[origin];
+      if (!c) throw new RpcError(-32602, 'Сайт не підключено.');
+      const addr = this.evmAccount(index);
+      c.accounts = [addr];
+      this.vault.persist(); this.snapConns();
+      this.emit(origin, 'accountsChanged', [addr]);
+      return addr;
+    }
+    if (chain === 'sol') {
+      const c = (s.solConnections || {})[origin];
+      if (!c) throw new RpcError(-32602, 'Сайт не підключено.');
+      const addr = this.solAccount(index);
+      c.address = addr;
+      this.vault.persist(); this.snapConns();
+      this.emit(origin, 'sol:connect', { address: addr, publicKey: S.b58decode(addr).toString('base64') });
+      return addr;
+    }
+    throw new RpcError(-32602, 'Невідома мережа.');
+  };
 }
 
 module.exports = { install, IMP_BASE };

@@ -118,11 +118,22 @@ async function renderDashboard(st) {
     info.networks.map(n => h('option', { value: n.chainId, selected: n.chainId === info.activeChain }, n.name + (n.builtin ? '' : ' (власна)'))));
   const solSel = h('select', { 'aria-label': 'Мережа Solana', onchange: async () => { await call('wallet:solSetCluster', { id: solSel.value }); render(); } },
     sol.clusters.map(c => h('option', { value: c.id, selected: c.id === sol.cluster }, c.name)));
+  const evmOpts = () => acctOptions().filter(o => o.chain !== 'sol');
+  const solOpts = () => acctOptions().filter(o => o.chain !== 'evm');
+  const dappSel = (chainKey, opts, current) => {
+    const sel = h('select', { 'aria-label': chainKey === 'sol' ? 'Рахунок для сайтів: Solana' : 'Рахунок для сайтів: EVM', onchange: async () => {
+      const r = await call('wallet:setDappAccount', { chain: chainKey, index: Number(sel.value) });
+      if (!r.ok) alert(r.error);
+    } }, opts().map(o => h('option', { value: String(o.id), selected: o.id === current }, o.label)));
+    return sel;
+  };
   const summary = h('div', { class: 'wsum' },
     h('div', { class: 'wlock' }, h('span', { class: 'dot ok' }), h('div', null, h('div', { class: 't' }, 'Сховище розблоковано'), h('div', { class: 'd' }, 'Підпис і переказ потребують окремого підтвердження'))),
     h('div', { class: 'wnets' },
       h('label', null, h('span', null, 'EVM'), evmSel),
-      h('label', null, h('span', null, 'Solana'), solSel)),
+      h('label', null, h('span', null, 'Solana'), solSel),
+      h('label', null, h('span', null, 'Сайти: EVM'), dappSel('evm', evmOpts, info.dapp.evm)),
+      h('label', null, h('span', null, 'Сайти: Solana'), dappSel('sol', solOpts, info.dapp.sol))),
     h('button', { onclick: async () => { await call('vault:lock'); render(); } }, 'Заблокувати'));
 
   // ----- рахунки (EVM + Solana разом) -----
@@ -260,15 +271,31 @@ async function renderDashboard(st) {
   }
   const histAcct = h('select', { 'aria-label': 'Рахунок', onchange: loadHistory }, [...info.accounts.map((a, i) => h('option', { value: String(i) }, nameOf(i))), ...imp.filter(a => a.chain === 'sol').map(a => h('option', { value: String(a.id) }, a.name || short(a.address)))]);
 
-  // ----- підключені сайти (EVM і Solana разом) -----
+  // ----- підключені сайти (EVM і Solana разом) з вибором рахунку для кожного -----
   const connected = h('div', { class: 'list' });
   const sites = new Map();
-  for (const c of info.connections) sites.set(c.origin, { evm: c.chainId, sol: false });
-  for (const c of sol.connections) sites.set(c.origin, { ...(sites.get(c.origin) || {}), sol: true });
+  for (const c of info.connections) sites.set(c.origin, { evm: c.chainId, evmAddr: c.accounts[0], sol: false });
+  for (const c of sol.connections) sites.set(c.origin, { ...(sites.get(c.origin) || {}), sol: true, solAddr: c.address });
+  const idOf = (addr, chain) => {
+    const list = chain === 'sol' ? sol.addresses : info.accounts;
+    const i = list.indexOf(addr);
+    if (i >= 0) return i;
+    const a = imp.find(x => x.chain === chain && x.address === addr);
+    return a ? a.id : -1;
+  };
+  const siteSel = (origin, chain, addr) => {
+    const sel = h('select', { 'aria-label': 'Рахунок для сайту', onchange: async () => {
+      const r = await call('wallet:setSiteAccount', { origin, chain, index: Number(sel.value) });
+      if (!r.ok) { alert(r.error); render(); }
+    } }, (chain === 'sol' ? solOpts() : evmOpts()).map(o => h('option', { value: String(o.id), selected: o.id === idOf(addr, chain) }, o.label)));
+    return sel;
+  };
   if (!sites.size) connected.append(h('div', { class: 'row' }, 'Жоден сайт не підключено.'));
   for (const [origin, c] of sites) {
-    connected.append(h('div', { class: 'item' },
+    connected.append(h('div', { class: 'item', style: 'flex-wrap:wrap' },
       h('div', { class: 'main' }, h('div', { class: 't' }, origin), h('div', { class: 's' }, [c.evm ? `EVM (chainId ${c.evm})` : '', c.sol ? 'Solana' : ''].filter(Boolean).join(' · '))),
+      c.evm ? h('span', { class: 'tag' }, 'EVM') : '', c.evm ? siteSel(origin, 'evm', c.evmAddr) : '',
+      c.sol ? h('span', { class: 'tag sol' }, 'SOL') : '', c.sol ? siteSel(origin, 'sol', c.solAddr) : '',
       h('button', { class: 'link danger', onclick: async () => { await call('wallet:disconnect', { origin }); render(); } }, 'Відключити')));
   }
 
