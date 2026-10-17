@@ -25,6 +25,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 const { ProfileManager } = require('./src/profiles');
 const { registerIpc } = require('./src/ipc');
 const { flushAll } = require('./src/store');
+const { closeAllPlaces } = require('./src/places');
 const { initBlocker } = require('./src/adblock');
 const { Updater, installerIsRunning } = require('./src/updater');
 
@@ -48,7 +49,7 @@ app.on('before-quit', () => {
   if (manager) for (const c of manager.all()) { c.vault.lock(); c.saveSession(); c.quitting = true; }
   flushAll();
 });
-app.on('will-quit', flushAll);
+app.on('will-quit', () => { flushAll(); closeAllPlaces(); });
 app.on('window-all-closed', () => app.quit());
 
 app.whenReady().then(async () => {

@@ -78,8 +78,9 @@ class ProfileManager {
       c.github.stop();
       try { await c.session.clearStorageData(); await c.session.clearCache(); } catch { /* ignore */ }
       // зупиняємо відкладений запис, щоб файли не з'явилися знову після видалення
-      const stores = [c.settingsStore, c.bookmarksStore, c.historyStore, c.windowStore, c.sessionStore, c.permsStore, c.extStore, c.downloads.store, c.sync.state];
+      const stores = [c.settingsStore, c.bookmarksStore, c.windowStore, c.sessionStore, c.permsStore, c.extStore, c.downloads.store, c.sync.state];
       for (const s of stores) { clearTimeout(s.timer); s.timer = null; s.save = () => {}; s.flush = () => {}; }
+      try { c.places.close(); } catch { /* ignore */ } // відкритий файл бази не можна видалити
       this.ctxs.delete(id);
     }
     try { fs.rmSync(this.dirOf(id), { recursive: true, force: true }); } catch { /* ignore */ }

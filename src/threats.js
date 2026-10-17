@@ -180,7 +180,7 @@ class Threats {
   // Домени, якими користувач уже користується (закладки / часті відвідування) — для них евристики вимкнено
   knownDomains() {
     const h = this.history(), b = this.bookmarks();
-    const stamp = h.length + ':' + b.length;
+    const stamp = (h.stamp !== undefined ? h.stamp : h.length) + ':' + b.length;
     if (this._known && this._known.stamp === stamp) return this._known.set;
     const counts = new Map();
     const dom = (u) => { try { return parseHost(new URL(u).hostname).domain || ''; } catch { return ''; } };

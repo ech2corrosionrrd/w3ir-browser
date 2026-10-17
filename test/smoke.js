@@ -82,12 +82,12 @@ module.exports = async function smoke(ctx) {
     await shot('chrome', w.chrome);
 
     // інкогніто
-    const before = ctx.history().length;
+    const before = ctx.places.visitCount();
     const inc = ctx.openWindow({ incognito: true });
     await sleep(2500);
     inc.exec('go', 'https://example.org');
     await sleep(3000);
-    log('incognito history unchanged:', before === ctx.history().length);
+    log('incognito history unchanged:', before === ctx.places.visitCount());
     inc.win.close();
     await sleep(500);
     log('DONE');

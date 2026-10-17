@@ -206,12 +206,15 @@ async function historySearchTests(ctx) {
   const { queryMatcher } = require('../../src/util');
   const m = queryMatcher('  Ціна  ЛІТО ');
   ok(m('Літо: ціна квитків', 'https://x.ua/a') && m('ЦІНА', 'https://літо.ua') && !m('Літо', 'https://x.ua') && queryMatcher('')('a', 'b') && queryMatcher(null)('a', 'b'), 'пошук: кілька слів у будь-якому порядку й регістрі (назва + адреса), порожній запит збігається з усім');
-  const saved = ctx.historyStore.data;
-  ctx.historyStore.data = [
-    { id: '1', url: 'https://shop.example/phones/iphone', title: 'Купити iPhone дешево', time: 1 },
-    { id: '2', url: 'https://news.example/iphone', title: 'Новини про телефони', time: 2 }];
+  const { Places } = require('../../src/places');
+  const saved = ctx.places;
+  const tp = new Places(tmp('suggest-places'));
+  tp.addVisit('https://shop.example/phones/iphone', 'Купити iPhone дешево', 1000);
+  tp.addVisit('https://news.example/iphone', 'Новини про телефони', 2000);
+  ctx.places = tp;
   const r = ctx.suggest('iphone купити').filter(x => x.type === 'history');
-  ctx.historyStore.data = saved;
+  ctx.places = saved;
+  tp.close();
   ok(r.length === 1 && r[0].url.includes('shop.example'), 'пошук: підказки адресного рядка шукають за кількома словами');
 }
 
