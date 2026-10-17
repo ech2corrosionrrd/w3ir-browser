@@ -215,7 +215,8 @@ async function updateTests(ctx) {
   ok(asked === 1 && installed === 1, 'update: клік по ⬆ → підтвердження → встановлення');
   // з налаштувань
   w.exec('openPage', 'settings'); await sleep(1500);
-  const settingsBtn = await w.wc().executeJavaScript(`new Promise(r => setTimeout(() => r([...document.querySelectorAll('button')].map(b => b.textContent)), 800))`);
+  // сторінка налаштувань малює блок оновлень асинхронно: чекаємо появи кнопки до 8 с замість фіксованої паузи (нестабільний тест)
+  const settingsBtn = await w.wc().executeJavaScript(`new Promise(r => { const t0 = Date.now(); const tick = () => { const b = [...document.querySelectorAll('button')].map(x => x.textContent); if (b.some(x => x.includes('Встановити та перезапустити')) || Date.now() - t0 > 8000) r(b); else setTimeout(tick, 200); }; tick(); })`);
   ok(settingsBtn.includes('Встановити та перезапустити'), 'update: у налаштуваннях є кнопка «Встановити та перезапустити», коли оновлення готове');
   asked = 0; installed = 0;
   await w.wc().executeJavaScript(`w3ir.invoke('update:install')`); await sleep(500);

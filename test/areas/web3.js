@@ -344,6 +344,7 @@ async function walletTests(ctx) {
   const errReplace = async (p) => { try { await wal.replacePending(w, () => true, p); return ''; } catch (e) { return e.message; } };
   ok(/не знайдено/.test(await errReplace({ hash: '0x' + '12'.repeat(32), mode: 'speedup' })) && /Невідома дія/.test(await errReplace({ hash: cHash, mode: 'steal' })) && !w.approval, 'wallet: невідома транзакція чи дія відхиляються без підтвердження');
   mockNonce = '0x6';
+  await sleep(400); // ethers кешує eth_getTransactionCount на 250 мс: без паузи відповідь могла бути старою (нестабільний тест)
   ok(/вже підтверджена/.test(await errReplace({ hash: cHash, mode: 'speedup' })) && !(await wal.evmPending()).some(x => x.hash === cHash) && !w.approval, 'wallet: якщо nonce уже використано — заміна відхиляється й запис очищається');
   mockNonce = '0x5';
 
