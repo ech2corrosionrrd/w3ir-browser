@@ -215,7 +215,10 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     try { own = await ownership(this, chainId, e, owner); } catch (err) { throw new RpcError(-32000, `Не вдалося перевірити власника NFT: ${clip(err.shortMessage || err.message, 160)}`); }
     if (!own.owned) throw new RpcError(-32602, 'Цей NFT не належить вибраному рахунку.');
     if (qty > BigInt(own.amount)) throw new RpcError(-32602, `Недостатньо: на рахунку ${own.amount} шт.`);
-    const { warnings, danger } = this.recipientWarnings(toAddr, this.ownEvm());
+    const rw = this.recipientWarnings(toAddr, this.ownEvm());
+    const gate = await this.policyGate({ to: toAddr, chain: 'evm', nft: true });
+    const warnings = [...rw.warnings, ...gate.warnings];
+    const danger = rw.danger || gate.danger;
     try {
       const code = await timed(this.provider(chainId).getCode(toAddr), 6000);
       if (code && code !== '0x') warnings.push('Отримувач — смарт-контракт: якщо він не вміє приймати NFT, переказ буде відхилено контрактом (комісія за невдалу спробу сплачується). Надсилайте лише якщо впевнені.');

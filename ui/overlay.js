@@ -151,6 +151,11 @@ function renderApprove(p) {
   };
   no.onclick = () => decide(false);
   yes.onclick = () => decide(true);
+  if (p.delay > 0) { // пауза для великих сум: «Підтвердити» вмикається після відліку
+    let left = Math.min(Number(p.delay), 30);
+    yes.disabled = true; yes.textContent = `Підтвердити (${left})`;
+    const iv = setInterval(() => { left--; if (left <= 0) { clearInterval(iv); yes.disabled = false; yes.textContent = 'Підтвердити'; } else yes.textContent = `Підтвердити (${left})`; }, 1000);
+  }
   no.title = 'Відхилити запит сайту (Esc). Нічого не буде підписано чи надіслано';
   yes.title = 'Підтвердити дію після перевірки сайту й деталей';
   if (pass) pass.addEventListener('keydown', (e) => { if (e.key === 'Enter') decide(true); });

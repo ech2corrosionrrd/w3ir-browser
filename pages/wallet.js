@@ -55,6 +55,20 @@ function renderSetup() {
         showPhrase(r.phrase);
       } }, 'Створити новий гаманець')),
     h('div', { class: 'card', style: 'max-width:none' },
+      h('h2', null, 'Відновити з файлу резервної копії'),
+      h('p', { class: 'note' }, 'Файл .w3irbackup, збережений раніше з цього гаманця (зашифрований окремим паролем резервної копії).'),
+      (() => {
+        const pw = h('input', { type: 'password', placeholder: 'Пароль резервної копії', autocomplete: 'off' });
+        const msg = h('div', { class: 'merr' });
+        return h('div', null, pw, msg, h('button', { onclick: async () => {
+          msg.textContent = '\u2026';
+          const r = await call('wallet:backupImport', { password: pw.value });
+          pw.value = '';
+          if (!r.ok) { msg.textContent = r.error; return; }
+          alert(t('Відновлено: рахунків {0}, контактів {1}, імпортованих ключів {2}.', r.accounts, r.contacts, r.imported));
+          render();
+        } }, 'Вибрати файл і відновити'));
+      })(),
       h('h2', null, 'Або імпортуйте наявний'),
       phrase, err,
       h('button', { onclick: async () => {
@@ -65,13 +79,29 @@ function renderSetup() {
       } }, 'Імпортувати фразу')));
 }
 
+// Три слова з аркуша: перевіряє браузер (фраза зі сховища не виходить). Повертає true, якщо підтверджено
+async function backupQuizFlow() {
+  const q = await withAuth((x) => call('wallet:backupQuiz', x));
+  if (!q) return false;
+  if (!q.ok) { alert(q.error); return false; }
+  for (;;) {
+    const a = await ask('Перевірте, що фразу записано', q.positions.map((n, i) => ({ name: 'w' + i, label: t('Слово №{0}', n) })), { okText: 'Перевірити', note: 'Введіть слова зі свого аркуша з фразою. Це підтверджує, що ви зможете відновити гаманець.' });
+    if (!a) return false;
+    const r = await call('wallet:backupCheck', { answers: q.positions.map((_, i) => a['w' + i]) });
+    if (!r.ok) { alert(r.error); return false; }
+    if (r.correct) return true;
+    alert(t('Слова не збігаються з фразою. Перевірте аркуш і спробуйте ще раз.'));
+  }
+}
+
 function showPhrase(phrase) {
   app.textContent = '';
   const words = phrase.split(' ');
   app.append(h('h1', null, 'Збережіть фразу відновлення'),
     h('div', { class: 'warnbox' }, 'Запишіть ці слова на папері в правильному порядку й зберігайте в безпечному місці. Хто знає фразу — контролює ваші кошти. Ніколи не вводьте її на сайтах і нікому не показуйте. Ми не зможемо її відновити.'),
     h('div', { class: 'phrase' }, words.map((w, i) => h('div', { class: 'word' }, h('span', null, String(i + 1)), w))),
-    h('button', { class: 'primary', onclick: () => render() }, 'Я записав(ла) фразу'));
+    h('button', { class: 'primary', onclick: async () => { const ok = await backupQuizFlow(); if (ok) alert(t('Готово: резервну копію підтверджено.')); render(); } }, 'Я записав(ла) фразу'),
+    h('button', { style: 'margin-left:8px', title: 'Фраза лишиться непідтвердженою: на сторінці гаманця з\u2019явиться нагадування', onclick: () => render() }, 'Пропустити перевірку'));
 }
 
 async function renderDashboard(st) {
@@ -524,7 +554,82 @@ async function renderDashboard(st) {
     solRpcMsg.textContent = r.ok ? ' Збережено.' : ' ' + r.error;
   });
 
+  // ----- режими обережності -----
+  const pol = info.policy || {};
+  const polContacts = h('input', { type: 'checkbox', class: 'switch', checked: !!pol.contactsOnly });
+  const polConfirm = h('input', { type: 'number', min: '0', step: 'any', value: String(pol.confirmUsd || 0), style: 'width:110px' });
+  const polMax = h('input', { type: 'number', min: '0', step: 'any', value: String(pol.maxUsd || 0), style: 'width:110px' });
+  const polDays = h('input', { type: 'number', min: '0', max: '365', step: '1', value: String(pol.siteDays || 0), style: 'width:80px' });
+  const polMsg = h('span', { class: 'note' });
+  const policyBox = h('div', { style: 'display:grid;gap:8px' },
+    h('label', { class: 'bar' }, polContacts, h('span', null, 'Надсилати лише на мої рахунки та адреси з адресної книги')),
+    h('label', { class: 'bar' }, polConfirm, h('span', null, 'USD: підтвердження великих сум із паузою 5 с (від; 0 — вимкнено)')),
+    h('label', { class: 'bar' }, polMax, h('span', null, 'USD: забороняти переказ більше за (0 — без ліміту)')),
+    h('label', { class: 'bar' }, polDays, h('span', null, 'Відключати сайти, якими не користувались N днів (0 — ніколи)')),
+    h('div', { class: 'bar' }, h('button', { class: 'primary', onclick: async () => {
+      polMsg.textContent = '\u2026';
+      const r = await withAuth((x) => call('wallet:setPolicy', { ...x, policy: { contactsOnly: polContacts.checked, confirmUsd: Number(polConfirm.value) || 0, maxUsd: Number(polMax.value) || 0, siteDays: Math.floor(Number(polDays.value) || 0) } }));
+      if (!r) { polMsg.textContent = ''; return; }
+      polMsg.textContent = r.ok ? t('Збережено.') : r.error;
+    } }, 'Зберегти'), polMsg));
+
+  // ----- резервна копія файлом -----
+  async function backupExportDialog() {
+    const a = await ask('Зберегти зашифровану копію', [{ name: 'password', label: 'Пароль резервної копії (від 12 символів)', type: 'password' }, { name: 'password2', label: 'Повторіть пароль', type: 'password' }], { okText: 'Вибрати файл і зберегти', note: 'Це НЕ майстер-пароль: його знадобиться ввести при відновленні. Без нього файл не прочитати, а хто знає і файл, і пароль — контролює кошти. Зберігайте їх окремо.' });
+    if (!a) return;
+    const r = await withAuth((x) => call('wallet:backupExport', { ...x, password: a.password, password2: a.password2 }));
+    if (!r) return;
+    alert(r.ok ? t('Копію збережено: {0}', r.path) : r.error);
+  }
+
+  // ----- активні дозволи токенів і NFT -----
+  const apAcct = h('select', { 'aria-label': 'Рахунок', onchange: () => loadApprovals() }, evmOpts().map(o => h('option', { value: String(o.id) }, o.label)));
+  const apMsg = h('div', { class: 'note', style: 'margin:8px 0' });
+  const apList = h('div', { class: 'list' });
+  let apDanger = [];
+  const apBulk = h('button', { class: 'danger', style: 'display:none', onclick: async () => {
+    for (const it of apDanger) {
+      const r = await call('wallet:revokeApproval', { index: Number(apAcct.value), kind: it.kind, token: it.token, spender: it.spender });
+      if (!r.ok) { apMsg.textContent = r.error; break; }
+    }
+    loadApprovals();
+  } }, '');
+  const apScan = h('button', { onclick: async () => {
+    apMsg.textContent = t('Шукаю дозволи в недавніх подіях\u2026');
+    const r = await call('wallet:scanApprovals', { index: Number(apAcct.value) });
+    if (!r.ok) { apMsg.textContent = r.error; return; }
+    await loadApprovals(t('Знайдено нових: {0}.', r.added) + (r.partial ? ' ' + t('Пошук неповний (обмеження RPC): старіші дозволи скасовуйте вручну чи через оглядач.') : ''));
+  } }, 'Знайти дозволи');
+  async function loadApprovals(prefix) {
+    apMsg.textContent = '\u2026'; apList.textContent = ''; apBulk.style.display = 'none';
+    const r = await call('wallet:approvals', { index: Number(apAcct.value) });
+    if (!r.ok) { apMsg.textContent = r.error; return; }
+    const net2 = info.networks.find(n => n.chainId === r.chainId);
+    apDanger = r.items.filter(i => i.danger.length);
+    apMsg.textContent = (prefix ? prefix + ' ' : '') + (r.items.length ? t('Діючих дозволів: {0}.', r.total) : (r.saved ? 'Діючих дозволів не знайдено.' : 'Натисніть «Знайти дозволи», щоб переглянути, хто може витрачати ваші токени.'));
+    if (apDanger.length) { apBulk.style.display = ''; apBulk.textContent = t('Скасувати небезпечні ({0})', apDanger.length); }
+    for (const it of r.items) {
+      const who = it.label ? `${it.label} (${short(it.spender)})` : it.spender;
+      apList.append(h('div', { class: 'item' },
+        h('div', { class: 'main' },
+          h('div', { class: 't' }, it.kind === 'nft' ? t('Усі NFT колекції {0}', short(it.token)) : `${it.symbol}${it.name ? ' \u2014 ' + it.name : ''}`),
+          h('div', { class: 's pw', style: 'user-select:text' }, t('Кому: {0}', who)),
+          it.danger.length ? h('div', { class: 'merr' }, '\u26A0 ' + it.danger.join('; ')) : ''),
+        h('span', { class: 'note' }, it.kind === 'nft' ? '' : (it.unlimited ? t('НЕОБМЕЖЕНО') : it.amount)),
+        net2 && net2.explorer ? h('a', { href: `${net2.explorer}/address/${it.token}` }, 'Оглядач') : '',
+        h('button', { class: it.danger.length ? 'danger' : 'link', onclick: async () => {
+          const rr = await call('wallet:revokeApproval', { index: Number(apAcct.value), kind: it.kind, token: it.token, spender: it.spender });
+          if (!rr.ok) { apMsg.textContent = rr.error; return; }
+          loadApprovals(t('Скасування надіслано: {0}', short(rr.hash)));
+        } }, 'Скасувати')));
+    }
+  }
+  const approvalsBox = h('div', null,
+    h('p', { class: 'note' }, 'Тут видно, які адреси зараз можуть витрачати ваші токени ERC-20 чи всі NFT колекції. Небезпечні (необмежені чи для звичайного рахунку) угорі. Список складається з недавніх подій блокчейну й перевіряється за поточним станом контрактів.'),
+    h('div', { class: 'bar' }, apAcct, apScan, h('button', { onclick: () => loadApprovals() }, 'Оновити'), apBulk), apMsg, apList);
+
   app.append(
+    info.backup && !info.backup.confirmed ? h('div', { class: 'warnbox', style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('div', { style: 'flex:1' }, 'Резервну копію не підтверджено: ви ще не перевіряли, що фразу відновлення записано. Без неї кошти не повернути, якщо пристрій втратиться.'), h('button', { class: 'primary', onclick: async () => { if (await backupQuizFlow()) render(); } }, 'Перевірити зараз')) : '',
     h('h2', null, 'Огляд'), summary,
     h('h2', null, 'Рахунки'),
     accountsAll,
@@ -553,8 +658,15 @@ async function renderDashboard(st) {
     h('div', { class: 'list' },
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'RPC-сервер EVM'), h('div', { class: 'd' }, 'Через нього проходять запити про баланси та транзакції. Для приватності вкажіть власний вузол (https).'), rpc, rpcMsg)),
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'RPC-сервер Solana'), h('div', { class: 'd' }, 'Для вибраної мережі Solana; порожнє поле — типові вузли. Адреси виводяться з тієї самої фрази відновлення (шлях m/44′/501′/N′/0′, як у Phantom).'), solRpc, solRpcMsg))),
+    h('h2', null, 'Активні дозволи'),
+    approvalsBox,
     h('h2', null, 'Безпека'),
     h('div', { class: 'list' },
+      // режими обережності: ліміти, лише адресна книга, автовідключення сайтів
+      h('div', { class: 'row', style: 'flex-direction:column;align-items:stretch;gap:8px' }, h('div', null, h('div', null, 'Режими обережності'), h('div', { class: 'd' }, 'Діють для переказів зі сторінки гаманця (не для транзакцій, які пропонують сайти). Зміна потребує майстер-пароля. Ліміти в USD працюють лише коли ціна відома.')),
+        policyBox),
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Резервна копія фрази'), h('div', { class: 'd' }, info.backup && info.backup.confirmed ? t('Підтверджено {0}.', new Date(info.backup.at).toLocaleDateString(LOCALE)) : 'Не підтверджено.')),
+        h('div', { class: 'bar' }, h('button', { onclick: async () => { if (await backupQuizFlow()) { alert(t('Готово: резервну копію підтверджено.')); render(); } } }, 'Перевірити фразу'), h('button', { onclick: backupExportDialog }, 'Зберегти зашифровану копію\u2026'))),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Надавати провайдер сайтам (window.ethereum, window.solana)'), h('div', { class: 'd' }, 'Вимкніть, якщо не користуєтеся dApp — сайти не зможуть навіть побачити гаманець')),
         (() => { const cb = h('input', { type: 'checkbox', class: 'switch', checked: st.inject, onchange: () => call('wallet:setInject', { on: cb.checked }) }); return cb; })()),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Показувати орієнтовні ціни в USD'), h('div', { class: 'd' }, 'Ціни завантажуються з CoinGecko: сервіс бачить ваш IP та ідентифікатори монет і адреси контрактів токенів, але не адреси ваших рахунків. Ціни лише для показу й нічого не впливають на підтвердження. Вимкніть, щоб гаманець не звертався до цього сервісу.')),

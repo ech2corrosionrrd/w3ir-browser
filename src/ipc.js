@@ -280,6 +280,30 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:txStatuses': return { ok: true, statuses: await w.txStatuses(arg.items) };
       case 'wallet:pending': return { ok: true, items: await w.evmPending() };
       case 'wallet:replace': return { ok: true, hash: await w.replacePending(entry.win, () => entry.win.tabs.includes(entry.tab), { hash: String(arg.hash), mode: String(arg.mode) }) };
+      case 'wallet:setPolicy': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, policy: w.setPolicy(arg.policy) };
+      case 'wallet:scanApprovals': return { ok: true, ...(await w.scanApprovals(arg.index)) };
+      case 'wallet:approvals': return { ok: true, ...(await w.listApprovals(arg.index)) };
+      case 'wallet:revokeApproval': return { ok: true, hash: await w.revokeApproval(entry.win, () => entry.win.tabs.includes(entry.tab), { index: arg.index, kind: String(arg.kind), token: arg.token, spender: arg.spender }) };
+      case 'wallet:backupQuiz': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, ...w.backupQuiz() };
+      case 'wallet:backupCheck': return { ok: true, correct: w.backupCheck(arg.answers) };
+      case 'wallet:backupExport': {
+        if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
+        const pw = String(arg.password || ''), pw2 = String(arg.password2 || '');
+        if (pw !== pw2) return { ok: false, error: 'Паролі резервної копії не збігаються.' };
+        const data = w.backupExport(pw); // перевіряє довжину пароля
+        const stamp = new Date().toISOString().slice(0, 10);
+        const r = await dialog.showSaveDialog(entry.win.win, { title: tr('Зберегти резервну копію гаманця'), defaultPath: `w3ir-wallet-backup-${stamp}.w3irbackup`, filters: [{ name: 'W3IR backup', extensions: ['w3irbackup'] }] });
+        if (r.canceled || !r.filePath) return { ok: false, error: 'Збереження скасовано.' };
+        require('fs').writeFileSync(r.filePath, data, { mode: 0o600 });
+        return { ok: true, path: r.filePath };
+      }
+      case 'wallet:backupImport': {
+        const r = await dialog.showOpenDialog(entry.win.win, { title: tr('Відновити гаманець із резервної копії'), properties: ['openFile'], filters: [{ name: 'W3IR backup', extensions: ['w3irbackup'] }] });
+        if (r.canceled || !r.filePaths[0]) return { ok: false, error: 'Вибір скасовано.' };
+        const fs = require('fs');
+        if (fs.statSync(r.filePaths[0]).size > 1024 * 1024) return { ok: false, error: 'Файл завеликий для резервної копії.' };
+        return { ok: true, ...w.backupImport(fs.readFileSync(r.filePaths[0]), String(arg.password || '')) };
+      }
       case 'wallet:revoke': return { ok: true, hash: await w.revokeAllowance(entry.win, () => entry.win.tabs.includes(entry.tab), { index: arg.index, token: arg.token, spender: arg.spender }) };
       case 'wallet:contacts': return { ok: true, contacts: w.contacts() };
       case 'wallet:addContact': return { ok: true, contact: w.addContact(arg.name, arg.address) };
