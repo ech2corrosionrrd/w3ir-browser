@@ -331,7 +331,7 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:send': {
         const sameTab = () => entry.win.tabs.includes(entry.tab);
         if (arg.chain === 'sol') {
-          const hash = arg.asset ? await w.solSendToken(entry.win, sameTab, { index: arg.index, mint: arg.asset, to: arg.to, amount: arg.amount }) : await w.solSend(entry.win, sameTab, { index: arg.index, to: arg.to, amount: arg.amount });
+          const hash = arg.asset ? await w.solSendToken(entry.win, sameTab, { index: arg.index, mint: arg.asset, to: arg.to, amount: arg.amount, speed: arg.speed }) : await w.solSend(entry.win, sameTab, { index: arg.index, to: arg.to, amount: arg.amount, speed: arg.speed });
           return { ok: true, hash, chain: 'sol' };
         }
         if (arg.chain === 'evm') {

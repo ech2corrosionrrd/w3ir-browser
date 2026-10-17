@@ -188,7 +188,37 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   };
 
   // Переказ SOL зі сторінки гаманця: транзакцію будує сам гаманець, а користувач підтверджує її у довіреному вікні з симуляцією
-  proto.solSend = async function (win, sameTab, { index, to, amount }) {
+  // Пріоритетна комісія Solana: «standard»/«low» — без неї (типова поведінка), «fast» — 1,5 × медіана недавніх ненульових комісій
+  // (мікро-лампортів за одиницю обчислень) у межах [1 000; 1 000 000]. Ліміт одиниць задає сам гаманець для цього типу переказу.
+  proto.solPriorityFee = async function (cluster, speed, limit) {
+    if (speed === undefined || speed === 'standard' || speed === 'low') return { micro: 0n, extra: 0n, instructions: [] };
+    if (speed !== 'fast') throw new RpcError(-32602, 'Невідомий рівень швидкості.');
+    let micro = 5000n;
+    try {
+      const fees = (await this.solRpc(cluster, 'getRecentPrioritizationFees', [], 8000, { fallbackOnError: true }) || [])
+        .map(f => Number(f && f.prioritizationFee)).filter(n => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
+      if (fees.length) micro = BigInt(Math.round(fees[Math.floor(fees.length / 2)] * 1.5));
+    } catch { /* лишаємо запасне значення */ }
+    if (micro < 1000n) micro = 1000n;
+    if (micro > 1000000n) micro = 1000000n;
+    return { micro, extra: (micro * BigInt(limit) + 999999n) / 1000000n, instructions: [S.ixSetComputeUnitLimit(limit), S.ixSetComputeUnitPrice(micro)] };
+  };
+
+  // Домени .sol (Solana Name Service): лише Mainnet; токенізовані домени (власник — PDA) не розв'язуються, щоб не надіслати не туди
+  proto.resolveSolName = async function (name) {
+    const n = String(name == null ? '' : name).trim().toLowerCase();
+    if (!/^[a-z0-9-]{1,63}\.sol$/.test(n)) throw new RpcError(-32602, 'Підтримуються лише прості імена .sol (латиниця, цифри, дефіс).');
+    if (this.solCluster() !== 'mainnet-beta') throw new RpcError(-32602, 'Імена .sol розв\u2019язуються лише в Mainnet Beta.');
+    let acc;
+    try { acc = (await this.solRpc('mainnet-beta', 'getAccountInfo', [S.snsAccount(n.slice(0, -4)), { encoding: 'base64', commitment: 'confirmed' }], 10000, { fallbackOnError: true })).value; }
+    catch (e) { throw new RpcError(-32000, `Не вдалося розв'язати ім'я: ${clip(e.message, 160)}`); }
+    const p = acc && acc.owner === S.NAME_PROGRAM && acc.data && typeof acc.data[0] === 'string' ? S.parseNameAccount(Buffer.from(acc.data[0], 'base64')) : null;
+    if (!p || p.parent !== S.SOL_TLD || /^1+$/.test(p.owner)) throw new RpcError(-32602, 'Це ім\u2019я .sol не зареєстроване.');
+    if (!S.isOnCurve(S.b58decode(p.owner))) throw new RpcError(-32602, 'Домен токенізовано (NFT) або належить програмі: гаманець такі імена не розв\u2019язує. Попросіть адресу гаманця одержувача.');
+    return p.owner;
+  };
+
+  proto.solSend = async function (win, sameTab, { index, to, amount, speed }) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
     const addresses = this.ownSol();
@@ -202,13 +232,14 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     let bh;
     try { bh = (await this.solRpc(cluster, 'getLatestBlockhash', [{ commitment: 'confirmed' }], 10000, { fallbackOnError: true })).value.blockhash; }
     catch (e) { throw new RpcError(-32000, `Не вдалося отримати blockhash: ${clip(e.message, 160)}`); }
-    const message = S.buildTransferMessage({ from, to, lamports, blockhash: bh });
+    const fee = await this.solPriorityFee(cluster, speed, 1000);
+    const message = S.compileMessage({ feePayer: from, instructions: [...fee.instructions, S.ixSystemTransfer(from, to, lamports)], blockhash: bh });
     const rw0 = this.recipientWarnings(to, addresses);
     const gate = await this.policyGate({ to, chain: 'sol', amount });
     const warnings = [...rw0.warnings, ...gate.warnings];
     const danger = rw0.danger || gate.danger;
     if (!S.isOnCurve(S.b58decode(to))) warnings.push('Ця адреса не має приватного ключа (це адреса програми, PDA): кошти, надіслані на неї, зазвичай неможливо повернути.');
-    const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger, delay: gate.delay });
+    const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger, delay: gate.delay, ...(fee.micro ? { summary: [['Пріоритетна комісія', `${fee.micro} мікро-лампортів за одиницю, до ≈${S.sol(fee.extra)} SOL понад базову`]] } : {}) });
     this.rememberRecipient(to);
     return r.signature;
   };
@@ -218,7 +249,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   const SAFE_EXTENSIONS = new Set(['metadataPointer', 'tokenMetadata', 'mintCloseAuthority', 'groupPointer', 'groupMemberPointer', 'tokenGroup', 'tokenGroupMember']);
   const ACCOUNT_RENT_FALLBACK = 2039280;
 
-  proto.solSendToken = async function (win, sameTab, { index, mint, to, amount }) {
+  proto.solSendToken = async function (win, sameTab, { index, mint, to, amount, speed }) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
     const addresses = this.ownSol();
@@ -286,9 +317,11 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     const label = meta.symbol || meta.name || S.short(mint);
     let bh;
     try { bh = (await rpc('getLatestBlockhash', [{ commitment: 'confirmed' }])).value.blockhash; } catch (e) { throw fail(e, 'Не вдалося отримати blockhash'); }
-    const message = S.compileMessage({ feePayer: from, instructions, blockhash: bh });
+    const fee = await this.solPriorityFee(cluster, speed, rent ? 120000 : 60000);
+    const message = S.compileMessage({ feePayer: from, instructions: [...fee.instructions, ...instructions], blockhash: bh });
     const summary = [['Токен', `${label} (${mint})`], ['Кількість', `${S.formatUnits(raw, decimals)} ${label}`], ['Отримувач', to]];
     if (rent) summary.push(['Депозит за створення токен-акаунта (з вашого рахунку)', `${S.sol(rent)} SOL`]);
+    if (fee.micro) summary.push(['Пріоритетна комісія', `${fee.micro} мікро-лампортів за одиницю, до ≈${S.sol(fee.extra)} SOL понад базову`]);
     if (tokenProgram === S.PROGRAMS.TOKEN22) summary.push(['Програма токена', 'Token-2022']);
     const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger: rw.danger || gate.danger, summary, action: `Переказ токена ${label}`, delay: gate.delay });
     this.rememberRecipient(to);

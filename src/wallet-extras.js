@@ -182,6 +182,7 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
   // Лише ASCII-імена .eth (латиниця, цифри, дефіс): кирилиця й схожі символи не проходять, тож підміна символів неможлива
   proto.resolveName = async function (name) {
     const n = String(name == null ? '' : name).trim().toLowerCase();
+    if (/\.sol$/.test(n)) return this.resolveSolName(n); // Solana Name Service
     if (!ENS_RE.test(n) || n.length > 100) throw new RpcError(-32602, 'Підтримуються лише ASCII-імена ENS у зоні .eth (латиниця, цифри, дефіс).');
     let addr;
     try {

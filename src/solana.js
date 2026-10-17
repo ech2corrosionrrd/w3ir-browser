@@ -293,6 +293,20 @@ function compileMessage({ feePayer, instructions, blockhash }) {
 
 const u64 = (n) => { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
 const ixSystemTransfer = (from, to, lamports) => ({ programId: P.SYSTEM, keys: [{ pubkey: from, isSigner: true, isWritable: true }, { pubkey: to, isSigner: false, isWritable: true }], data: Buffer.concat([Buffer.from([2, 0, 0, 0]), u64(lamports)]) });
+// Бюджет обчислень (програма ComputeBudget): ліміт одиниць (tag 2) і ціна одиниці в мікро-лампортах (tag 3, пріоритетна комісія)
+const u32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32LE(n); return b; };
+const ixSetComputeUnitLimit = (units) => ({ programId: 'ComputeBudget111111111111111111111111111111', keys: [], data: Buffer.concat([Buffer.from([2]), u32(units)]) });
+const ixSetComputeUnitPrice = (microLamports) => ({ programId: 'ComputeBudget111111111111111111111111111111', keys: [], data: Buffer.concat([Buffer.from([3]), u64(microLamports)]) });
+// Домени .sol (Solana Name Service): акаунт імені — PDA за хешем «SPL Name Service»+назва у програмі імен із батьківським акаунтом .sol
+const NAME_PROGRAM = 'namesLPneVptA9Z5rqUDD9tMTWEJwofgaYwp8cawRkX';
+const SOL_TLD = '58PwtjSDuFHuUkYjH9BYnnQKHfwo9reZhC2zMJv9JPkx';
+const snsAccount = (label) => findProgramAddress([crypto.createHash('sha256').update('SPL Name Service' + label).digest(), Buffer.alloc(32), b58decode(SOL_TLD)], NAME_PROGRAM).address;
+// Розбір акаунта імені: [батьківський акаунт 32][власник 32][клас 32]…
+function parseNameAccount(data) {
+  if (!Buffer.isBuffer(data) || data.length < 96) return null;
+  return { parent: b58encode(data.subarray(0, 32)), owner: b58encode(data.subarray(32, 64)) };
+}
+
 // TransferChecked (tag 12): [джерело, mint, одержувач, власник]; decimals перевіряє сама програма
 const ixTransferChecked = ({ source, mint, dest, owner, amount, decimals, programId = P.TOKEN }) => ({
   programId, keys: [{ pubkey: source, isSigner: false, isWritable: true }, { pubkey: mint, isSigner: false, isWritable: false }, { pubkey: dest, isSigner: false, isWritable: true }, { pubkey: owner, isSigner: true, isWritable: false }],
@@ -417,6 +431,6 @@ function describe(parsed, ours = []) {
 }
 
 module.exports = {
-  b58encode, b58decode, isAddress, parseSol, parseUnits, buildTransferMessage, compileMessage, ixSystemTransfer, ixTransferChecked, ixCreateAtaIdempotent, ataAddress, u64, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, SOL_PATHS, sign, verify,
+  b58encode, b58decode, isAddress, parseSol, parseUnits, buildTransferMessage, compileMessage, ixSystemTransfer, ixSetComputeUnitLimit, ixSetComputeUnitPrice, snsAccount, parseNameAccount, NAME_PROGRAM, SOL_TLD, ixTransferChecked, ixCreateAtaIdempotent, ataAddress, u64, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, SOL_PATHS, sign, verify,
   parseMessage, parseTransaction, unsignedWire, signTransaction, encodeShortVec, describe, formatUnits, sol, short, PROGRAMS: P,
 };

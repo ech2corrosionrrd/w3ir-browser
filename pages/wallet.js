@@ -740,7 +740,7 @@ async function renderDashboard(st) {
       h('option', { value: 'evm', selected: preset.chain !== 'sol' }, `${net.name} (${net.symbol})`),
       h('option', { value: 'sol', selected: preset.chain === 'sol' }, `Solana ${sol.clusters.find(c => c.id === sol.cluster).name}`));
     const asset = h('select', null, h('option', { value: '' }, '…'));
-    const to = h('input', { type: 'text', class: 'pw', placeholder: 'Адреса отримувача або ім\u2019я .eth', spellcheck: false, autocomplete: 'off', onchange: () => resolveEns() });
+    const to = h('input', { type: 'text', class: 'pw', placeholder: 'Адреса отримувача або ім\u2019я .eth / .sol', spellcheck: false, autocomplete: 'off', onchange: () => resolveEns() });
     const amount = h('input', { type: 'text', placeholder: '0.0', inputMode: 'decimal', autocomplete: 'off' });
     if (preset.nft) { amount.value = '1'; amount.disabled = preset.nft.standard !== 'erc1155'; }
     const speed = h('select', null, h('option', { value: 'standard' }, 'Стандартна'), h('option', { value: 'fast' }, 'Швидка (вища комісія)'), h('option', { value: 'low' }, 'Повільна (нижча комісія)'));
@@ -753,7 +753,7 @@ async function renderDashboard(st) {
     async function resolveEns() {
       ensNote.textContent = '';
       const v = to.value.trim();
-      if (!/\.eth$/i.test(v)) return;
+      if (!/\.(eth|sol)$/i.test(v)) return;
       ensNote.textContent = '…';
       const r = await call('wallet:resolveName', { name: v });
       if (!r.ok) { ensNote.textContent = r.error; return; }
@@ -775,11 +775,11 @@ async function renderDashboard(st) {
       if (picked && picked.chain) chain.value = picked.chain;
       chain.disabled = !!(picked && picked.chain);
       const isSol = chain.value === 'sol';
-      speedRow.style.display = isSol ? 'none' : '';
+      speedRow.style.display = '';
       loadBook();
       asset.textContent = '';
       if (preset.nft) {
-        chain.value = preset.nft.chain; chain.disabled = true; speedRow.style.display = preset.nft.chain === 'sol' ? 'none' : '';
+        chain.value = preset.nft.chain; chain.disabled = true; speedRow.style.display = '';
         asset.disabled = true;
         asset.append(h('option', { value: '' }, `NFT \u00B7 ${preset.nft.label}`));
         return;
