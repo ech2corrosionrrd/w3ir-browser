@@ -273,7 +273,6 @@ async function torrentTests(ctx) {
 async function importTests(ctx) {
   const { DatabaseSync } = require('node:sqlite');
   const imp = require('../../src/importer');
-  const { Store } = require('../../src/store');
   const base = tmp('imp');
   const localApp = path.join(base, 'local'), roaming = path.join(base, 'roaming');
   const profile = path.join(localApp, 'Google', 'Chrome', 'User Data', 'Default');
@@ -329,21 +328,24 @@ async function importTests(ctx) {
   ok(fs.readdirSync(os.tmpdir()).filter(n => n.startsWith('w3ir-import-')).length === 0, 'import: тимчасові копії видалено');
 
   // злиття у сховища (тестові, не користувацькі)
-  const realB = ctx.bookmarksStore, realH = ctx.historyStore;
-  ctx.bookmarksStore = new Store('t-bm', [], base);
-  ctx.historyStore = new Store('t-hist', [], base);
+  const { Places, BookmarkStore } = require('../../src/places');
+  const realB = ctx.bookmarksStore, realP = ctx.places;
+  const tp = new Places(tmp('imp-places'));
+  ctx.places = tp;
+  ctx.bookmarksStore = new BookmarkStore(tp);
   ctx.bookmarksStore.data.push({ url: 'https://a.example/', title: 'mine', added: 1, mod: 1 });
   const r1 = ctx.importBookmarks(cb.concat(fb));
   ok(r1.added === 3 && r1.skipped === 1 && ctx.bookmarks().find(b => b.url === 'https://a.example/').title === 'mine', 'import: наявні закладки не перезаписуються');
   const r2 = ctx.importHistory(ch.concat(fh));
-  ok(r2.added === 3 && ctx.history().length === 3, 'import: історію додано');
+  ok(r2.added === 3 && tp.visitCount() === 3, 'import: історію додано');
   const r3 = ctx.importHistory(ch.concat(fh));
-  ok(r3.added === 0 && ctx.history().length === 3, 'import: повторний імпорт історії без дублікатів');
-  const times = ctx.history().map(h => h.time);
-  ok(times.every((t, i) => i === 0 || times[i - 1] <= t), 'import: історія залишається відсортованою за часом');
+  ok(r3.added === 0 && tp.visitCount() === 3, 'import: повторний імпорт історії без дублікатів');
+  const times = tp.visits({}).map(h => h.time);
+  ok(times.every((t, i) => i === 0 || times[i - 1] >= t), 'import: історія віддається від новішого до старішого');
   ok(ctx.topSites(5).some(s => s.url === 'https://news.example/'), 'import: популярні сайти враховують кількість візитів');
-  ctx.bookmarksStore.flush(); ctx.historyStore.flush();
-  ctx.bookmarksStore = realB; ctx.historyStore = realH;
+  ctx.bookmarksStore.flush();
+  ctx.bookmarksStore = realB; ctx.places = realP;
+  tp.close();
 }
 
 async function profileTests(ctx) {
@@ -360,7 +362,7 @@ async function profileTests(ctx) {
 
   c2.bookmarkSet('https://p2.example/', 'P2');
   ok(c2.bookmarks().length === 1 && !ctx.bookmarks().some(b => b.url === 'https://p2.example/'), 'profiles: закладки ізольовані');
-  ok(c2.history() !== ctx.history() && c2.vault !== ctx.vault, 'profiles: історія та сховище паролів ізольовані');
+  ok(c2.places !== ctx.places && c2.vault !== ctx.vault, 'profiles: історія та сховище паролів ізольовані');
 
   const w2 = m.open(id);
   await sleep(2500);

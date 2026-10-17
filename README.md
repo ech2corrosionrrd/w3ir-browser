@@ -39,7 +39,7 @@
 ## Дані користувача
 
 - Встановлена версія: `%APPDATA%\W3IR Browser` (у режимі розробки — `%APPDATA%\w3ir-browser`); додаткові профілі — у підтеці `profiles\<id>`.
-- Файли: `settings.json`, `bookmarks.json`, `history.json`, `session.json`, `permissions.json`, `downloads.json`, `window.json`, `vault.bin` + `vault.pepper` (паролі й гаманець, зашифровано), `github.token` (DPAPI), `sync.json` + `sync.key`, `threats-*.bin`, `adblock-engine.bin`, `profiles.json`, `updater.log`.
+- Файли: `settings.json`, `places.sqlite` (історія й закладки; SQLite + WAL, старі `history.json`/`bookmarks.json` переносяться один раз і лишаються як `*.migrated`), `session.json`, `permissions.json`, `downloads.json`, `window.json`, `vault.bin` + `vault.pepper` (паролі й гаманець, зашифровано), `github.token` (DPAPI), `sync.json` + `sync.key`, `threats-*.bin`, `adblock-engine.bin`, `profiles.json`, `updater.log`.
 - Кеш оновлень: `%LOCALAPPDATA%\w3ir-browser-updater`.
 
 ## Для розробників

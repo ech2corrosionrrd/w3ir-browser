@@ -3,7 +3,6 @@ const { ipcMain, app, dialog, shell } = require('electron');
 const { t: tr } = require('./i18n');
 const { normOrigin } = require('./vault');
 const { hexChain } = require('./wallet');
-const { queryMatcher } = require('./util');
 const { i18n, LANGS } = require('./i18n');
 
 // Після зміни мови: перезавантажити інтерфейс вікон і відкриті внутрішні сторінки всіх профілів
@@ -539,23 +538,9 @@ function registerIpc(resolve) {
       }
       case 'resolve': return ctx.resolveInput(arg.text);
       case 'topsites': return ctx.topSites(8);
-      case 'history:get': {
-        const match = queryMatcher(arg.query);
-        const out = [];
-        const h = ctx.history();
-        for (let i = h.length - 1; i >= 0 && out.length < 500; i--) {
-          const x = h[i];
-          if (match(x.title, x.url)) out.push(x);
-        }
-        return out;
-      }
-      case 'history:remove': {
-        const h = ctx.history();
-        const i = h.findIndex(x => x.id === arg.id);
-        if (i >= 0) { h.splice(i, 1); ctx.historyStore.save(); }
-        return true;
-      }
-      case 'history:clear': ctx.historyStore.data = []; ctx.historyStore.save(); return true;
+      case 'history:get': return ctx.places.visits({ query: arg && arg.query, limit: 500 });
+      case 'history:remove': ctx.places.removeVisit(arg && arg.id); return true;
+      case 'history:clear': ctx.places.clear(); return true;
       case 'bookmarks:get': return ctx.bookmarks();
       case 'bookmarks:remove': {
         ctx.bookmarkDelete(arg.url);
@@ -565,7 +550,7 @@ function registerIpc(resolve) {
       case 'downloads:action': ctx.downloads.action(arg.id, arg.action); return true;
       case 'clear': {
         const ses = entry.win.ses;
-        if (arg.history) { ctx.historyStore.data = []; ctx.historyStore.save(); }
+        if (arg.history) ctx.places.clear();
         if (arg.cookies) await ses.clearStorageData();
         if (arg.cache) await ses.clearCache();
         return true;

@@ -872,14 +872,7 @@ class AppWindow {
       return { id: t.id, title: (g && g.name ? `[${g.name}] ` : '') + title, url: this.displayUrl(t) };
     });
     if (mode === 'tabs') return { mode, tabs };
-    const seen = new Set();
-    const history = [];
-    const h = ctx.history();
-    for (let i = h.length - 1; i >= 0 && history.length < 300; i--) {
-      if (seen.has(h[i].url)) continue;
-      seen.add(h[i].url);
-      history.push({ title: h[i].title, url: h[i].url });
-    }
+    const history = ctx.places.recentDistinct(300);
     return {
       mode, tabs, commands: this.commandList().map(withTip),
       bookmarks: ctx.bookmarks().slice(0, 300).map(b => ({ title: b.title, url: b.url })),

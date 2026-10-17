@@ -4,7 +4,6 @@ const { t: tr } = require('./i18n');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
-const { randomUUID } = require('crypto');
 const { Store } = require('./store');
 const { isBlockedUrl } = require('./blocklist');
 const { Downloads } = require('./downloads');
@@ -14,6 +13,7 @@ const { GitHub } = require('./github');
 const { Agent } = require('./agent');
 const { Wallet } = require('./wallet');
 const { Threats } = require('./threats');
+const { Places, BookmarkStore } = require('./places');
 const arweave = require('./arweave');
 const { parse: parseHost } = require('tldts-experimental');
 const { attachCosmetic } = require('./adblock');
@@ -74,14 +74,15 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   const dataDir = dir || app.getPath('userData');
   fs.mkdirSync(dataDir, { recursive: true });
   shared = shared || { blocker: null, blockerPreload: null, sessions: [] };
+  const places = new Places(dataDir);
   const ctx = {
     id,
     dir: dataDir,
     manager: manager || null,
     session: id === 'default' ? session.defaultSession : session.fromPartition('persist:profile-' + id),
     settingsStore: new Store('settings', DEFAULT_SETTINGS, dataDir),
-    bookmarksStore: new Store('bookmarks', [], dataDir),
-    historyStore: new Store('history', [], dataDir),
+    places,
+    bookmarksStore: new BookmarkStore(places),
     windowStore: new Store('window', {}, dataDir),
     sessionStore: new Store('session', { windows: [] }, dataDir),
     permsStore: new Store('permissions', {}, dataDir),
@@ -102,7 +103,6 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   ctx.profile = () => (manager ? manager.info(id) : { id, name: 'Основний', color: '#5a8dee' });
   ctx.cfg = () => ctx.settingsStore.data;
   ctx.bookmarks = () => ctx.bookmarksStore.data;
-  ctx.history = () => ctx.historyStore.data;
   ctx.downloads = new Downloads(ctx);
 
   const userData = dataDir;
@@ -112,7 +112,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   // Захист від шахрайських сайтів: списки спільні для всіх профілів і лежать у теці основного профілю
   shared.threats = shared.threats || { lists: null };
   ctx.threats = new Threats({
-    dir: manager ? manager.dirOf('default') : dataDir, cfg: () => ctx.cfg(), history: () => ctx.history(), bookmarks: () => ctx.bookmarks(),
+    dir: manager ? manager.dirOf('default') : dataDir, cfg: () => ctx.cfg(), history: () => ctx.places.list(), bookmarks: () => ctx.bookmarks(),
     shared: shared.threats.lists ? shared.threats : undefined, onChange: () => ctx.pushAll(),
   });
   if (!shared.threats.lists) shared.threats = ctx.threats.shared;
@@ -266,19 +266,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   };
 
   // ---------- історія ----------
-  ctx.historyAdd = (url, title) => {
-    if (!/^https?:/i.test(url)) return;
-    const h = ctx.history();
-    const last = h[h.length - 1];
-    if (last && last.url === url && Date.now() - last.time < 5000) {
-      last.time = Date.now();
-      if (title) last.title = title;
-    } else {
-      h.push({ id: randomUUID(), url, title: title || url, time: Date.now() });
-      if (h.length > 20000) h.splice(0, h.length - 20000);
-    }
-    ctx.historyStore.save();
-  };
+  ctx.historyAdd = (url, title) => { try { ctx.places.addVisit(url, title); } catch (e) { console.error('history add failed:', e.message); } };
   // ---------- імпорт з інших браузерів ----------
   ctx.importBookmarks = (items) => {
     const l = ctx.bookmarks();
@@ -298,27 +286,10 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     return { added, skipped: items.length - added };
   };
   ctx.importHistory = (items) => {
-    const h = ctx.history();
-    const have = new Set(h.map(e => e.url + '|' + e.time));
-    let added = 0;
-    for (const it of items) {
-      const key = it.url + '|' + it.time;
-      if (have.has(key) || !(it.time > 0)) continue;
-      have.add(key);
-      h.push({ id: randomUUID(), url: it.url, title: it.title, time: it.time, n: it.n || 1 });
-      added++;
-    }
-    h.sort((a, b) => a.time - b.time);
-    if (h.length > 20000) h.splice(0, h.length - 20000);
-    ctx.historyStore.save();
+    const added = ctx.places.importVisits(items);
     return { added, skipped: items.length - added };
   };
-  ctx.historyTitle = (url, title) => {
-    const h = ctx.history();
-    for (let i = h.length - 1, n = 0; i >= 0 && n < 20; i--, n++) {
-      if (h[i].url === url) { h[i].title = title; ctx.historyStore.save(); return; }
-    }
-  };
+  ctx.historyTitle = (url, title) => { try { ctx.places.setTitle(url, title); } catch { /* ignore */ } };
   ctx.topSites = (limit = 8) => {
     const out = [];
     const seen = new Set();
@@ -329,15 +300,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       out.push({ url, title: title || new URL(url).hostname });
     };
     for (const b of ctx.bookmarks()) add(b.url, b.title);
-    const counts = new Map();
-    for (const e of ctx.history()) {
-      const o = originOf(e.url);
-      if (!o) continue;
-      const c = counts.get(o) || { n: 0, url: e.url, title: e.title };
-      c.n += e.n || 1; c.url = e.url; c.title = e.title;
-      counts.set(o, c);
-    }
-    [...counts.values()].sort((a, b) => b.n - a.n).forEach(c => add(c.url, c.title));
+    for (const t of ctx.places.topOrigins(originOf, limit * 4)) add(t.url, t.title);
     return out;
   };
   ctx.suggest = (text) => {
@@ -351,11 +314,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       if (items.length >= 7) break;
       if (match(b) && !seen.has(b.url)) { seen.add(b.url); items.push({ type: 'bookmark', title: b.title, url: b.url }); }
     }
-    const h = ctx.history();
-    for (let i = h.length - 1; i >= 0 && items.length < 7; i--) {
-      const e = h[i];
-      if (match(e) && !seen.has(e.url)) { seen.add(e.url); items.push({ type: 'history', title: e.title, url: e.url }); }
-    }
+    for (const e of ctx.places.search(q, { limit: 7 - items.length, exclude: seen })) items.push({ type: 'history', title: e.title, url: e.url });
     return items;
   };
 

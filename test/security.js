@@ -6,6 +6,7 @@ const { vaultTests, vaultTests2, syncTests, e2eTests, torrentTests, importTests,
 const { githubTests, walletTests } = require('./areas/web3');
 const { arweaveTests } = require('./areas/arweave');
 const { solanaTests } = require('./areas/solana');
+const { placesTests } = require('./areas/places');
 const { helpTests, updateTests, threatTests } = require('./areas/updates-threats');
 const { groupTests, siteTests, splitTests, fullscreenTests, guardTests, tabCloseTests, tabFeatureTests } = require('./areas/tabs');
 const { agentShareTests, agentTests } = require('./areas/ai');
@@ -28,6 +29,7 @@ module.exports = async function run(ctx) {
     await walletTests(ctx);
     await arweaveTests(ctx);
     await solanaTests(ctx);
+    await placesTests(ctx);
     await helpTests(ctx);
     await updateTests(ctx);
     await threatTests(ctx);
