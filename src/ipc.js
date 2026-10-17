@@ -290,6 +290,8 @@ async function walletApi(ctx, entry, name, arg) {
         return { ok: true, removed: w.removeImported(arg.id) };
       }
       case 'wallet:qr': return { ok: true, qr: w.qrFor(arg.text) };
+      case 'wallet:setDappAccount': return { ok: true, index: w.setDappAccount(String(arg.chain), arg.index) };
+      case 'wallet:setSiteAccount': return { ok: true, address: w.setSiteAccount(arg.origin, String(arg.chain), arg.index) };
       case 'wallet:rename': return { ok: true, name: w.rename(arg.index, arg.name) };
       case 'wallet:send': {
         const sameTab = () => entry.win.tabs.includes(entry.tab);

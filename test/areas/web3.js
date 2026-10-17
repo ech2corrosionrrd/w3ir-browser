@@ -535,6 +535,38 @@ async function walletTests(ctx) {
   wal.disconnectSite(A.origin);
   ok((await call(wcA, 'eth_accounts')).ok.length === 0, 'wallet: після відключення сайт знову нічого не бачить');
 
+  // ---------- рахунок для сайтів (dApp): типовий і окремий для кожного сайту ----------
+  const dk = E.Wallet.createRandom();
+  const dkAcc = wal.importKey(dk.privateKey, 'Для сайтів');
+  const dappErr = (fn) => { try { fn(); return ''; } catch (e) { return e.message; } };
+  ok(wal.dappIndex('evm') === 0 && /Невідома мережа/.test(dappErr(() => wal.setDappAccount('btc', 0))) && /Невідомий рахунок/.test(dappErr(() => wal.setDappAccount('evm', 77))) && /Невідомий рахунок/.test(dappErr(() => wal.setDappAccount('sol', dkAcc.id))), 'dapp: типовий рахунок 0; хибна мережа, неіснуючий рахунок і рахунок іншої мережі відхиляються');
+  wal.setDappAccount('evm', dkAcc.id);
+  ok(wal.dappIndex('evm') === dkAcc.id && wal.info().dapp.evm === dkAcc.id, 'dapp: імпортований рахунок можна зробити типовим для сайтів');
+  let prd = call(wcA, 'eth_requestAccounts');
+  const apD = await waitApproval();
+  ok(apD.spec.lines.some(l => l[0] === 'Рахунок' && l[1] === dk.address), 'dapp: запит підключення показує вибраний (імпортований) рахунок');
+  await decide(true, MASTER);
+  ok((await prd).ok[0] === dk.address && (await call(wcA, 'eth_accounts')).ok[0] === dk.address, 'dapp: сайт отримав адресу імпортованого рахунку, а не основного');
+  prd = call(wcA, 'personal_sign', [E.hexlify(E.toUtf8Bytes('від імпортованого')), dk.address]);
+  await waitApproval(); await decide(true, MASTER);
+  ok(E.verifyMessage('від імпортованого', (await prd).ok) === dk.address, 'dapp: підпис повідомлення зроблено ключем імпортованого рахунку');
+  prd = call(wcA, 'personal_sign', [E.hexlify(E.toUtf8Bytes('чужий')), addr0]);
+  ok((await prd).err === 4100 && !w.approval, 'dapp: рахунок, не підключений до сайту (основний), підписати не може');
+  prd = call(wcA, 'eth_sendTransaction', [{ from: dk.address, to: rcpt, value: '0x1' }]);
+  await waitApproval(); await decide(true, MASTER);
+  await prd;
+  ok(E.Transaction.from(rawTxs[rawTxs.length - 1]).from === dk.address, 'dapp: транзакцію від імені сайту підписано імпортованим ключем');
+  await wcA.executeJavaScript(`window.__acc = []; ethereum.on('accountsChanged', a => window.__acc.push(a)); 0`);
+  ok(wal.setSiteAccount(A.origin, 'evm', 0) === addr0, 'dapp: рахунок підключеного сайту можна змінити окремо');
+  await sleep(300);
+  ok(JSON.stringify(await wcA.executeJavaScript('window.__acc')) === JSON.stringify([[addr0]]) && (await call(wcA, 'eth_accounts')).ok[0] === addr0, 'dapp: сайт отримує accountsChanged, eth_accounts повертає новий рахунок');
+  ok(/не підключено/.test(dappErr(() => wal.setSiteAccount('http://unknown.example', 'evm', 0))) && /Невідомий рахунок/.test(dappErr(() => wal.setSiteAccount(A.origin, 'evm', 99))) && wal.info().connections.find(c => c.origin === A.origin).accounts[0] === addr0, 'dapp: непідключений сайт і неіснуючий рахунок відхиляються, стан не змінюється');
+  wal.setSiteAccount(A.origin, 'evm', dkAcc.id);
+  await sleep(200);
+  wal.removeImported(dkAcc.id);
+  await sleep(300);
+  ok((await call(wcA, 'eth_accounts')).ok.length === 0 && wal.dappIndex('evm') === 0 && !wal.info().connections.some(c => c.origin === A.origin) && JSON.stringify(await wcA.executeJavaScript('window.__acc')).endsWith('[]]'), 'dapp: видалення імпортованого рахунку відключає сайти, що ним користувались, і скидає типовий рахунок');
+
   A.s.close(); B.s.close(); rpc.close();
   ctx.settingsStore.flush();
   Object.assign(ctx, { vault: real.vault, wallet: real.wallet, settingsStore: real.settings });

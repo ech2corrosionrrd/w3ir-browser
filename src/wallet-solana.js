@@ -101,7 +101,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   proto.solAccountsFor = function (origin) {
     if (!this.unlocked() || !this.data()) return [];
     const c = (this.section().solConnections || {})[origin];
-    return c && this.solAddresses().includes(c.address) ? [c.address] : [];
+    return c && this.isOwnSol(c.address) ? [c.address] : [];
   };
   proto.solBalances = async function () {
     const cluster = this.solCluster();
@@ -369,7 +369,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     const pack = (address) => ({ address, publicKey: S.b58decode(address).toString('base64') });
     if (have.length) return pack(have[0]);
     if (p.onlyIfTrusted) throw unauthorized('Сайт ще не підключено до гаманця');
-    const address = this.solAddresses()[0];
+    const address = this.solAccount(this.dappIndex('sol'));
     await this.approve(win, origin, sameTab, {
       kind: 'connect', title: tr('Підключення до сайту'),
       lines: [['Сайт отримає', 'доступ до публічної адреси Solana та право пропонувати підписи'], ['Рахунок Solana', address], ['Мережа', CLUSTERS[this.solCluster()].name]],

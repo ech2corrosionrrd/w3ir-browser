@@ -201,7 +201,7 @@ class Wallet {
     if (!s) return { exists: false };
     return {
       exists: true, accounts: s.addresses, activeChain: s.activeChain,
-      networks: this.networks(), connections: Object.entries(s.connections).map(([origin, c]) => ({ origin, accounts: c.accounts, chainId: c.chainId })),
+      networks: this.networks(), connections: Object.entries(s.connections).map(([origin, c]) => ({ origin, accounts: c.accounts, chainId: c.chainId })), dapp: { evm: this.dappIndex('evm'), sol: this.dappIndex('sol') },
       log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(),
     };
   }
@@ -350,7 +350,7 @@ class Wallet {
   accountsFor(origin) {
     if (!this.unlocked() || !this.data()) return [];
     const c = this.section().connections[origin];
-    return c ? c.accounts.slice() : [];
+    return c ? c.accounts.filter(a => this.isOwnEvm(a)) : [];
   }
 
   // Показ підтвердження у довіреному вікні; повертає true/кидає 4001
@@ -369,11 +369,11 @@ class Wallet {
     if (have.length) return have;
     await this.approve(win, origin, sameTab, {
       kind: 'connect', title: tr('Підключення до сайту'),
-      lines: [['Сайт отримає', 'доступ до адреси вашого рахунку та право пропонувати транзакції'], ['Рахунок', this.unlocked() ? this.section().addresses[0] : 'буде показано після розблокування'], ['Мережа', (this.network(this.activeChain()) || {}).name || String(this.activeChain())]],
+      lines: [['Сайт отримає', 'доступ до адреси вашого рахунку та право пропонувати транзакції'], ['Рахунок', this.unlocked() ? this.evmAccount(this.dappIndex('evm')) : 'буде показано після розблокування'], ['Мережа', (this.network(this.activeChain()) || {}).name || String(this.activeChain())]],
       warnings: ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'],
     });
     const s = this.section();
-    s.connections[origin] = { accounts: [s.addresses[0]], chainId: s.activeChain, since: Date.now() };
+    s.connections[origin] = { accounts: [this.evmAccount(this.dappIndex('evm'))], chainId: s.activeChain, since: Date.now() };
     this.vault.persist();
     this.log({ origin, action: 'Підключення' });
     this.snapConns();
