@@ -22,6 +22,7 @@ const { portfolioTests } = require('./areas/portfolio');
 const { simulateTests } = require('./areas/simulate');
 const { solanaExtrasTests } = require('./areas/solana-extras');
 const { nftSourcesTests } = require('./areas/nft-sources');
+const { historyEvmTests } = require('./areas/history-evm');
 const { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests } = require('./areas/misc');
 
 // W3IR_ONLY=updateTests,agentTests — запустити лише названі області (швидка перевірка окремих тестів)
@@ -52,6 +53,7 @@ module.exports = async function run(ctx) {
     await step('simulateTests', () => simulateTests());
     await step('solanaExtrasTests', () => solanaExtrasTests());
     await step('nftSourcesTests', () => nftSourcesTests());
+    await step('historyEvmTests', () => historyEvmTests());
     await step('qrTests', () => qrTests());
     await step('placesTests', () => placesTests(ctx));
     await step('helpTests', () => helpTests(ctx));

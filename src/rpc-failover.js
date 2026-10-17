@@ -6,10 +6,11 @@ const { JsonRpcProvider, keccak256 } = require('ethers');
 
 // Відповідь JSON-RPC із помилкою самого вузла (внутрішня помилка, ліміт запитів, метод не підтримується, перевантаження) — це відмова вузла,
 // а не результат виконання: пробуємо наступний. Детерміновані помилки (revert, nonce too low, insufficient funds) не повторюються.
-const NODE_FAULT_CODES = new Set([-32603, -32005, -32601, -32097, -32098, -32099, 429, 503]);
-const NODE_FAULT_MESSAGE = /rate.?limit|too many requests|capacity|overload|unavailable|timeout|timed out|internal error|no backend|try again|method .*not (found|supported|available)|does not exist/i;
+const NODE_FAULT_CODES = new Set([-32603, -32005, -32001, -32601, -32097, -32098, -32099, 429, 503]);
+const NODE_FAULT_MESSAGE = /rate.?limit|usage limit|quota|too many requests|capacity|overload|unavailable|timeout|timed out|internal error|no backend|try again|method .*not (found|supported|available)|does not exist/i;
 function nodeFault(res) {
-  return Array.isArray(res) && res.some(r => r && r.error && (NODE_FAULT_CODES.has(Number(r.error.code)) || NODE_FAULT_MESSAGE.test(String(r.error.message || ''))));
+  // деякі вузли на пакетний запит віддають одну помилку об'єктом, а не масивом
+  return (Array.isArray(res) ? res : [res]).some(r => r && r.error && (NODE_FAULT_CODES.has(Number(r.error.code)) || NODE_FAULT_MESSAGE.test(String(r.error.message || ''))));
 }
 
 const ALREADY_KNOWN = /already known|known transaction|already imported|already in the mempool/i;

@@ -148,6 +148,26 @@ async function nftSourcesTests() {
   const allBad = new FailoverProvider([base + '/bad', base + '/bad'], net, { timeout: 2000 });
   const ab = await allBad.getBlockNumber().then(() => 'ok', e => String(e.message || e.code));
   ok(ab !== 'ok' && /Internal error|coalesce|SERVER_ERROR|UNKNOWN_ERROR/i.test(ab), 'failover: якщо відмовили всі вузли — повертається помилка вузла, а не зависання');
+  // вузол із вичерпаним планом на пакетний запит віддає одну помилку об'єктом (не масивом): це відмова вузла, запит іде далі
+  const hits2 = { limited: 0, good: 0 };
+  const srv2 = http.createServer((req, res) => {
+    let b = '';
+    req.on('data', d => { b += d; });
+    req.on('end', () => {
+      const j = JSON.parse(b); const node = req.url.slice(1); hits2[node]++;
+      res.setHeader('content-type', 'application/json');
+      const first = Array.isArray(j) ? j[0] : j;
+      if (node === 'limited' && first.method !== 'eth_chainId') return res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32001, message: "You've reached the usage limit for your current plan." } }));
+      const one = (x) => ({ jsonrpc: '2.0', id: x.id, result: x.method === 'eth_chainId' ? '0x1' : '0x10' });
+      res.end(JSON.stringify(Array.isArray(j) ? j.map(one) : one(j)));
+    });
+  });
+  await new Promise(r => srv2.listen(0, '127.0.0.1', r));
+  const base2 = `http://127.0.0.1:${srv2.address().port}`;
+  const fpv3 = new FailoverProvider([base2 + '/limited', base2 + '/good'], net, { timeout: 2000 });
+  const both = await Promise.all([fpv3.getBlockNumber(), fpv3.getTransactionCount('0x0000000000000000000000000000000000000001')]).then(v => v.join(), e => String(e.message));
+  ok(both === '16,16' && hits2.limited >= 1 && hits2.good >= 1, 'failover: вузол із вичерпаним планом (одна помилка замість масиву) — запит іде на наступний вузол');
+  srv2.closeAllConnections(); srv2.close();
   srv.closeAllConnections(); srv.close();
 }
 

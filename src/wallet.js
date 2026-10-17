@@ -723,6 +723,7 @@ require('./wallet-extras').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-import').install(Wallet, { RpcError, unauthorized });
 require('./wallet-safety').install(Wallet, { RpcError, unauthorized });
 require('./wallet-approvals').install(Wallet, { RpcError, clip, unauthorized });
+require('./wallet-history-evm').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-portfolio').install(Wallet, { unauthorized });
 require('./wallet-simulate').install(Wallet, { clip });
 

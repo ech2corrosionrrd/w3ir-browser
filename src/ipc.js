@@ -286,6 +286,7 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:portfolio': return { ok: true, ...(await w.portfolio({ force: !!arg.force })) };
       case 'wallet:scanApprovals': return { ok: true, ...(await w.scanApprovals(arg.index)) };
       case 'wallet:approvals': return { ok: true, ...(await w.listApprovals(arg.index)) };
+      case 'wallet:evmHistory': return { ok: true, ...(await w.evmHistory(arg.index)) };
       case 'wallet:revokeApproval': return { ok: true, hash: await w.revokeApproval(entry.win, () => entry.win.tabs.includes(entry.tab), { index: arg.index, kind: String(arg.kind), token: arg.token, spender: arg.spender }) };
       case 'wallet:backupQuiz': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, ...w.backupQuiz() };
       case 'wallet:backupCheck': return { ok: true, correct: w.backupCheck(arg.answers) };

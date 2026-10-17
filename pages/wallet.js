@@ -470,6 +470,26 @@ async function renderDashboard(st) {
         h('a', { href: `https://explorer.solana.com/tx/${it.signature}` + (r.cluster === 'mainnet-beta' ? '' : `?cluster=${r.cluster}`) }, 'Оглядач')));
     }
   }
+  // ----- історія EVM (наближена, з журналів подій токенів) -----
+  const evHistList = h('div', { class: 'list' });
+  const evHistMsg = h('div', { class: 'note', style: 'margin:8px 0' });
+  async function loadEvmHistory() {
+    evHistMsg.textContent = t('Шукаємо перекази в останніх блоках…'); evHistList.textContent = '';
+    const r = await call('wallet:evmHistory', { index: Number(evHistAcct.value) });
+    if (!r.ok) { evHistMsg.textContent = r.error || 'Помилка'; return; }
+    const net2 = info.networks.find(x => x.chainId === r.chainId);
+    evHistMsg.textContent = (r.items.length ? '' : t('Переказів токенів і NFT у цьому проміжку не знайдено.') + ' ') + t('Переглянуто останні {0} блоків. Переказ основної монети подій не залишає: дивіться «Журнал» нижче.', r.scanned) + (r.partial ? ' ' + t('Мережа відповіла не повністю.') : '');
+    for (const it of r.items) {
+      const sign = it.dir === 'in' ? '+' : '−';
+      const what = it.kind === 'nft' ? `NFT #${it.id.length > 12 ? it.id.slice(0, 6) + '…' : it.id}` : (it.amount !== undefined ? `${sign}${it.amount.replace(/(\.\d{6})\d+$/, '$1')} ${it.symbol}` : t('Токен {0}', short(it.token)));
+      evHistList.append(h('div', { class: 'item' },
+        h('span', { class: 'time' }, it.time ? new Date(it.time).toLocaleString(LOCALE) : ''),
+        h('div', { class: 'main' }, h('div', { class: 't' }, (it.kind === 'nft' ? sign + ' ' : '') + what), h('div', { class: 's pw' }, t(it.dir === 'in' ? 'від {0}' : 'до {0}', short(it.peer)) + ' · ' + short(it.hash))),
+        h('span', { class: 'chip ' + (it.dir === 'in' ? 'ok' : '') }, it.dir === 'in' ? t('Отримано') : t('Надіслано')),
+        net2 && net2.explorer ? h('a', { href: `${net2.explorer}/tx/${it.hash}` }, 'Оглядач') : ''));
+    }
+  }
+  const evHistAcct = h('select', { 'aria-label': 'Рахунок', onchange: loadEvmHistory }, viewOptions().filter(o => o.chain !== 'sol').map(o => h('option', { value: String(o.id) }, o.label)));
   const histAcct = h('select', { 'aria-label': 'Рахунок', onchange: loadHistory }, [...info.accounts.map((a, i) => h('option', { value: String(i) }, nameOf(i))), ...imp.filter(a => a.chain === 'sol').map(a => h('option', { value: String(a.id) }, a.name || short(a.address))), ...watch.filter(a => a.chain === 'sol').map(a => h('option', { value: String(a.id) }, `${a.name || short(a.address)} (${t('перегляд')})`))]);
 
   // ----- підключені сайти (EVM і Solana разом) з вибором рахунку для кожного -----
@@ -747,6 +767,9 @@ async function renderDashboard(st) {
     h('h2', { id: 'tokens-anchor' }, 'Токени та NFT'),
     h('div', { class: 'bar' }, tokAcct, tokChain, h('button', { onclick: () => loadTokens() }, 'Оновити')),
     tokMsg, tokList, nftMsg, nftGrid, nftMore, tokAddBar, nftAddBar,
+    h('h2', null, 'Історія EVM'),
+    h('div', { class: 'bar' }, evHistAcct, h('button', { onclick: loadEvmHistory }, 'Показати')),
+    evHistMsg, evHistList,
     h('h2', null, 'Історія Solana'),
     h('div', { class: 'bar' }, histAcct, h('button', { onclick: loadHistory }, 'Оновити')),
     histMsg, histList,
