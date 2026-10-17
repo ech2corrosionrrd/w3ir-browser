@@ -153,6 +153,10 @@ async function walletTests(ctx) {
             const known = rawTxs.find(t => E.keccak256(t) === j.params[0]);
             return r(known ? { transactionHash: j.params[0], transactionIndex: '0x0', blockNumber: '0x10', blockHash: '0x' + '11'.repeat(32), from: addr0, to: E.Transaction.from(known).to, cumulativeGasUsed: '0x5208', gasUsed: '0x5208', contractAddress: null, logs: [], logsBloom: '0x' + '00'.repeat(256), status: '0x1', effectiveGasPrice: '0x3b9aca00', type: '0x2' } : null);
           }
+          case 'eth_simulateV1': { // мок симуляції: виклик віддає 1 TKN (6 знаків) із рахунку відправника
+            const c = j.params[0].blockStateCalls[0].calls[0];
+            return r([{ calls: [{ status: '0x1', gasUsed: '0x5208', returnData: '0x', logs: [{ address: c.to, topics: [E.id('Transfer(address,address,uint256)'), E.zeroPadValue(c.from, 32), E.zeroPadValue('0x00000000000000000000000000000000000000f9', 32)], data: E.AbiCoder.defaultAbiCoder().encode(['uint256'], [1_000_000n]) }] }] }]);
+          }
           case 'eth_sendRawTransaction': rawTxs.push(j.params[0]); return r(E.keccak256(j.params[0]));
           default: return { jsonrpc: '2.0', id: j.id, error: { code: -32601, message: 'no ' + j.method } };
         }
@@ -632,6 +636,13 @@ async function walletTests(ctx) {
   await sendP2;
   ctx.clipGuard.clear();
   wal.disconnectSite(A.origin);
+
+  // --- симуляція у вікні підтвердження ---
+  const simSend = wal.sendToken(w, () => true, { index: 0, token: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512', to: '0x00000000000000000000000000000000000000f9', amount: '1' }).catch(e => e);
+  const apSim = await waitApproval();
+  ok(apSim && apSim.spec.lines.some(l => l[0] === 'Симуляція' && l[1] === 'виклик виконується успішно') && apSim.spec.lines.some(l => l[0] === 'З вашого рахунку піде' && /1.0 TKN/.test(l[1])), 'sim: у підтвердженні виклику контракту є результат симуляції (що піде з рахунку)');
+  await w.decide(apSim.id, false);
+  await simSend;
 
   // --- режими обережності ---
   const perr = (fn) => { try { fn(); return ''; } catch (e) { return e.message; } };

@@ -19,6 +19,7 @@ const { nftTests } = require('./areas/nft');
 const { signguardTests } = require('./areas/signguard');
 const { approvalsTests } = require('./areas/approvals');
 const { portfolioTests } = require('./areas/portfolio');
+const { simulateTests } = require('./areas/simulate');
 const { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests } = require('./areas/misc');
 
 // W3IR_ONLY=updateTests,agentTests — запустити лише названі області (швидка перевірка окремих тестів)
@@ -46,6 +47,7 @@ module.exports = async function run(ctx) {
     await step('signguardTests', () => signguardTests());
     await step('approvalsTests', () => approvalsTests());
     await step('portfolioTests', () => portfolioTests());
+    await step('simulateTests', () => simulateTests());
     await step('qrTests', () => qrTests());
     await step('placesTests', () => placesTests(ctx));
     await step('helpTests', () => helpTests(ctx));

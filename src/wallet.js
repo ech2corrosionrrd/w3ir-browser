@@ -602,15 +602,22 @@ class Wallet {
     const warnings = [...desc.warnings, ...(opts.warnings || [])];
     if (!to) warnings.push('Створення нового контракту.');
     if (fee > 10n ** 18n) warnings.push('Дуже висока комісія за газ.');
+    // симуляція виклику контракту на вузлі RPC: рух активів, дозволи, помилка виконання (якщо вузол це підтримує)
+    let simInfo = { lines: [], warnings: [], danger: false };
+    if (to && data !== '0x') {
+      simInfo = await this.describeSimulation(chain, await this.simulateEvm(chain, { from, to, value, data }), { symbol: net.symbol });
+      warnings.push(...simInfo.warnings);
+    }
     const lines = [
       ...(opts.summary || []),
       ['Мережа', `${net.name} (${chain})`], ['Від', from], ['Кому', to || 'новий контракт'],
       ...(ti ? [['Токен', `${ti.symbol}${ti.name ? ' — ' + ti.name : ''}`]] : []),
       ['Сума', `${formatEther(value)} ${net.symbol}`], ...(opts.summary ? [] : desc.lines),
       ...(opts.speed && opts.speed !== 'standard' ? [['Швидкість комісії', opts.speed === 'fast' ? 'швидко (комісія вища)' : 'повільно (комісія нижча, підтвердження може затягнутись)']] : []),
+      ...simInfo.lines,
       ['Ліміт газу', String(populated.gasLimit)], ['Макс. комісія', `${formatEther(fee)} ${net.symbol}`], ['Макс. разом', `${formatEther(fee + value)} ${net.symbol}`],
     ];
-    await this.approve(win, origin, sameTab, { kind: 'tx', title: tr('Підтвердження транзакції'), danger: !!opts.danger || warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings, ...(opts.delay ? { delay: opts.delay } : {}) });
+    await this.approve(win, origin, sameTab, { kind: 'tx', title: tr('Підтвердження транзакції'), danger: !!opts.danger || simInfo.danger || warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings, ...(opts.delay ? { delay: opts.delay } : {}) });
     let hash;
     try {
       const signed = await signer.signTransaction(populated);
@@ -717,5 +724,6 @@ require('./wallet-import').install(Wallet, { RpcError, unauthorized });
 require('./wallet-safety').install(Wallet, { RpcError, unauthorized });
 require('./wallet-approvals').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-portfolio').install(Wallet, { unauthorized });
+require('./wallet-simulate').install(Wallet, { clip });
 
 module.exports = { Wallet, RpcError, EVM_PATHS, BUILTIN_NETWORKS, describeCall, hexChain, isSafeRpc };
