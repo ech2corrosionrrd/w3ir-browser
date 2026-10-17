@@ -3,7 +3,6 @@
 // Ключі виводяться з тієї самої фрази відновлення, що й EVM-адреси, лише на мить підпису й ніде не кешуються.
 const { Mnemonic } = require('ethers');
 const S = require('./solana');
-const arweave = require('./arweave');
 const { t: tr } = require('./i18n');
 
 const CLUSTERS = {
@@ -140,13 +139,11 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     return out;
   };
 
-  // Назви беруться з рахунків метаданих у блокчейні (їх задає творець токена: це недовірені рядки). Зображення NFT
-  // завантажуються лише з шлюзів Arweave/Irys; інші адреси метаданих (https, ipfs) не відкриваються — це розкрило б вашу адресу стороннім.
-  const ARWEAVE_URI = /^(?:ar:\/\/|https:\/\/(?:arweave\.net|gateway\.irys\.xyz|arweave\.dev)\/)([A-Za-z0-9_-]{43})(?:[/?#].*)?$/;
+  // Назви беруться з рахунків метаданих у блокчейні (їх задає творець токена: це недовірені рядки). Зображення й метадані NFT
+  // завантажує головний процес лише з безпечних джерел (IPFS, Arweave/Irys, ончейн), а довільні https — лише за налаштуванням.
 
-  proto.solTokens = async function (address, { maxMints = 60, maxImages = 12 } = {}) {
-    if (!this.isViewSol(address)) throw unauthorized('Невідомий рахунок');
-    const cluster = this.solCluster();
+  // Баланси токенів рахунку за mint (SPL Token і Token-2022), без нульових і зіпсованих записів
+  proto._solBalancesByMint = async function (cluster, address) {
     const byMint = new Map();
     for (const [programId, label] of [[S.PROGRAMS.TOKEN, 'SPL Token'], [S.PROGRAMS.TOKEN22, 'Token-2022']]) {
       const r = await this.solRpc(cluster, 'getTokenAccountsByOwner', [address, { programId }, { encoding: 'jsonParsed', commitment: 'confirmed' }], 12000, { fallbackOnError: true });
@@ -161,7 +158,14 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
         byMint.set(info.mint, cur);
       }
     }
-    const all = [...byMint.values()];
+    return byMint;
+  };
+
+  proto.solTokens = async function (address, { maxMints = 60 } = {}) {
+    if (!this.isViewSol(address)) throw unauthorized('Невідомий рахунок');
+    const cluster = this.solCluster();
+    const byMint = await this._solBalancesByMint(cluster, address);
+    const all = [...byMint.values()].sort((x, y) => (Number(x.decimals === 0 && x.raw === 1n) - Number(y.decimals === 0 && y.raw === 1n)));
     const list = all.slice(0, maxMints);
     // метадані: один запит getMultipleAccounts за всіма PDA
     if (list.length) {
@@ -172,19 +176,56 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       mint: t.mint, program: t.program, decimals: t.decimals, amount: S.formatUnits(t.raw, t.decimals),
       nft: t.decimals === 0 && t.raw === 1n, name: clip(t.name || '', 64), symbol: clip(t.symbol || '', 16), uri: /^(https?:\/\/|ar:\/\/|ipfs:\/\/)/i.test(t.uri || '') ? clip(t.uri, 200) : '',
     }));
-    // зображення NFT — лише зі сховища Arweave
-    let n = 0;
-    await Promise.all(out.filter(t => t.nft).map(async (t) => {
-      const m = ARWEAVE_URI.exec(t.uri || '');
-      if (!m || n++ >= maxImages) return;
-      try {
-        const meta = await Promise.race([arweave.fetchMetadata(m[1]), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
-        const img = String(meta.imageGateway || '');
-        if (/^https:\/\/(arweave\.net|gateway\.irys\.xyz|arweave\.dev)\/[A-Za-z0-9_-]{43}/.test(img)) t.image = img;
-        if (meta.name && !t.name) t.name = clip(meta.name, 64);
-      } catch { /* метадані недоступні — показуємо без зображення */ }
-    }));
     return { cluster, tokens: out, total: all.length, shown: out.length };
+  };
+
+  // Галерея NFT (decimals 0, баланс 1): сторінка з назвами з ланцюга; зображення завантажуються окремо (solNftMeta) і лише за потреби
+  proto.solNfts = async function (address, { offset = 0, limit = 24 } = {}) {
+    if (!this.isViewSol(address)) throw unauthorized('Невідомий рахунок');
+    offset = Math.max(0, Math.min(100000, Number(offset) | 0));
+    limit = Math.max(1, Math.min(48, Number(limit) | 0 || 24));
+    const cluster = this.solCluster();
+    const byMint = await this._solBalancesByMint(cluster, address);
+    const nfts = [...byMint.values()].filter(t => t.decimals === 0 && t.raw === 1n).sort((x, y) => (x.mint < y.mint ? -1 : 1));
+    const page = nfts.slice(offset, offset + limit);
+    const meta = page.length ? await this._solMetadata(cluster, page.map(t => t.mint)) : new Map();
+    this._nftUris = this._nftUris || new Map();
+    const items = page.map((t) => {
+      const m = meta.get(t.mint) || {};
+      const uri = /^(https?:\/\/|ar:\/\/|ipfs:\/\/|data:)/i.test(m.uri || '') ? String(m.uri).slice(0, 2000) : '';
+      if (uri) { this._nftUris.set(`${address}|${t.mint}`, uri); if (this._nftUris.size > 2000) this._nftUris.delete(this._nftUris.keys().next().value); }
+      return { mint: t.mint, name: clip(m.name || '', 64), symbol: clip(m.symbol || '', 16), hasUri: !!uri };
+    });
+    return { cluster, items, total: nfts.length, offset, limit };
+  };
+
+  // Назва й зображення одного NFT з його метаданих: лише безпечні джерела (див. nft-meta.js), а з walletNftAnyHost — і довільний https
+  // через захищене завантаження. Адресу метаданих беремо зі списку, який гаманець сам щойно прочитав з ланцюга, а не від сторінки.
+  proto.solNftMeta = async function (address, mint) {
+    if (!this.isViewSol(address)) throw unauthorized('Невідомий рахунок');
+    const uri = this._nftUris && this._nftUris.get(`${address}|${mint}`);
+    if (!uri) throw new RpcError(-32602, 'Спершу відкрийте список NFT цього рахунку.');
+    this._nftMeta = this._nftMeta || new Map();
+    if (this._nftMeta.has(uri)) return this._nftMeta.get(uri);
+    const meta = require('./nft-meta');
+    const { injectionClean } = require('./token-text');
+    const allowHttps = this.ctx.cfg().walletNftAnyHost === true;
+    const out = { name: '', image: '', status: 'ok' };
+    try {
+      if (!meta.resolveUri(uri, { allowHttps })) out.status = 'external'; // джерело не дозволене: метадані не відкриваємо (приватність)
+      else {
+        const j = await Promise.race([meta.loadJson(uri, { allowHttps }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000))]);
+        if (!j) out.status = 'unavailable';
+        else {
+          out.name = injectionClean(String(j.name || ''), 64);
+          const img = String(j.image || j.image_url || '');
+          if (img) { try { out.image = await Promise.race([meta.loadImage(img, { allowHttps }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 20000))]); } catch { out.image = ''; } }
+          if (img && !out.image && !meta.resolveUri(img, { allowHttps })) out.status = 'external';
+        }
+      }
+    } catch { out.status = 'unavailable'; }
+    if (out.status === 'ok' || out.status === 'external') { this._nftMeta.set(uri, out); if (this._nftMeta.size > 300) this._nftMeta.delete(this._nftMeta.keys().next().value); }
+    return out;
   };
 
   // Переказ SOL зі сторінки гаманця: транзакцію будує сам гаманець, а користувач підтверджує її у довіреному вікні з симуляцією

@@ -249,7 +249,7 @@ async function walletApi(ctx, entry, name, arg) {
     switch (name) {
       case 'wallet:status': {
         const st = v.status();
-        return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, prices: ctx.cfg().walletPrices !== false, info: st === 'unlocked' && w.exists() ? w.info() : null };
+        return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, prices: ctx.cfg().walletPrices !== false, nftAnyHost: ctx.cfg().walletNftAnyHost === true, info: st === 'unlocked' && w.exists() ? w.info() : null };
       }
       case 'wallet:create': return { ok: true, phrase: w.create() };
       case 'wallet:import': w.importPhrase(arg.phrase, { passphrase: arg.passphrase, evmPath: arg.evmPath, solPath: arg.solPath }); return { ok: true };
@@ -271,6 +271,7 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:prices': return { ok: true, ...(await w.priceInfo({ chain: arg.chain === 'sol' ? 'sol' : 'evm', tokens: arg.tokens })) };
       case 'wallet:setPrices': ctx.cfg().walletPrices = !!arg.on; ctx.settingsStore.save(); return { ok: true };
       case 'wallet:nfts': return { ok: true, ...(await w.evmNfts(arg.index)) };
+      case 'wallet:evmNftMeta': return { ok: true, ...(await w.evmNftMeta(String(arg.contract), String(arg.id))) };
       case 'wallet:addNft': return { ok: true, nft: await w.addNft(String(arg.contract), String(arg.id)) };
       case 'wallet:removeNft': return { ok: true, removed: w.removeNft(String(arg.contract), String(arg.id)) };
       case 'wallet:discoverNfts': return { ok: true, ...(await w.discoverNfts(arg.index)) };
@@ -340,6 +341,9 @@ async function walletApi(ctx, entry, name, arg) {
         }
         throw new Error('unknown');
       }
+      case 'wallet:solNfts': return { ok: true, ...(await w.solNfts(String(arg.address), { offset: arg.offset, limit: arg.limit })) };
+      case 'wallet:solNftMeta': return { ok: true, ...(await w.solNftMeta(String(arg.address), String(arg.mint))) };
+      case 'wallet:setNftAnyHost': ctx.cfg().walletNftAnyHost = !!arg.on; ctx.settingsStore.save(); return { ok: true };
       case 'wallet:solTokens': return { ok: true, ...(await w.solTokens(String(arg.address))) };
       case 'wallet:solBalances': return { ok: true, balances: await w.solBalances() };
       case 'wallet:solSetCluster': w.setSolCluster(String(arg.id)); return { ok: true };

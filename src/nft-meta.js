@@ -6,16 +6,18 @@ const IPFS_GATEWAYS = ['https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/'];
 const AR_GATEWAYS = ['https://arweave.net/', 'https://gateway.irys.xyz/'];
 const CID_RE = '(?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{50,120})';
 const AR_RE = '[A-Za-z0-9_-]{43}';
+const EXT_RE = '(?:\\?ext=[A-Za-z0-9]{2,5})?'; // підказка типу файлу від шлюзів Irys/Arweave; інші запити не дозволені
 const PATH_RE = '(?:/(?!\\.+(?:/|$))[A-Za-z0-9._~%@+=,-]{1,120}){0,6}';
-const IPFS_URI = new RegExp(`^ipfs://(?:ipfs/)?(${CID_RE})(${PATH_RE})/?$`);
-const IPFS_HTTP = new RegExp(`^https://(?:ipfs\\.io|dweb\\.link|cloudflare-ipfs\\.com|gateway\\.pinata\\.cloud|nftstorage\\.link)/ipfs/(${CID_RE})(${PATH_RE})/?$`);
-const AR_URI = new RegExp(`^(?:ar://|https://(?:arweave\\.net|gateway\\.irys\\.xyz|arweave\\.dev)/)(${AR_RE})(${PATH_RE})/?$`);
+const IPFS_URI = new RegExp(`^ipfs://(?:ipfs/)?(${CID_RE})(${PATH_RE})/?${EXT_RE}$`);
+const IPFS_HTTP = new RegExp(`^https://(?:ipfs\\.io|dweb\\.link|cloudflare-ipfs\\.com|gateway\\.pinata\\.cloud|nftstorage\\.link)/ipfs/(${CID_RE})(${PATH_RE})/?${EXT_RE}$`);
+const AR_URI = new RegExp(`^(?:ar://|https://(?:arweave\\.net|gateway\\.irys\\.xyz|arweave\\.dev)/)(${AR_RE})(${PATH_RE})/?${EXT_RE}$`);
 const MAX_JSON = 256 * 1024;
-const MAX_IMAGE = 400 * 1024;
+const MAX_IMAGE = 6 * 1024 * 1024; // справжні NFT бувають кількамегабайтними; сторінка зменшує їх у пісочниці й відкидає оригінал
 const MAX_DATA_URI = 600 * 1024;
 
-// Повертає { urls: [...] } для шлюзових адрес, { data: Buffer, type } для data:, або null, якщо джерело не дозволене
-function resolveUri(uri) {
+// Повертає { urls: [...] } для шлюзових адрес, { data: Buffer, type } для data:, { https: url } для довільного https (лише з allowHttps —
+// налаштуванням користувача) або null, якщо джерело не дозволене
+function resolveUri(uri, { allowHttps = false } = {}) {
   if (typeof uri !== 'string' || uri.length > MAX_DATA_URI) return null;
   const u = uri.trim();
   if (/^data:/i.test(u)) {
@@ -31,10 +33,12 @@ function resolveUri(uri) {
   if (m) return { urls: IPFS_GATEWAYS.map(g => g + m[1] + m[2]) };
   m = AR_URI.exec(u);
   if (m) return { urls: AR_GATEWAYS.map(g => g + m[1] + m[2]) };
+  if (allowHttps && /^https:\/\/\S{1,2000}$/i.test(u)) return { https: u };
   return null;
 }
 
-async function fetchLimited(url, max, { fetchImpl = (...a) => fetch(...a), timeout = 8000 } = {}) {
+async function fetchLimited(url, max, { fetchImpl, timeout = 8000, fetchPublic } = {}) {
+  if (!fetchImpl) return (fetchPublic || require('./safe-fetch').fetchPublic)(url, { max, timeout });
   const res = await fetchImpl(url, { signal: AbortSignal.timeout(timeout), redirect: 'error', headers: { accept: '*/*' } });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const len = Number(res.headers && res.headers.get && res.headers.get('content-length'));
@@ -45,9 +49,10 @@ async function fetchLimited(url, max, { fetchImpl = (...a) => fetch(...a), timeo
 }
 
 async function bytesOf(uri, max, opts) {
-  const r = resolveUri(uri);
+  const r = resolveUri(uri, { allowHttps: !!(opts && opts.allowHttps) });
   if (!r) return null;
   if (r.data) return r.data.length <= max ? { buf: r.data, type: r.type } : null;
+  if (r.https) return fetchLimited(r.https, max, { ...opts, fetchImpl: undefined });
   let last;
   for (const url of r.urls) {
     try { return await fetchLimited(url, max, opts); } catch (e) { last = e; }

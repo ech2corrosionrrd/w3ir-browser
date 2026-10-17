@@ -14,7 +14,7 @@ const MAX_TOKENS = 12;
 
 function install(Wallet, { unauthorized }) {
   const proto = Wallet.prototype;
-  const timed = (p, ms = 8000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  const timed = (p, ms = 15000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 
   async function evmChain(w, chainId, addrs, prices) {
     const net = w.network(chainId);

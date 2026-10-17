@@ -22,7 +22,7 @@ const BUILTIN = {
   11155111: [['0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', 'USDC']],
 };
 const MAX_CUSTOM = 40;
-const CALL_TIMEOUT = 8000;
+const CALL_TIMEOUT = 15000;
 
 function install(Wallet, { RpcError, clip, unauthorized }) {
   const proto = Wallet.prototype;

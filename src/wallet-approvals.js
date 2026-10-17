@@ -19,7 +19,7 @@ const LABELS = new Map([[PERMIT2.toLowerCase(), 'Permit2 (Uniswap)']]);
 
 function install(Wallet, { RpcError, clip, unauthorized }) {
   const proto = Wallet.prototype;
-  const timed = (p, ms = 8000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  const timed = (p, ms = 15000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
   const seenList = (w, chainId) => { const s = w.section(); s.approvalsSeen = s.approvalsSeen || {}; return (s.approvalsSeen[chainId] = s.approvalsSeen[chainId] || []); };
   const topicAddr = (t) => getAddress('0x' + String(t).slice(-40));
 

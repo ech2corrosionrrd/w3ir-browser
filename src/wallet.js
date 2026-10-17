@@ -11,7 +11,7 @@ const {
 } = require('ethers');
 
 const BUILTIN_NETWORKS = [
-  { chainId: 1, name: 'Ethereum', symbol: 'ETH', rpc: 'https://ethereum-rpc.publicnode.com', rpcFallback: ['https://cloudflare-eth.com', 'https://1rpc.io/eth', 'https://eth.drpc.org'], explorer: 'https://etherscan.io' },
+  { chainId: 1, name: 'Ethereum', symbol: 'ETH', rpc: 'https://ethereum-rpc.publicnode.com', rpcFallback: ['https://1rpc.io/eth', 'https://eth.drpc.org', 'https://rpc.mevblocker.io'], explorer: 'https://etherscan.io' },
   { chainId: 10, name: 'Optimism', symbol: 'ETH', rpc: 'https://mainnet.optimism.io', explorer: 'https://optimistic.etherscan.io' },
   { chainId: 56, name: 'BNB Smart Chain', symbol: 'BNB', rpc: 'https://bsc-dataseed.binance.org', explorer: 'https://bscscan.com' },
   { chainId: 137, name: 'Polygon', symbol: 'POL', rpc: 'https://polygon-bor-rpc.publicnode.com', rpcFallback: ['https://1rpc.io/matic', 'https://polygon.drpc.org'], explorer: 'https://polygonscan.com' },
@@ -281,7 +281,7 @@ class Wallet {
     const net = this.network(chain);
     const p = this.provider(chain);
     return Promise.all([...this.ownEvm(), ...this.watchAddrs('evm')].map(async (a) => {
-      try { return { address: a, balance: formatEther(await Promise.race([p.getBalance(a), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 8000))])), symbol: net.symbol }; }
+      try { return { address: a, balance: formatEther(await Promise.race([p.getBalance(a), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 15000))])), symbol: net.symbol }; }
       catch { return { address: a, balance: null, symbol: net.symbol }; }
     }));
   }

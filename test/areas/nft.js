@@ -77,6 +77,7 @@ async function nftTests() {
   class FakeWallet {
     constructor() {
       this.s = { nfts: {}, nftHidden: {} };
+      this.ctx = { cfg: () => ({ walletNftAnyHost: false }) };
       this.p = new FailoverProvider([url], net, { timeout: 4000 });
       this.sent = [];
       this.vault = { persist() {} };
@@ -111,14 +112,16 @@ async function nftTests() {
 
   // --- показ: лише власні, метадані лише з безпечних джерел ---
   const list = await w.evmNfts(0);
-  const it1 = list.items.find(x => x.id === '1'), it2 = list.items.find(x => x.id === '2'), it3 = list.items.find(x => x.id === '3'), it7 = list.items.find(x => x.id === '7');
+  const base1 = list.items.find(x => x.id === '1'), it2 = list.items.find(x => x.id === '2'), it7b = list.items.find(x => x.id === '7');
+  // метадані (назва, зображення) тепер завантажуються ліниво окремим викликом
+  const it1 = { ...base1, ...(await w.evmNftMeta(C721, '1')) }, it3 = { ...list.items.find(x => x.id === '3'), ...(await w.evmNftMeta(C721, '3')) }, it7 = { ...it7b, ...(await w.evmNftMeta(C1155, '7')) };
   ok(list.items.length === 3 && !it2, 'nft: чужий токен (той самий контракт) не показується');
   ok(it1 && it1.name === 'Cool #1' && it1.collection === 'COOL' && /^data:image\/svg\+xml;base64,/.test(it1.image) && it1.amount === '1' && it1.metadata === 'ok', 'nft: назва очищена від керівних символів, зображення з ончейн-даних, колекція з контракту');
   ok(it3 && it3.image === '' && it3.name === 'Page', 'nft: поле image з не-зображенням ігнорується');
   ok(it7 && it7.standard === 'erc1155' && it7.amount === '3' && it7.name === 'Item {id}', 'nft: ERC-1155 — кількість з balanceOf, шаблон {id} підставляється лише в адресу метаданих');
   // зовнішній https не відкривається (метадані 'external')
   const extOwner = { ...contracts[C721.toLowerCase()].owners }; contracts[C721.toLowerCase()].owners[2] = owner;
-  const ext = (await w.evmNfts(0)).items.find(x => x.id === '2');
+  const ext = await w.evmNftMeta(C721, '2');
   contracts[C721.toLowerCase()].owners = extOwner;
   ok(ext && ext.metadata === 'external' && ext.image === '' && ext.name === '', 'nft: метадані на довільному https не завантажуються (приватність)');
 
@@ -167,7 +170,8 @@ async function nftTests() {
   const mk = (buf, type = 'image/png', status = 200) => async () => { fetched++; return { ok: status === 200, status, headers: { get: (h) => (h.toLowerCase() === 'content-type' ? type : null) }, arrayBuffer: async () => buf }; };
   ok((await meta.loadImage('ipfs://' + cid, { fetchImpl: mk(png) })).startsWith('data:image/png;base64,'), 'nft-meta: PNG із шлюзу віддається як data:-URL');
   ok(await meta.loadImage('ipfs://' + cid, { fetchImpl: mk(Buffer.from('<html><script>alert(1)</script></html>'), 'image/png') }) === '', 'nft-meta: тип визначається за вмістом: HTML під виглядом image/png відкидається');
-  ok(await meta.loadImage('ipfs://' + cid, { fetchImpl: mk(Buffer.alloc(500 * 1024, 1)) }).catch(() => 'err') !== '' && await meta.loadImage('data:image/png;base64,' + Buffer.alloc(500 * 1024, 1).toString('base64')) === '', 'nft-meta: завеликі зображення відхиляються');
+  ok(await meta.loadImage('ipfs://' + cid, { fetchImpl: mk(Buffer.concat([png, Buffer.alloc(7 * 1024 * 1024, 1)])) }).then(() => 'noerr', () => 'err') === 'err' && await meta.loadImage('data:image/png;base64,' + Buffer.alloc(700 * 1024, 1).toString('base64')) === '', 'nft-meta: завеликі зображення (понад 6 МБ із шлюзу, понад 600 КБ у data:) відхиляються');
+  ok((await meta.loadImage('ipfs://' + cid, { fetchImpl: mk(Buffer.concat([png, Buffer.alloc(3 * 1024 * 1024, 1)])) })).startsWith('data:image/png;base64,'), 'nft-meta: кількамегабайтне зображення (як у справжніх колекціях) проходить');
   const before2 = fetched;
   ok(await meta.loadImage('https://evil.example/a.png', { fetchImpl: mk(png) }) === '' && fetched === before2, 'nft-meta: заборонений хост навіть не запитується');
   ok(await meta.loadImage('ipfs://' + cid, { fetchImpl: async () => { throw new Error('net'); } }).then(() => 'noerr', () => 'err') === 'err', 'nft-meta: мережева помилка шлюзу дає помилку, а не підміну');

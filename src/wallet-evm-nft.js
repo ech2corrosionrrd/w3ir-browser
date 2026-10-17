@@ -24,7 +24,7 @@ const T_1155_SINGLE = topicId('TransferSingle(address,address,address,uint256,ui
 const T_1155_BATCH = topicId('TransferBatch(address,address,address,uint256[],uint256[])');
 const MAX_SAVED = 100;
 const MAX_ID = (1n << 256n) - 1n;
-const CALL_TIMEOUT = 8000;
+const CALL_TIMEOUT = 15000;
 const coder = AbiCoder.defaultAbiCoder();
 
 function install(Wallet, { RpcError, clip, unauthorized }) {
@@ -60,34 +60,41 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     return { owned: b > 0n, amount: b.toString() };
   }
 
-  async function describe(w, chainId, e, withImage) {
-    const out = { contract: e.contract, id: e.id, standard: e.standard, name: '', collection: '', image: '', metadata: 'none' };
+  // Колекція з контракту (дешево): символ чи назва
+  async function collectionOf(w, chainId, e) {
+    if (e.standard !== 'erc721') return '';
     try {
-      if (e.standard === 'erc721') {
-        out.collection = injectionClean(ERC721.decodeFunctionResult('symbol', await w._ethCall(chainId, e.contract, ERC721.encodeFunctionData('symbol')))[0], 24) || '';
-        if (!out.collection) out.collection = injectionClean(ERC721.decodeFunctionResult('name', await w._ethCall(chainId, e.contract, ERC721.encodeFunctionData('name')))[0], 32) || '';
-      }
-    } catch { /* назви колекції немає */ }
+      const sym = injectionClean(ERC721.decodeFunctionResult('symbol', await w._ethCall(chainId, e.contract, ERC721.encodeFunctionData('symbol')))[0], 24);
+      if (sym) return sym;
+    } catch { /* символу немає */ }
+    try { return injectionClean(ERC721.decodeFunctionResult('name', await w._ethCall(chainId, e.contract, ERC721.encodeFunctionData('name')))[0], 32) || ''; } catch { return ''; }
+  }
+
+  // Назва й зображення з метаданих (лише безпечні джерела; з walletNftAnyHost — і довільний https). Викликається ліниво, для видимої картки
+  async function describeMeta(w, chainId, e) {
+    const out = { name: '', image: '', metadata: 'none' };
     try {
       let uri = e.standard === 'erc721'
         ? ERC721.decodeFunctionResult('tokenURI', await w._ethCall(chainId, e.contract, ERC721.encodeFunctionData('tokenURI', [BigInt(e.id)])))[0]
         : ERC1155.decodeFunctionResult('uri', await w._ethCall(chainId, e.contract, ERC1155.encodeFunctionData('uri', [BigInt(e.id)])))[0];
       uri = meta.expandId(uri, e.id);
-      if (!meta.resolveUri(uri)) { out.metadata = 'external'; return out; }
-      const j = await timed(meta.loadJson(uri), 12000);
+      const allowHttps = w.ctx && w.ctx.cfg && w.ctx.cfg().walletNftAnyHost === true;
+      if (!meta.resolveUri(uri, { allowHttps })) { out.metadata = 'external'; return out; }
+      const j = await timed(meta.loadJson(uri, { allowHttps }), 15000);
       if (!j) { out.metadata = 'external'; return out; }
       out.metadata = 'ok';
       out.name = injectionClean(String(j.name || ''), 64);
-      if (withImage) {
-        const img = String(j.image || j.image_url || '');
-        try { out.image = img ? await timed(meta.loadImage(meta.expandId(img, e.id)), 12000) : ''; } catch { out.image = ''; }
+      const img = String(j.image || j.image_url || '');
+      if (img) {
+        try { out.image = await timed(meta.loadImage(meta.expandId(img, e.id), { allowHttps }), 20000); } catch { out.image = ''; }
+        if (!out.image && !meta.resolveUri(meta.expandId(img, e.id), { allowHttps })) out.metadata = 'external';
       }
     } catch { out.metadata = out.metadata === 'none' ? 'unavailable' : out.metadata; }
     return out;
   }
 
   // NFT рахунку у вибраній мережі: збережені (додані вручну чи знайдені), лише ті, що справді належать рахунку
-  proto.evmNfts = async function (index, { maxItems = 40, maxImages = 12 } = {}) {
+  proto.evmNfts = async function (index, { maxItems = 60 } = {}) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
     const owner = this.evmView(index);
@@ -97,9 +104,23 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
       try { const o = await ownership(this, chainId, e, owner); return o.owned ? { e, amount: o.amount } : null; } catch { return null; }
     }));
     const owned = checked.filter(Boolean);
-    let imgs = 0;
-    const items = await Promise.all(owned.map(async ({ e, amount }) => ({ ...(await describe(this, chainId, e, imgs++ < maxImages)), amount })));
+    const items = await Promise.all(owned.map(async ({ e, amount }) => ({ contract: e.contract, id: e.id, standard: e.standard, amount, collection: await collectionOf(this, chainId, e) })));
     return { chainId, items, saved: list.length };
+  };
+
+  // Метадані одного NFT зі збереженого списку (адресу контракту й id беремо зі списку, а не довіряємо сторінці)
+  proto.evmNftMeta = async function (contract, tokenId) {
+    const s = this.data();
+    if (!s) throw unauthorized('Гаманець не створено');
+    const chainId = this.activeChain();
+    const e = savedList(this, chainId).find(x => x.contract === contract && x.id === String(tokenId));
+    if (!e) throw new RpcError(-32602, 'Цього NFT немає у вашому списку.');
+    this._evmMeta = this._evmMeta || new Map();
+    const k = `${chainId}|${contract}|${e.id}|${this.ctx.cfg().walletNftAnyHost === true}`;
+    if (this._evmMeta.has(k)) return this._evmMeta.get(k);
+    const out = await describeMeta(this, chainId, e);
+    if (out.metadata === 'ok' || out.metadata === 'external') { this._evmMeta.set(k, out); if (this._evmMeta.size > 300) this._evmMeta.delete(this._evmMeta.keys().next().value); }
+    return out;
   };
 
   proto.addNft = async function (contract, tokenId) {

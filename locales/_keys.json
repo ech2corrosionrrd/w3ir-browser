@@ -103,7 +103,7 @@
   "pages/settings.js:185"
  ],
  "{0} · контракт {1}": [
-  "src/wallet-evm-nft.js:230"
+  "src/wallet-evm-nft.js:251"
  ],
  "{0} (ваш рахунок)": [
   "src/solana.js:360"
@@ -143,17 +143,17 @@
   "pages/dashboard.js:69"
  ],
  "{0} запитує доступ до {1}": [
-  "src/context.js:462"
+  "src/context.js:463"
  ],
  "{0} інструкцій": [
-  "src/wallet-solana.js:495"
+  "src/wallet-solana.js:536"
  ],
  "{0} мікро-лампортів за одиницю": [
   "src/solana.js:416"
  ],
  "{0} мікро-лампортів за одиницю, до ≈{1} SOL понад базову": [
-  "src/wallet-solana.js:242",
-  "src/wallet-solana.js:324"
+  "src/wallet-solana.js:283",
+  "src/wallet-solana.js:365"
  ],
  "{0} мс": [
   "pages/dashboard.js:36"
@@ -185,13 +185,13 @@
   "src/threats.js:155"
  ],
  "{0}{1} SOL (разом із комісією)": [
-  "src/wallet-solana.js:502"
+  "src/wallet-solana.js:543"
  ],
  "{0}Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам. Завантажуйте лише те, на що маєте право.": [
   "src/app-window.js:386"
  ],
  "{0}Транзакція": [
-  "src/wallet-solana.js:495"
+  "src/wallet-solana.js:536"
  ],
  "**←** і **→** — по історії вкладки; **⟳** — оновити (під час завантаження перетворюється на ✕ — зупинити); **⌂** — домашня сторінка (змінюється в налаштуваннях).": [
   "pages/help-data.js:23"
@@ -266,7 +266,7 @@
   "pages/passwords.js:91"
  ],
  "+ Додати рахунок": [
-  "pages/wallet.js:681"
+  "pages/wallet.js:746"
  ],
  "⚠ Не захищено": [
   "ui/renderer.js:169"
@@ -320,8 +320,8 @@
   "src/wallet-signguard.js:71"
  ],
  "Адреса (EVM або Solana)": [
-  "pages/wallet.js:487",
-  "pages/wallet.js:502"
+  "pages/wallet.js:551",
+  "pages/wallet.js:566"
  ],
  "Адреса або пошук (Ctrl+L). Ключові слова: gh owner/repo, npm, mdn, yt… Повний список у довідці (F1)": [
   "ui/index.html:24"
@@ -333,23 +333,23 @@
   "src/ollama.js:17"
  ],
  "Адреса контракту токена (ERC-20)": [
-  "pages/wallet.js:288",
-  "pages/wallet.js:539"
+  "pages/wallet.js:289",
+  "pages/wallet.js:603"
  ],
  "Адреса контракту NFT": [
-  "pages/wallet.js:270"
+  "pages/wallet.js:271"
  ],
  "Адреса містить «{0}@» — це відомий обман: насправді ви відкриваєте сайт «{1}», а не те, що написано перед @.": [
   "src/threats.js:222"
  ],
  "Адреса отримувача або ім’я .eth / .sol": [
-  "pages/wallet.js:743"
+  "pages/wallet.js:810"
  ],
  "Адреса отримувача нульова: токени було б спалено.": [
   "src/wallet-evm-tokens.js:117"
  ],
  "Адреса отримувача нульова: NFT було б знищено.": [
-  "src/wallet-evm-nft.js:202"
+  "src/wallet-evm-nft.js:223"
  ],
  "Адреса сайту (https://…)": [
   "pages/passwords.js:72"
@@ -370,7 +370,7 @@
   "pages/help-data.js:96"
  ],
  "Адресна книга": [
-  "pages/wallet.js:690"
+  "pages/wallet.js:755"
  ],
  "Адресна книга, ENS, QR": [
   "pages/help-data.js:163"
@@ -382,10 +382,10 @@
   "src/solana.js:139"
  ],
  "Актив": [
-  "pages/wallet.js:813"
+  "pages/wallet.js:880"
  ],
  "Активні дозволи": [
-  "pages/wallet.js:706"
+  "pages/wallet.js:771"
  ],
  "Активні фільтри EasyList / EasyPrivacy / uBlock + приховування рекламних блоків": [
   "pages/settings.js:257"
@@ -395,14 +395,14 @@
   "pages/common.js:19"
  ],
  "Баланс зменшиться на {0} SOL, хоча явного переказу SOL в інструкціях немає (так працюють і обміни через програми, і шахрайські транзакції).": [
-  "src/wallet-solana.js:506"
+  "src/wallet-solana.js:547"
  ],
  "баланс недоступний": [
   "pages/wallet.js:256",
-  "pages/wallet.js:350"
+  "pages/wallet.js:349"
  ],
  "Баланси читаються з контрактів. Назви токенів задає їхній творець: звіряйте адресу контракту.": [
-  "pages/wallet.js:343"
+  "pages/wallet.js:342"
  ],
  "Без назви": [
   "src/app-window.js:809",
@@ -415,10 +415,10 @@
   "src/ipc.js:263"
  ],
  "без фрази-пароля": [
-  "pages/wallet.js:713"
+  "pages/wallet.js:778"
  ],
  "Безпека": [
-  "pages/wallet.js:708"
+  "pages/wallet.js:773"
  ],
  "Більше не питати": [
   "src/app-window.js:387",
@@ -528,7 +528,7 @@
   "src/wallet.js:572"
  ],
  "вашого місцезнаходження": [
-  "src/context.js:72"
+  "src/context.js:73"
  ],
  "Вбудований гаманець для мереж **EVM** (Ethereum, Polygon, Base, Arbitrum, Optimism, BNB Chain, Avalanche та власні) і для **Solana**. Сайти бачать його як `window.ethereum`, `window.solana` та «W3IR Wallet» у списку гаманців. Працює у звичайних вікнах на https-сайтах.": [
   "pages/help-data.js:154"
@@ -549,7 +549,7 @@
   "pages/help-data.js:20"
  ],
  "Введіть txId або ar://...": [
-  "pages/wallet.js:839"
+  "pages/wallet.js:906"
  ],
  "Вводьте кілька слів у будь-якому порядку — показуються лише збіги. ↑ ↓ — вибір, **Enter** — виконати, **Shift+Enter** — відкрити адресу в новій вкладці, **Esc** — закрити. На сторінках репозиторіїв GitHub з’являються додаткові команди (git clone, ZIP, github.dev…).": [
   "pages/help-data.js:49"
@@ -596,7 +596,7 @@
   "pages/import.js:17"
  ],
  "Вибір скасовано.": [
-  "src/ipc.js:304"
+  "src/ipc.js:305"
  ],
  "Вибрати папку…": [
   "pages/settings.js:220"
@@ -605,7 +605,7 @@
   "pages/wallet.js:75"
  ],
  "Вибрати файл і зберегти": [
-  "pages/wallet.js:622"
+  "pages/wallet.js:687"
  ],
  "Вибрати файл…": [
   "pages/passwords.js:111"
@@ -632,7 +632,7 @@
  ],
  "Видалити гаманець": [
   "src/ipc.js:262",
-  "pages/wallet.js:726"
+  "pages/wallet.js:793"
  ],
  "Видалити гаманець із цього пристрою?": [
   "src/ipc.js:262"
@@ -641,7 +641,7 @@
   "src/tab-groups.js:240"
  ],
  "Видалити імпортований рахунок із гаманця?": [
-  "src/ipc.js:319"
+  "src/ipc.js:320"
  ],
  "Видалити назавжди": [
   "src/ipc.js:133"
@@ -653,13 +653,13 @@
   "src/ipc.js:134"
  ],
  "Видалити рахунок": [
-  "src/ipc.js:319"
+  "src/ipc.js:320"
  ],
  "Видалити файл безпечно": [
   "src/ipc.js:88"
  ],
  "Видаляє ключі з цього пристрою. Без фрази відновлення кошти недоступні.": [
-  "pages/wallet.js:726"
+  "pages/wallet.js:793"
  ],
  "Видаляє cookie й локальні дані цього сайту: ви вийдете з акаунтів на ньому": [
   "ui/overlay.js:95"
@@ -699,8 +699,11 @@
  "Вимкнено": [
   "pages/dashboard.js:47"
  ],
+ "Вимкнено: лише IPFS, Arweave/Irys і дані з блокчейну (сторонні сайти не бачать вашого IP). Увімкніть, якщо ваші NFT зберігаються на звичайних сайтах: такі сайти побачать ваш IP. Завантаження виконує браузер із захистом від локальних адрес і ліміти розміру.": [
+  "pages/wallet.js:785"
+ ],
  "Вимкніть, якщо не користуєтеся dApp — сайти не зможуть навіть побачити гаманець": [
-  "pages/wallet.js:716"
+  "pages/wallet.js:781"
  ],
  "Вимкніть, якщо сайт працює неправильно: виняток діє лише для цього сайту, сторінка перезавантажиться": [
   "ui/overlay.js:89"
@@ -730,14 +733,14 @@
   "src/wallet-signguard.js:178"
  ],
  "Відкликає право адреси витрачати ваш токен (approve 0). Корисно, якщо ви давали необмежений дозвіл сайту, якому більше не довіряєте.": [
-  "pages/wallet.js:720"
+  "pages/wallet.js:787"
  ],
  "Відключати сайти, якими не користувались N днів (0 — ніколи)": [
-  "pages/wallet.js:612"
+  "pages/wallet.js:677"
  ],
  "Відключити": [
   "pages/settings.js:120",
-  "pages/wallet.js:436"
+  "pages/wallet.js:500"
  ],
  "Відкриває вікно іншого профілю з окремими даними.": [
   "src/tips.js:48"
@@ -821,7 +824,7 @@
   "pages/warning.js:40"
  ],
  "Відкрити ar://": [
-  "pages/wallet.js:875"
+  "pages/wallet.js:942"
  ],
  "Відкрити magnet-посилання у торент-клієнті?": [
   "src/app-window.js:385"
@@ -833,7 +836,7 @@
   "src/app-window.js:898"
  ],
  "Відновити гаманець із резервної копії": [
-  "src/ipc.js:303"
+  "src/ipc.js:304"
  ],
  "Відновити з копії": [
   "pages/passwords.js:116"
@@ -890,7 +893,7 @@
   "src/wallet-backup.js:25"
  ],
  "Вкажіть https-адресу теки з оновленнями або github:власник/репозиторій.": [
-  "src/ipc.js:453"
+  "src/ipc.js:457"
  ],
  "вкладка {0}": [
   "src/assistant.js:36"
@@ -954,7 +957,7 @@
   "ui/index.html:19"
  ],
  "Всі NFT та постійні медіафайли у W3IR Browser завантажуються та верифікуються напряму через децентралізоване сховище Arweave (шлюзи Irys / Arweave) без посередників чи платних API.": [
-  "pages/wallet.js:884"
+  "pages/wallet.js:951"
  ],
  "Вставити": [
   "src/app-window.js:937"
@@ -1001,13 +1004,13 @@
   "pages/wallet.js:19"
  ],
  "Гаманець вимкнено": [
-  "src/ipc.js:502"
+  "src/ipc.js:506"
  ],
  "Гаманець дозволяє підключатися до децентралізованих застосунків (dApp), підписувати повідомлення, надсилати транзакції та керувати NFT на мережах, сумісних з Ethereum (EVM).": [
   "pages/wallet.js:55"
  ],
  "Гаманець доступний лише на https-сайтах": [
-  "src/ipc.js:501"
+  "src/ipc.js:505"
  ],
  "Гаманець заблоковано — розблокуйте сховище паролів": [
   "src/wallet.js:122"
@@ -1068,7 +1071,7 @@
  ],
  "Готово: резервну копію підтверджено.": [
   "pages/wallet.js:119",
-  "pages/wallet.js:715"
+  "pages/wallet.js:780"
  ],
  "Готово.": [
   "pages/settings.js:27"
@@ -1098,7 +1101,7 @@
   "src/wallet.js:535"
  ],
  "Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.": [
-  "src/wallet-solana.js:448",
+  "src/wallet-solana.js:489",
   "src/wallet.js:517"
  ],
  "Дані сайту очищено": [
@@ -1111,7 +1114,7 @@
   "src/vault.js:159"
  ],
  "Дані схожі на транзакцію — підпис як «повідомлення» заборонено (використовуйте signTransaction)": [
-  "src/wallet-solana.js:442"
+  "src/wallet-solana.js:483"
  ],
  "Дані читаються з копії файлів профілю — оригінальний браузер не змінюється. Якщо з’являється помилка про заблокований файл, закрийте той браузер і повторіть. Повторний імпорт не створює дублікатів.": [
   "pages/import.js:37"
@@ -1132,10 +1135,10 @@
   "pages/help-data.js:220"
  ],
  "Депозит за створення токен-акаунта (з вашого рахунку)": [
-  "src/wallet-solana.js:323"
+  "src/wallet-solana.js:364"
  ],
  "Децентралізоване сховище & NFT (Arweave / Irys)": [
-  "pages/wallet.js:688"
+  "pages/wallet.js:753"
  ],
  "Джерело оновлень": [
   "pages/settings.js:103"
@@ -1151,13 +1154,13 @@
   "src/wallet-signguard.js:144"
  ],
  "Діють для переказів зі сторінки гаманця (не для транзакцій, які пропонують сайти). Зміна потребує майстер-пароля. Ліміти в USD працюють лише коли ціна відома.": [
-  "pages/wallet.js:711"
+  "pages/wallet.js:776"
  ],
  "Діючих дозволів не знайдено.": [
-  "pages/wallet.js:653"
+  "pages/wallet.js:718"
  ],
  "Діючих дозволів: {0}.": [
-  "pages/wallet.js:653"
+  "pages/wallet.js:718"
  ],
  "Дія": [
   "src/wallet-approvals.js:117",
@@ -1171,13 +1174,13 @@
   "ui/overlay.js:240"
  ],
  "Для вибраної мережі Solana; порожнє поле — типові вузли. Адреси виводяться з тієї самої фрази відновлення (шлях m/44′/501′/N′/0′, як у Phantom).": [
-  "pages/wallet.js:705"
+  "pages/wallet.js:770"
  ],
  "Для входу через Ethereum (SIWE) браузер перевіряє домен, адресу, мережу й термін: якщо домен у повідомленні не збігається з сайтом, це фішинг, і запит позначається небезпечним. Підписи дозволів (permit, Permit2) розшифровуються: токен, сума, отримувач (контракт чи звичайний рахунок) і термін; необмежені дозволи та перекази за підписом позначаються як небезпечні. Пакетні виклики (wallet_sendCalls) і делегування рахунку (EIP-7702) вимкнено; якщо ваш рахунок уже делеговано контракту, ви побачите попередження.": [
   "pages/help-data.js:171"
  ],
  "для перегляду: {0}": [
-  "pages/wallet.js:584"
+  "pages/wallet.js:648"
  ],
  "Для підтвердження введіть майстер-пароль.": [
   "ui/overlay.js:137"
@@ -1225,16 +1228,16 @@
   "pages/passwords.js:114"
  ],
  "Додано: {0}": [
-  "pages/wallet.js:294"
+  "pages/wallet.js:295"
  ],
  "Додати": [
-  "pages/wallet.js:502"
+  "pages/wallet.js:566"
  ],
  "Додати адресу для перегляду": [
-  "pages/wallet.js:502"
+  "pages/wallet.js:566"
  ],
  "Додати адресу для перегляду…": [
-  "pages/wallet.js:681"
+  "pages/wallet.js:746"
  ],
  "Додати в закладки (Ctrl+D). Закладки видно під адресним рядком": [
   "ui/index.html:26"
@@ -1246,7 +1249,7 @@
   "src/tab-groups.js:228"
  ],
  "Додати контакт": [
-  "pages/wallet.js:697"
+  "pages/wallet.js:762"
  ],
  "Додати мережу": [
   "src/wallet.js:468"
@@ -1256,10 +1259,10 @@
  ],
  "Додати токен": [
   "src/wallet.js:385",
-  "pages/wallet.js:296"
+  "pages/wallet.js:297"
  ],
  "Додати NFT": [
-  "pages/wallet.js:280"
+  "pages/wallet.js:281"
  ],
  "Додати, змінити, видалити паролі; резервна копія та імпорт": [
   "ui/overlay.js:253"
@@ -1307,7 +1310,7 @@
   "pages/settings.js:263"
  ],
  "Дозволити": [
-  "src/context.js:459",
+  "src/context.js:460",
   "ui/overlay.js:72"
  ],
  "Дозволити ШІ керувати браузером": [
@@ -1336,7 +1339,7 @@
   "src/threats.js:255"
  ],
  "Домен токенізовано (NFT) або належить програмі: гаманець такі імена не розв’язує. Попросіть адресу гаманця одержувача.": [
-  "src/wallet-solana.js:217"
+  "src/wallet-solana.js:258"
  ],
  "Домен у повідомленні": [
   "src/wallet-signguard.js:71"
@@ -1360,7 +1363,7 @@
   "src/wallet-simulate.js:118"
  ],
  "доступ до публічної адреси Solana та право пропонувати підписи": [
-  "src/wallet-solana.js:418"
+  "src/wallet-solana.js:459"
  ],
  "Доступне оновлення {0}. Клік — відкрити налаштування оновлень": [
   "ui/renderer.js:184"
@@ -1401,13 +1404,13 @@
   "src/tab-groups.js:10"
  ],
  "Жоден сайт не підключено.": [
-  "pages/wallet.js:430"
+  "pages/wallet.js:494"
  ],
  "Журнал": [
   "pages/dashboard.js:78"
  ],
  "Журнал дій": [
-  "pages/wallet.js:700"
+  "pages/wallet.js:765"
  ],
  "Журнал оновлень": [
   "pages/settings.js:104"
@@ -1462,7 +1465,7 @@
   "pages/settings.js:53"
  ],
  "Заблокувати": [
-  "src/context.js:459",
+  "src/context.js:460",
   "pages/passwords.js:129",
   "pages/wallet.js:187"
  ],
@@ -1479,7 +1482,7 @@
   "ui/index.html:32"
  ],
  "Завантаження з Arweave шлюзів…": [
-  "pages/wallet.js:846"
+  "pages/wallet.js:913"
  ],
  "Завантаження заблоковано: сайт розповсюджує шкідливе ПЗ або шахрайський": [
   "src/downloads.js:45"
@@ -1504,6 +1507,9 @@
  ],
  "Завантажити оновлення": [
   "pages/settings.js:100"
+ ],
+ "Завантажувати картинки й метадані NFT з будь-яких сайтів": [
+  "pages/wallet.js:785"
  ],
  "Завантажувати оновлення автоматично": [
   "pages/settings.js:102"
@@ -1658,7 +1664,7 @@
   "src/wallet-evm-nft.js:37"
  ],
  "Запам'ятати вибір для цього сайту": [
-  "src/context.js:463"
+  "src/context.js:464"
  ],
  "Запис не знайдено.": [
   "src/ipc.js:52",
@@ -1671,7 +1677,7 @@
   "pages/assistant.js:23"
  ],
  "Запит дозволу": [
-  "src/context.js:461"
+  "src/context.js:462"
  ],
  "Запит заблоковано": [
   "pages/error.js:18"
@@ -1773,10 +1779,10 @@
   "ui/index.html:37"
  ],
  "Зберегти зашифровану копію": [
-  "pages/wallet.js:622"
+  "pages/wallet.js:687"
  ],
  "Зберегти зашифровану копію…": [
-  "pages/wallet.js:715"
+  "pages/wallet.js:780"
  ],
  "Зберегти зображення як…": [
   "src/app-window.js:930"
@@ -1785,7 +1791,7 @@
   "ui/renderer.js:393"
  ],
  "Зберегти резервну копію гаманця": [
-  "src/ipc.js:297"
+  "src/ipc.js:298"
  ],
  "Зберегти файл…": [
   "pages/passwords.js:105"
@@ -1800,18 +1806,18 @@
   "pages/passwords.js:146"
  ],
  "Збережені NFT цієї мережі не належать вибраному рахунку.": [
-  "pages/wallet.js:369"
+  "pages/wallet.js:437"
  ],
  "Збереження паролів": [
   "pages/help-data.js:110"
  ],
  "Збереження скасовано.": [
-  "src/ipc.js:298"
+  "src/ipc.js:299"
  ],
  "Збережено.": [
   "pages/assistant.js:51",
-  "pages/wallet.js:564",
-  "pages/wallet.js:570"
+  "pages/wallet.js:628",
+  "pages/wallet.js:634"
  ],
  "Збережіть контакти (EVM і Solana) — вони не вважаються новими адресами. У полі отримувача можна вписати ім’я `.eth` (ENS) або `.sol` (Solana Name Service, лише Mainnet): браузер покаже адресу, на яку воно вказує, звірте її. Токенізовані домени .sol не розв’язуються. Кнопка «QR» біля адреси показує її QR-код для отримання коштів.": [
   "pages/help-data.js:163"
@@ -1832,7 +1838,7 @@
   "src/tips.js:41"
  ],
  "Звідки": [
-  "pages/wallet.js:811"
+  "pages/wallet.js:878"
  ],
  "Звук": [
   "pages/help-data.js:35"
@@ -1868,7 +1874,7 @@
   "src/tips.js:20"
  ],
  "Зміна балансу SOL": [
-  "src/wallet-solana.js:502"
+  "src/wallet-solana.js:543"
  ],
  "Зміна власника акаунта {0} (System Assign)": [
   "src/solana.js:379"
@@ -1897,7 +1903,7 @@
   "src/tips.js:32"
  ],
  "Знайдено в постійному сховищі Arweave.": [
-  "pages/wallet.js:854"
+  "pages/wallet.js:921"
  ],
  "Знайдено версію {0}": [
   "pages/settings.js:84"
@@ -1906,11 +1912,11 @@
   "pages/assistant.js:46"
  ],
  "Знайдено нових: {0}.": [
-  "pages/wallet.js:285",
-  "pages/wallet.js:645"
+  "pages/wallet.js:286",
+  "pages/wallet.js:710"
  ],
  "Знайти дозволи": [
-  "pages/wallet.js:646"
+  "pages/wallet.js:711"
  ],
  "Знайти на сторінці": [
   "src/app-window.js:814",
@@ -1918,7 +1924,7 @@
   "ui/index.html:42"
  ],
  "Знайти NFT": [
-  "pages/wallet.js:287"
+  "pages/wallet.js:288"
  ],
  "Зовнішні програми": [
   "pages/help-data.js:102"
@@ -1942,17 +1948,17 @@
   "pages/help-data.js:91"
  ],
  "Із адресної книги…": [
-  "pages/wallet.js:748",
-  "pages/wallet.js:767"
+  "pages/wallet.js:815",
+  "pages/wallet.js:834"
  ],
  "Ім’я {0} вказує на адресу {1}. Звірте її з тією, яку вам дав одержувач.": [
-  "pages/wallet.js:760"
+  "pages/wallet.js:827"
  ],
  "Ім’я користувача": [
   "pages/passwords.js:73"
  ],
  "Імена .sol розв’язуються лише в Mainnet Beta.": [
-  "src/wallet-solana.js:211"
+  "src/wallet-solana.js:252"
  ],
  "Імпорт даних": [
   "pages/newtab.js:26",
@@ -1969,7 +1975,7 @@
   "src/app-window.js:869"
  ],
  "Імпорт за приватним ключем": [
-  "pages/wallet.js:519",
+  "pages/wallet.js:583",
   "pages/help-data.js:164"
  ],
  "Імпорт із Chrome, Edge, Firefox": [
@@ -1999,10 +2005,10 @@
  ],
  "Імпортувати": [
   "pages/import.js:26",
-  "pages/wallet.js:517"
+  "pages/wallet.js:581"
  ],
  "Імпортувати ключ…": [
-  "pages/wallet.js:681"
+  "pages/wallet.js:746"
  ],
  "Імпортувати фразу": [
   "pages/wallet.js:95"
@@ -2058,7 +2064,7 @@
   "src/tips.js:38"
  ],
  "Історія Solana": [
-  "pages/wallet.js:685"
+  "pages/wallet.js:750"
  ],
  "Камера та мікрофон": [
   "ui/overlay.js:67"
@@ -2070,7 +2076,7 @@
   "pages/settings.js:47"
  ],
  "камери та/або мікрофона": [
-  "src/context.js:71"
+  "src/context.js:72"
  ],
  "КБ": [
   "pages/common.js:19"
@@ -2112,18 +2118,18 @@
   "pages/help-data.js:175"
  ],
  "Кількість": [
-  "src/wallet-evm-nft.js:230",
+  "src/wallet-evm-nft.js:251",
   "src/wallet-evm-tokens.js:137",
-  "src/wallet-solana.js:322"
+  "src/wallet-solana.js:363"
  ],
  "Кількість має бути цілим числом, більшим за нуль.": [
-  "src/wallet-evm-nft.js:211"
+  "src/wallet-evm-nft.js:232"
  ],
  "Кількість підписів не збігається із заголовком": [
   "src/solana.js:154"
  ],
  "Кількість: {0}": [
-  "pages/wallet.js:378"
+  "pages/wallet.js:442"
  ],
  "Клієнт": [
   "pages/dashboard.js:52"
@@ -2205,16 +2211,16 @@
  ],
  "Кому видано дозвіл": [
   "src/wallet-extras.js:142",
-  "pages/wallet.js:553"
+  "pages/wallet.js:617"
  ],
  "Кому видано дозвіл (адреса)": [
-  "pages/wallet.js:540"
+  "pages/wallet.js:604"
  ],
  "Кому: {0}": [
-  "pages/wallet.js:660"
+  "pages/wallet.js:725"
  ],
  "Контактів поки немає.": [
-  "pages/wallet.js:492"
+  "pages/wallet.js:556"
  ],
  "Контекстна дія для відкритого репозиторію GitHub: відкриває сторінку в новій вкладці.": [
   "src/tips.js:51"
@@ -2235,7 +2241,7 @@
   "src/wallet.js:552"
  ],
  "Копію збережено: {0}": [
-  "pages/wallet.js:626"
+  "pages/wallet.js:691"
  ],
  "Копіювати": [
   "src/app-window.js:937",
@@ -2348,7 +2354,7 @@
  "Мережа": [
   "src/wallet-approvals.js:117",
   "src/wallet-extras.js:110",
-  "src/wallet-solana.js:418"
+  "src/wallet-solana.js:459"
  ],
  "Мережа (Chain ID)": [
   "src/wallet-signguard.js:73"
@@ -2369,7 +2375,7 @@
   "src/wallet-evm-tokens.js:137"
  ],
  "Мережа NFT": [
-  "src/wallet-evm-nft.js:230"
+  "src/wallet-evm-nft.js:251"
  ],
  "Мережа Solana": [
   "pages/wallet.js:169"
@@ -2378,17 +2384,20 @@
   "pages/dashboard.js:17"
  ],
  "Мережі та RPC": [
-  "pages/wallet.js:702",
+  "pages/wallet.js:767",
   "pages/help-data.js:159"
  ],
- "Метадані на стороньому сервері не завантажуються (приватність).": [
-  "pages/wallet.js:379"
+ "Метадані на стороньому сервері не завантажуються (приватність). Дозвіл — у розділі «Безпека».": [
+  "pages/wallet.js:398"
+ ],
+ "Метадані недоступні зараз.": [
+  "pages/wallet.js:399"
  ],
  "Метод не підтримується": [
   "src/wallet.js:394"
  ],
  "Метод не підтримується: {0}": [
-  "src/wallet-solana.js:398",
+  "src/wallet-solana.js:439",
   "src/wallet.js:400"
  ],
  "Метод не підтримується.": [
@@ -2451,7 +2460,7 @@
  "На сайті натисніть «Connect wallet» → «W3IR Wallet». З’явиться вікно підтвердження браузера. Сайт отримає лише адресу рахунку.": [
   "pages/help-data.js:156"
  ],
- "На сторінці гаманця видно баланси токенів: ERC-20 (USDC показується завжди; свій токен додайте за адресою контракту) і SPL на Solana. NFT: ERC-721 та ERC-1155 на EVM (додайте за адресою контракту та id або знайдіть серед недавніх переказів) і NFT Solana. Назви токенів і NFT задають їхні творці й можуть вводити в оману: звіряйте адресу контракту. Зображення NFT завантажуються лише з IPFS, Arweave або з блокчейну, метадані на довільних сайтах не відкриваються. Купівля й продаж NFT працюють на маркетплейсах через підключення гаманця.": [
+ "На сторінці гаманця видно баланси токенів: ERC-20 (USDC показується завжди; свій токен додайте за адресою контракту) і SPL на Solana. NFT: ERC-721 та ERC-1155 на EVM (додайте за адресою контракту та id або знайдіть серед недавніх переказів) і NFT Solana. Назви токенів і NFT задають їхні творці й можуть вводити в оману: звіряйте адресу контракту. NFT показуються сторінками, назви й зображення підвантажуються для видимих карток. Зображення завантажуються лише з IPFS, Arweave/Irys або з блокчейну; метадані на довільних сайтах за замовчуванням не відкриваються (такі сайти бачили б ваш IP): дозволити їх можна в розділі «Безпека». Купівля й продаж NFT працюють на маркетплейсах через підключення гаманця.": [
   "pages/help-data.js:160"
  ],
  "На сторінці репозиторію натисніть **Ctrl+K**: копіювати `git clone` (HTTPS/SSH), завантажити ZIP, відкрити в github.dev, Issues/Pull requests/Actions/Releases, відкрити в GitHub Desktop чи VS Code; для файлу — Raw.": [
@@ -2470,31 +2479,31 @@
   "pages/help-data.js:130"
  ],
  "Надавати провайдер сайтам (window.ethereum, window.solana)": [
-  "pages/wallet.js:716"
+  "pages/wallet.js:781"
  ],
  "Надіслано. Підпис транзакції: {0}": [
-  "pages/wallet.js:547",
-  "pages/wallet.js:804"
+  "pages/wallet.js:611",
+  "pages/wallet.js:871"
  ],
  "Надіслати": [
   "pages/wallet.js:212",
   "pages/wallet.js:225",
-  "pages/wallet.js:329"
+  "pages/wallet.js:333"
  ],
  "Надсилає транзакцію approve з нульовою сумою для вибраного токена й адреси. У вікні підтвердження буде видно поточний дозвіл. Скасування коштує комісії за газ.": [
-  "pages/wallet.js:552"
+  "pages/wallet.js:616"
  ],
  "Надсилання коштів": [
   "pages/help-data.js:162"
  ],
  "надсилання сповіщень": [
-  "src/context.js:73"
+  "src/context.js:74"
  ],
  "Надсилати «Не відстежувати» (DNT / GPC)": [
   "pages/settings.js:261"
  ],
  "Надсилати лише на мої рахунки та адреси з адресної книги": [
-  "pages/wallet.js:609"
+  "pages/wallet.js:674"
  ],
  "Назад": [
   "src/app-window.js:948"
@@ -2508,7 +2517,7 @@
  "Назва": [
   "src/wallet.js:469",
   "pages/profiles.js:19",
-  "pages/wallet.js:486"
+  "pages/wallet.js:550"
  ],
  "Назва «{0}» стоїть у піддомені, але справжній домен сайту — «{1}». Це поширений прийом фішингу.": [
   "src/threats.js:248"
@@ -2517,7 +2526,7 @@
   "pages/wallet.js:194"
  ],
  "Назва (необов’язково, до 32 символів)": [
-  "pages/wallet.js:502"
+  "pages/wallet.js:566"
  ],
  "Назва групи": [
   "ui/renderer.js:44"
@@ -2535,13 +2544,13 @@
   "pages/wallet.js:194"
  ],
  "Назва рахунку (необов’язково)": [
-  "pages/wallet.js:509"
+  "pages/wallet.js:573"
  ],
  "Назви й зображення NFT задає їхній творець і вони можуть вводити в оману: звіряйте адресу контракту. Зображення завантажуються лише з IPFS, Arweave або з блокчейну.": [
-  "pages/wallet.js:368"
+  "pages/wallet.js:405"
  ],
  "Назви токенів задають їхні творці й можуть вводити в оману: звіряйте адресу mint.": [
-  "pages/wallet.js:321"
+  "pages/wallet.js:324"
  ],
  "Налаштування": [
   "src/app-window.js:826",
@@ -2570,7 +2579,7 @@
   "ui/index.html:45"
  ],
  "Натисніть «Знайти дозволи», щоб переглянути, хто може витрачати ваші токени.": [
-  "pages/wallet.js:653"
+  "pages/wallet.js:718"
  ],
  "Натисніть **🔑** на сторінці входу → оберіть обліковий запис. Заповнення працює **лише за вашою дією**, лише на https і лише на сайті з точно такою самою адресою (домен, порт) — це захист від фішингу. У вбудованих рамках (iframe) автозаповнення вимкнено.": [
   "pages/help-data.js:111"
@@ -2591,7 +2600,7 @@
   "src/wallet-evm-tokens.js:93"
  ],
  "Не більше {0} збережених NFT на мережу.": [
-  "src/wallet-evm-nft.js:120"
+  "src/wallet-evm-nft.js:141"
  ],
  "Не більше {0} імпортованих рахунків.": [
   "src/wallet-import.js:89"
@@ -2612,7 +2621,7 @@
   "src/updater.js:167"
  ],
  "не вдалося виконати": [
-  "src/wallet-solana.js:470"
+  "src/wallet-solana.js:511"
  ],
  "Не вдалося відкрити сторінку": [
   "pages/error.js:20",
@@ -2634,27 +2643,27 @@
   "src/wallet-extras.js:121"
  ],
  "Не вдалося надіслати транзакцію: {0}": [
-  "src/wallet-solana.js:522",
+  "src/wallet-solana.js:563",
   "src/wallet.js:625"
  ],
  "Не вдалося отримати номер блоку: {0}": [
   "src/wallet-approvals.js:34",
-  "src/wallet-evm-nft.js:152"
+  "src/wallet-evm-nft.js:173"
  ],
  "Не вдалося отримати blockhash": [
-  "src/wallet-solana.js:319"
+  "src/wallet-solana.js:360"
  ],
  "Не вдалося отримати blockhash: {0}": [
-  "src/wallet-solana.js:234"
+  "src/wallet-solana.js:275"
  ],
  "Не вдалося перевірити власника NFT: {0}": [
-  "src/wallet-evm-nft.js:215"
+  "src/wallet-evm-nft.js:236"
  ],
  "Не вдалося перевірити отримувача": [
-  "src/wallet-solana.js:293"
+  "src/wallet-solana.js:334"
  ],
  "Не вдалося перевірити токен-акаунт одержувача": [
-  "src/wallet-solana.js:299"
+  "src/wallet-solana.js:340"
  ],
  "Не вдалося перевірити nonce: {0}": [
   "src/wallet-extras.js:96"
@@ -2679,16 +2688,16 @@
   "src/update-verify.js:40"
  ],
  "Не вдалося прочитати токен": [
-  "src/wallet-solana.js:268"
+  "src/wallet-solana.js:309"
  ],
  "Не вдалося прочитати токен-акаунти": [
-  "src/wallet-solana.js:281"
+  "src/wallet-solana.js:322"
  ],
  "Не вдалося прочитати файл — закрийте цей браузер і повторіть.": [
   "src/importer.js:81"
  ],
  "Не вдалося розв'язати ім'я: {0}": [
-  "src/wallet-solana.js:214"
+  "src/wallet-solana.js:255"
  ],
  "Не вдалося розв’язати ім’я: {0}": [
   "src/wallet-extras.js:199"
@@ -2703,13 +2712,13 @@
   "src/sync.js:87"
  ],
  "Не вдалося симулювати транзакцію — наслідки не перевірено.": [
-  "src/wallet-solana.js:504"
+  "src/wallet-solana.js:545"
  ],
  "Не вдалося увімкнути режим читання": [
   "src/app-window.js:706"
  ],
  "не виконано": [
-  "src/wallet-solana.js:501"
+  "src/wallet-solana.js:542"
  ],
  "не виявлено (за журналами подій)": [
   "src/wallet-simulate.js:114"
@@ -2737,20 +2746,20 @@
  ],
  "Не можна надсилати на той самий рахунок.": [
   "src/solana.js:327",
-  "src/wallet-evm-nft.js:204",
-  "src/wallet-solana.js:230"
+  "src/wallet-evm-nft.js:225",
+  "src/wallet-solana.js:271"
  ],
  "Не підтверджено.": [
-  "pages/wallet.js:714"
+  "pages/wallet.js:779"
  ],
  "Не підтримуються Bitcoin, апаратні гаманці (Ledger, Trezor), обміни й мости та прямі підписки (eth_subscribe). Програмовані NFT Solana (pNFT) гаманець не надсилає. Код гаманця новий і незалежно не аудитований: для великих сум користуйтеся апаратним гаманцем.": [
   "pages/help-data.js:176"
  ],
  "Не показуйте цей ключ нікому й не вставляйте його на сайтах: хто його знає, контролює рахунок. Вікно закриється автоматично через хвилину.": [
-  "pages/wallet.js:529"
+  "pages/wallet.js:593"
  ],
  "Не Mainnet Beta: ціни й підсумок не рахуються": [
-  "pages/wallet.js:597"
+  "pages/wallet.js:661"
  ],
  "небезпечна адреса RPC": [
   "src/dashboard.js:16"
@@ -2771,16 +2780,16 @@
   "src/wallet.js:269"
  ],
  "Невідома мережа Solana": [
-  "src/wallet-solana.js:33",
-  "src/wallet-solana.js:38",
-  "src/wallet-solana.js:48"
+  "src/wallet-solana.js:32",
+  "src/wallet-solana.js:37",
+  "src/wallet-solana.js:47"
  ],
  "Невідома мережа.": [
   "src/wallet-import.js:204",
   "src/wallet-import.js:234"
  ],
  "Невідома програма токена.": [
-  "src/wallet-solana.js:272"
+  "src/wallet-solana.js:313"
  ],
  "Невідомий виклик контракту: підтверджуйте лише якщо довіряєте сайту.": [
   "src/wallet.js:70"
@@ -2800,7 +2809,7 @@
   "src/wallet-extras.js:41"
  ],
  "Невідомий рівень швидкості.": [
-  "src/wallet-solana.js:195"
+  "src/wallet-solana.js:236"
  ],
  "Невідомий формат файлу синхронізації.": [
   "src/sync.js:84"
@@ -2824,29 +2833,29 @@
   "src/tips.js:34"
  ],
  "Недійсний формат посилання ar://": [
-  "src/ipc.js:368"
- ],
- "Недійсний хеш транзакції Arweave (має бути 43 символи base64url).": [
   "src/ipc.js:372"
  ],
+ "Недійсний хеш транзакції Arweave (має бути 43 символи base64url).": [
+  "src/ipc.js:376"
+ ],
  "Недійсний хеш транзакції Arweave.": [
-  "src/ipc.js:383",
-  "src/ipc.js:390"
+  "src/ipc.js:387",
+  "src/ipc.js:394"
  ],
  "Недостатньо токенів: на найбільшому токен-акаунті {0}.": [
-  "src/wallet-solana.js:289"
+  "src/wallet-solana.js:330"
  ],
  "Недостатньо токенів: на рахунку {0} {1}.": [
   "src/wallet-evm-tokens.js:127"
  ],
  "Недостатньо: на рахунку {0} шт.": [
-  "src/wallet-evm-nft.js:217"
+  "src/wallet-evm-nft.js:238"
  ],
  "недоступна на цьому вузлі RPC: перевіряйте дані самі": [
   "src/wallet-simulate.js:98"
  ],
  "Недоступно": [
-  "src/ipc.js:499"
+  "src/ipc.js:503"
  ],
  "Недоступно у приватному вікні та у вікні ШІ.": [
   "src/ipc.js:223"
@@ -2873,8 +2882,8 @@
   "src/wallet-evm-tokens.js:113"
  ],
  "Некоректна адреса контракту NFT.": [
-  "src/wallet-evm-nft.js:108",
-  "src/wallet-evm-nft.js:197"
+  "src/wallet-evm-nft.js:129",
+  "src/wallet-evm-nft.js:218"
  ],
  "Некоректна адреса оператора.": [
   "src/wallet-approvals.js:111"
@@ -2883,16 +2892,16 @@
   "src/wallet.js:580"
  ],
  "Некоректна адреса отримувача (або неправильна контрольна сума регістру).": [
-  "src/wallet-evm-nft.js:198",
+  "src/wallet-evm-nft.js:219",
   "src/wallet-evm-tokens.js:114",
   "src/wallet.js:700"
  ],
  "Некоректна адреса отримувача.": [
-  "src/wallet-solana.js:226",
-  "src/wallet-solana.js:257"
+  "src/wallet-solana.js:267",
+  "src/wallet-solana.js:298"
  ],
  "Некоректна адреса токена (mint).": [
-  "src/wallet-solana.js:258"
+  "src/wallet-solana.js:299"
  ],
  "Некоректна адреса токена або адреса, якій видано дозвіл.": [
   "src/wallet-extras.js:133"
@@ -2910,7 +2919,7 @@
   "src/solana.js:251"
  ],
  "Некоректна кількість транзакцій": [
-  "src/wallet-solana.js:479"
+  "src/wallet-solana.js:520"
  ],
  "Некоректна назва моделі.": [
   "src/assistant.js:57"
@@ -2927,7 +2936,7 @@
   "src/wallet.js:563"
  ],
  "Некоректна транзакція: {0}": [
-  "src/wallet-solana.js:483"
+  "src/wallet-solana.js:524"
  ],
  "Некоректна фраза відновлення (перевірте слова та порядок).": [
   "src/wallet.js:190"
@@ -2939,7 +2948,7 @@
   "src/wallet.js:507"
  ],
  "Некоректне поле {0}": [
-  "src/wallet-solana.js:20",
+  "src/wallet-solana.js:19",
   "src/wallet.js:578"
  ],
  "Некоректне magnet-посилання": [
@@ -2967,7 +2976,7 @@
   "src/wallet-import.js:68"
  ],
  "Некоректний розмір повідомлення": [
-  "src/wallet-solana.js:437"
+  "src/wallet-solana.js:478"
  ],
  "Некоректний розмір транзакції": [
   "src/solana.js:148"
@@ -3022,7 +3031,7 @@
  "немає відповіді": [
   "src/dashboard.js:19",
   "src/dashboard.js:32",
-  "src/wallet-solana.js:465"
+  "src/wallet-solana.js:506"
  ],
  "Немає даних для режиму читання.": [
   "pages/reader.js:43"
@@ -3031,7 +3040,7 @@
   "src/updater.js:88"
  ],
  "Немає доступного RPC": [
-  "src/wallet-solana.js:73"
+  "src/wallet-solana.js:72"
  ],
  "Немає підключення до інтернету": [
   "pages/error.js:9"
@@ -3159,7 +3168,7 @@
   "pages/help-data.js:176"
  ],
  "Огляд": [
-  "pages/wallet.js:677"
+  "pages/wallet.js:742"
  ],
  "Оглядач": [
   "pages/wallet.js:214",
@@ -3167,7 +3176,7 @@
   "pages/wallet.js:229"
  ],
  "Оглядач блоків": [
-  "pages/wallet.js:876"
+  "pages/wallet.js:943"
  ],
  "Один рядок для всього: відкриті вкладки, команди браузера, закладки, історія й вільний пошук або адреса. Порожній рядок показує вкладки та найкорисніші команди.": [
   "pages/help-data.js:48"
@@ -3186,8 +3195,8 @@
  ],
  "Оновити": [
   "src/app-window.js:950",
-  "pages/wallet.js:599",
-  "pages/wallet.js:673"
+  "pages/wallet.js:663",
+  "pages/wallet.js:738"
  ],
  "Оновити (під час завантаження — зупинити)": [
   "pages/help-data.js:205"
@@ -3232,7 +3241,7 @@
   "pages/dashboard.js:70"
  ],
  "Оновлено {0}. Ціни орієнтовні.": [
-  "pages/wallet.js:583"
+  "pages/wallet.js:647"
  ],
  "Оновлено: {0}. Джерела: {1}. Оновлення раз на добу.": [
   "pages/settings.js:73"
@@ -3271,7 +3280,7 @@
   "pages/reader.js:59"
  ],
  "Основний": [
-  "src/context.js:110",
+  "src/context.js:111",
   "src/profiles.js:10"
  ],
  "Основний профіль": [
@@ -3293,7 +3302,7 @@
   "pages/settings.js:207"
  ],
  "Отримувач": [
-  "src/wallet-evm-nft.js:230",
+  "src/wallet-evm-nft.js:251",
   "src/wallet-evm-tokens.js:137",
   "src/wallet-signguard.js:165"
  ],
@@ -3310,7 +3319,7 @@
   "src/wallet-evm-tokens.js:134"
  ],
  "Отримувач — смарт-контракт: якщо він не вміє приймати NFT, переказ буде відхилено контрактом (комісія за невдалу спробу сплачується). Надсилайте лише якщо впевнені.": [
-  "src/wallet-evm-nft.js:224"
+  "src/wallet-evm-nft.js:245"
  ],
  "Отримувач дозволу": [
   "src/wallet-signguard.js:139",
@@ -3342,7 +3351,7 @@
   "pages/help-data.js:97"
  ],
  "Очікує": [
-  "pages/wallet.js:462"
+  "pages/wallet.js:526"
  ],
  "Пакетні виклики (wallet_sendCalls, EIP-5792) не підтримуються: вони виконують кілька дій одним підтвердженням. Надсилайте транзакції по одній.": [
   "src/wallet-signguard.js:187"
@@ -3376,13 +3385,13 @@
   "pages/settings.js:267"
  ],
  "Папка розпакованого розширення": [
-  "src/ipc.js:621"
+  "src/ipc.js:625"
  ],
  "Папка синхронізації": [
   "pages/settings.js:219"
  ],
  "Папка синхронізації (наприклад, у OneDrive або Dropbox)": [
-  "src/ipc.js:471"
+  "src/ipc.js:475"
  ],
  "Папка синхронізації недоступна.": [
   "src/sync.js:148"
@@ -3394,7 +3403,7 @@
   "src/sync.js:95"
  ],
  "Параметри ключів": [
-  "pages/wallet.js:713"
+  "pages/wallet.js:778"
  ],
  "Паролі": [
   "pages/import.js:52",
@@ -3405,7 +3414,7 @@
   "pages/passwords.js:33"
  ],
  "Паролі резервної копії не збігаються.": [
-  "src/ipc.js:294"
+  "src/ipc.js:295"
  ],
  "Паролі шифруються алгоритмом AES-256-GCM. Ключ виводиться з вашого майстер-пароля (scrypt){0} Сховище зберігається лише на цьому комп’ютері.": [
   "pages/passwords.js:43"
@@ -3430,7 +3439,7 @@
   "pages/wallet.js:66"
  ],
  "Пароль резервної копії (від 12 символів)": [
-  "pages/wallet.js:622"
+  "pages/wallet.js:687"
  ],
  "Пароль резервної копії (не менше 12 символів)": [
   "pages/passwords.js:105"
@@ -3466,7 +3475,7 @@
   "pages/dashboard.js:38"
  ],
  "Перевірити зараз": [
-  "pages/wallet.js:676"
+  "pages/wallet.js:741"
  ],
  "Перевірити оновлення": [
   "pages/settings.js:101"
@@ -3476,7 +3485,7 @@
   "pages/settings.js:160"
  ],
  "Перевірити фразу": [
-  "pages/wallet.js:715"
+  "pages/wallet.js:780"
  ],
  "Перевірка виконується на вашому комп’ютері за завантаженими списками (URLhaus, Phishing.Database, MetaMask eth-phishing-detect) та за ознаками підробки адреси; ваші адреси нікуди не надсилаються. Налаштування — у розділі «Налаштування → Приватність».": [
   "pages/warning.js:47"
@@ -3524,7 +3533,7 @@
  ],
  "перегляд": [
   "pages/wallet.js:134",
-  "pages/wallet.js:409"
+  "pages/wallet.js:473"
  ],
  "Перегляд і копіювання": [
   "pages/help-data.js:112"
@@ -3533,13 +3542,13 @@
   "src/app-window.js:956"
  ],
  "Переглянути NFT": [
-  "pages/wallet.js:887"
+  "pages/wallet.js:954"
  ],
  "Перед відкриттям сторінки браузер звіряє її адресу зі списками відомих **фішингових** і **шкідливих** сайтів (URLhaus, Phishing.Database, MetaMask eth-phishing-detect; оновлюються раз на добу) та шукає ознаки підробки: літери різних алфавітів в одній назві (омогліфи), імітацію відомих сервісів (`paypa1.com`, `paypal.com.evil.net`, `metamask-wallet-claim.xyz`), обманні адреси виду `google.com@evil.example`. При збігу замість сайту з’являється **червоне попередження**.": [
   "pages/help-data.js:93"
  ],
  "Перед відправленням відкриється окреме вікно підтвердження браузера з усіма даними: отримувач, сума, комісія (для Solana — ще й результат симуляції). Перевірте адресу символ за символом.": [
-  "pages/wallet.js:810"
+  "pages/wallet.js:877"
  ],
  "Перед підтвердженням виклику контракту браузер просить вузол RPC змоделювати його (eth_simulateV1) і показує: що піде з вашого рахунку, що прийде, які дозволи видаються і чи не завершиться виклик помилкою. Необмежені дозволи, доступ до всіх NFT і виклики, що віддають активи нічого не повертаючи, позначаються небезпечними. Не всі публічні вузли підтримують симуляцію (тоді так і написано), а відповідь вузла лишається підказкою, а не гарантією.": [
   "pages/help-data.js:172"
@@ -3583,7 +3592,7 @@
   "src/solana.js:385"
  ],
  "Переказ токена {0}": [
-  "src/wallet-solana.js:326"
+  "src/wallet-solana.js:367"
  ],
  "Переказ токена/NFT": [
   "src/wallet.js:94"
@@ -3598,13 +3607,13 @@
   "src/solana.js:393"
  ],
  "Переказ NFT #{0}": [
-  "src/wallet-evm-nft.js:231"
+  "src/wallet-evm-nft.js:252"
  ],
  "Переказ SOL (TransferWithSeed): {0} → {1}": [
   "src/solana.js:384"
  ],
  "Перекази NFT в оглядачі": [
-  "pages/wallet.js:894"
+  "pages/wallet.js:961"
  ],
  "Перемикає вкладки між верхнім рядом і боковою панеллю.": [
   "src/tips.js:14"
@@ -3655,14 +3664,14 @@
   "pages/help-data.js:10"
  ],
  "Підключені сайти": [
-  "pages/wallet.js:698"
+  "pages/wallet.js:763"
  ],
  "Підключення": [
   "src/wallet.js:437",
   "pages/help-data.js:145"
  ],
  "Підключення до сайту": [
-  "src/wallet-solana.js:417",
+  "src/wallet-solana.js:458",
   "src/wallet.js:429"
  ],
  "Підключення до dApp": [
@@ -3675,7 +3684,7 @@
   "pages/help-data.js:92"
  ],
  "Підключення Solana": [
-  "src/wallet-solana.js:427"
+  "src/wallet-solana.js:468"
  ],
  "Підключення…": [
   "pages/dashboard.js:60"
@@ -3707,41 +3716,41 @@
   "src/update-verify.js:41"
  ],
  "Підпис повідомлення": [
-  "src/wallet-solana.js:446",
+  "src/wallet-solana.js:487",
   "src/wallet.js:515",
   "src/wallet.js:520"
  ],
  "Підпис повідомлення Solana": [
-  "src/wallet-solana.js:452"
+  "src/wallet-solana.js:493"
  ],
  "Підпис структурованих даних": [
   "src/wallet.js:551"
  ],
  "Підпис транзакції": [
-  "src/wallet-solana.js:510"
+  "src/wallet-solana.js:551"
  ],
  "Підпис транзакції Solana ({0})": [
-  "src/wallet-solana.js:516"
+  "src/wallet-solana.js:557"
  ],
  "Підставити логін і пароль на цій сторінці": [
   "ui/overlay.js:246"
  ],
  "Підсумок по всіх основних мережах EVM і Solana: нативні монети та відомі токени (вбудований список і додані вами) на всіх рахунках, в USD за орієнтовними цінами. Рахунки лише для перегляду в суму не входять.": [
-  "pages/wallet.js:574"
+  "pages/wallet.js:638"
  ],
  "Підтвердження дій": [
   "pages/help-data.js:157"
  ],
  "Підтвердження транзакції": [
-  "src/wallet-solana.js:510",
+  "src/wallet-solana.js:551",
   "src/wallet.js:620"
  ],
  "Підтверджено": [
-  "pages/wallet.js:405",
-  "pages/wallet.js:462"
+  "pages/wallet.js:469",
+  "pages/wallet.js:526"
  ],
  "Підтверджено {0}.": [
-  "pages/wallet.js:714"
+  "pages/wallet.js:779"
  ],
  "Підтвердити": [
   "pages/passwords.js:8",
@@ -3763,7 +3772,7 @@
   "pages/settings.js:38"
  ],
  "Підтримуються лише прості імена .sol (латиниця, цифри, дефіс).": [
-  "src/wallet-solana.js:210"
+  "src/wallet-solana.js:251"
  ],
  "Підтримуються лише ASCII-імена ENS у зоні .eth (латиниця, цифри, дефіс).": [
   "src/wallet-extras.js:186"
@@ -3772,7 +3781,7 @@
   "src/vault.js:228"
  ],
  "Підтримуються мережі EVM (Ethereum, Polygon, Base, Arbitrum, Optimism, BNB, Avalanche та власні) і Solana. Bitcoin та апаратні гаманці (Ledger/Trezor) поки не підтримуються. Це новий, незалежно не аудитований код — для великих сум використовуйте апаратний гаманець.": [
-  "pages/wallet.js:731"
+  "pages/wallet.js:798"
  ],
  "Пізніше": [
   "src/app-window.js:1111",
@@ -3803,7 +3812,7 @@
   "src/tips.js:21"
  ],
  "Повідомлення": [
-  "src/wallet-solana.js:447",
+  "src/wallet-solana.js:488",
   "src/wallet.js:516"
  ],
  "Повідомлення надто велике": [
@@ -3816,7 +3825,7 @@
   "src/wallet-signguard.js:66"
  ],
  "Повільна (нижча комісія)": [
-  "pages/wallet.js:746"
+  "pages/wallet.js:813"
  ],
  "повільно (комісія нижча, підтвердження може затягнутись)": [
   "src/wallet.js:616"
@@ -3840,13 +3849,13 @@
   "pages/passwords.js:121"
  ],
  "Повторіть пароль": [
-  "pages/wallet.js:622"
+  "pages/wallet.js:687"
  ],
  "Подій поки немає: тут з’являться дії ШІ та операції гаманця.": [
   "pages/dashboard.js:76"
  ],
  "Подій поки немає.": [
-  "pages/wallet.js:443"
+  "pages/wallet.js:507"
  ],
  "Позначити всі сповіщення прочитаними на GitHub": [
   "ui/overlay.js:198"
@@ -3858,12 +3867,12 @@
   "pages/wallet.js:154"
  ],
  "Показано {0} із {1}.": [
-  "pages/wallet.js:321"
+  "pages/wallet.js:324"
  ],
  "Показати": [
   "pages/passwords.js:153",
   "pages/settings.js:172",
-  "pages/wallet.js:725"
+  "pages/wallet.js:792"
  ],
  "Показати в папці": [
   "pages/downloads.js:28"
@@ -3875,19 +3884,22 @@
   "pages/wallet.js:88"
  ],
  "Показати портфель": [
-  "pages/wallet.js:599"
+  "pages/wallet.js:663"
  ],
  "Показати поруч з активною вкладкою": [
   "src/split-view.js:57"
  ],
  "Показати фразу відновлення": [
-  "pages/wallet.js:721"
+  "pages/wallet.js:788"
+ ],
+ "Показати ще ({0})": [
+  "pages/wallet.js:424"
  ],
  "Показувати закладки під адресним рядком": [
   "pages/settings.js:252"
  ],
  "Показувати орієнтовні ціни в USD": [
-  "pages/wallet.js:718"
+  "pages/wallet.js:783"
  ],
  "Показує лише текст статті — чисто, зі зміною шрифту й теми. Працює на сторінках-статтях.": [
   "src/tips.js:13"
@@ -3907,13 +3919,13 @@
   "src/ipc.js:241"
  ],
  "ПОМИЛКА": [
-  "src/wallet-solana.js:501"
+  "src/wallet-solana.js:542"
  ],
  "Помилка завантаження NFT.": [
-  "pages/wallet.js:850"
+  "pages/wallet.js:917"
  ],
  "Помилка звернення до Arweave": [
-  "src/ipc.js:397"
+  "src/ipc.js:401"
  ],
  "Помилка мережі: {0}": [
   "src/github.js:155"
@@ -3952,7 +3964,7 @@
   "src/vault.js:331"
  ],
  "Порожньо": [
-  "pages/wallet.js:593",
+  "pages/wallet.js:657",
   "ui/overlay.js:185"
  ],
  "Порожньо — стандартна папка «Завантаження»": [
@@ -3962,7 +3974,7 @@
   "pages/dashboard.js:49"
  ],
  "Портфель": [
-  "pages/wallet.js:678",
+  "pages/wallet.js:743",
   "pages/help-data.js:167"
  ],
  "Поруч із балансами й токенами показується орієнтовна вартість у доларах (дані CoinGecko). Це лише показ: на підтвердження й перевірки безпеки ціни не впливають. Сервіс бачить ваш IP та адреси контрактів токенів, але не адреси ваших рахунків. Вимкнути можна в розділі «Безпека».": [
@@ -3987,7 +3999,7 @@
   "ui/index.html:15"
  ],
  "Потрібен майстер-пароль": [
-  "pages/wallet.js:721"
+  "pages/wallet.js:788"
  ],
  "Потрібен classic personal access token зі scope «notifications» (для приватних репозиторіїв — також «repo»). Токен шифрується захистом Windows і недоступний сайтам.": [
   "pages/settings.js:126"
@@ -4033,10 +4045,10 @@
   "pages/help-data.js:207"
  ],
  "Пошук неповний (обмеження RPC): додайте решту вручну.": [
-  "pages/wallet.js:285"
+  "pages/wallet.js:286"
  ],
  "Пошук неповний (обмеження RPC): старіші дозволи скасовуйте вручну чи через оглядач.": [
-  "pages/wallet.js:645"
+  "pages/wallet.js:710"
  ],
  "Пошук по відкритих вкладках": [
   "ui/overlay.js:271"
@@ -4091,14 +4103,14 @@
  ],
  "Прибрати": [
   "pages/wallet.js:246",
-  "pages/wallet.js:384"
+  "pages/wallet.js:446"
  ],
  "Прибрати зі списку": [
   "pages/downloads.js:29",
-  "pages/wallet.js:353"
+  "pages/wallet.js:352"
  ],
  "Прибрати зі списку (не видаляє NFT)": [
-  "pages/wallet.js:384"
+  "pages/wallet.js:446"
  ],
  "Приватне вікно": [
   "pages/help-data.js:203"
@@ -4117,20 +4129,20 @@
   "src/tips.js:6"
  ],
  "Приватний ключ": [
-  "pages/wallet.js:521",
-  "pages/wallet.js:528"
+  "pages/wallet.js:585",
+  "pages/wallet.js:592"
  ],
  "Приватний ключ буде стерто з цього пристрою. Без окремої резервної копії ключа доступ до коштів на цьому рахунку буде втрачено назавжди.": [
-  "src/ipc.js:320"
+  "src/ipc.js:321"
  ],
  "Приватний ключ дає повний контроль над рахунком. Вставляйте його лише тут і ніколи не показуйте сторонім. Імпортований рахунок не відновлюється з фрази відновлення гаманця: зробіть окрему резервну копію ключа. Для великих сум краще апаратний гаманець.": [
-  "pages/wallet.js:520"
+  "pages/wallet.js:584"
  ],
  "Приватний ключ Solana має містити 64 байти.": [
   "src/wallet-import.js:80"
  ],
  "Приватний ключ: EVM — 64 шістнадцяткові символи; Solana — base58 (формат Phantom) або JSON-масив із файлу keypair": [
-  "pages/wallet.js:508"
+  "pages/wallet.js:572"
  ],
  "Приватність": [
   "pages/settings.js:255",
@@ -4169,7 +4181,7 @@
   "src/wallet-extras.js:109"
  ],
  "Прискорити": [
-  "pages/wallet.js:480"
+  "pages/wallet.js:544"
  ],
  "Приспати вкладку": [
   "src/app-window.js:902"
@@ -4179,8 +4191,8 @@
  ],
  "Пріоритетна комісія": [
   "src/solana.js:416",
-  "src/wallet-solana.js:242",
-  "src/wallet-solana.js:324"
+  "src/wallet-solana.js:283",
+  "src/wallet-solana.js:365"
  ],
  "Про програму": [
   "pages/help.js:46"
@@ -4192,7 +4204,7 @@
   "src/solana.js:138"
  ],
  "Програма токена": [
-  "src/wallet-solana.js:325"
+  "src/wallet-solana.js:366"
  ],
  "Продовжити": [
   "pages/downloads.js:26"
@@ -4235,10 +4247,10 @@
   "src/ipc.js:127"
  ],
  "Разом: {0}": [
-  "pages/wallet.js:584"
+  "pages/wallet.js:648"
  ],
  "Рахунки": [
-  "pages/wallet.js:679"
+  "pages/wallet.js:744"
  ],
  "Рахунки лише для перегляду": [
   "pages/help-data.js:174"
@@ -4265,22 +4277,22 @@
   "pages/wallet.js:174"
  ],
  "Рахунок для сайту": [
-  "src/wallet-solana.js:419",
+  "src/wallet-solana.js:460",
   "src/wallet.js:431",
-  "pages/wallet.js:424"
+  "pages/wallet.js:488"
  ],
  "Рахунок лише для перегляду: гаманець показує баланси, токени, NFT та історію цієї адреси, але не має її ключа й не може нічого підписати чи надіслати.": [
-  "pages/wallet.js:502"
+  "pages/wallet.js:566"
  ],
  "Рахунок не підключено до цього сайту": [
-  "src/wallet-solana.js:435",
-  "src/wallet-solana.js:477",
+  "src/wallet-solana.js:476",
+  "src/wallet-solana.js:518",
   "src/wallet.js:486"
  ],
  "Рахунок Solana": [
-  "src/wallet-solana.js:418",
-  "src/wallet-solana.js:447",
-  "src/wallet-solana.js:489"
+  "src/wallet-solana.js:459",
+  "src/wallet-solana.js:488",
+  "src/wallet-solana.js:530"
  ],
  "Редагувати запис": [
   "pages/passwords.js:82"
@@ -4297,7 +4309,7 @@
   "ui/index.html:25"
  ],
  "Режими обережності": [
-  "pages/wallet.js:711",
+  "pages/wallet.js:776",
   "pages/help-data.js:169"
  ],
  "Резервна копія": [
@@ -4309,13 +4321,13 @@
   "pages/help-data.js:115"
  ],
  "Резервна копія фрази": [
-  "pages/wallet.js:714"
+  "pages/wallet.js:779"
  ],
  "Резервну копію збережено.": [
   "pages/passwords.js:108"
  ],
  "Резервну копію не підтверджено: ви ще не перевіряли, що фразу відновлення записано. Без неї кошти не повернути, якщо пристрій втратиться.": [
-  "pages/wallet.js:676"
+  "pages/wallet.js:741"
  ],
  "Ресурси": [
   "src/wallet-signguard.js:76"
@@ -4380,7 +4392,7 @@
   "src/split-view.js:68"
  ],
  "Розділи гаманця": [
-  "pages/wallet.js:732"
+  "pages/wallet.js:799"
  ],
  "Розділи налаштувань": [
   "pages/settings.js:310"
@@ -4411,7 +4423,7 @@
   "pages/help-data.js:213"
  ],
  "Сайт не зможе нічого підписати без вашого окремого підтвердження.": [
-  "src/wallet-solana.js:420",
+  "src/wallet-solana.js:461",
   "src/wallet.js:432"
  ],
  "Сайт не підключено до гаманця": [
@@ -4422,7 +4434,7 @@
   "src/wallet-import.js:227"
  ],
  "Сайт отримає": [
-  "src/wallet-solana.js:418",
+  "src/wallet-solana.js:459",
   "src/wallet.js:430"
  ],
  "Сайт просить показати токен у гаманці. Це не дає йому доступу до коштів.": [
@@ -4438,10 +4450,10 @@
   "src/wallet.js:413"
  ],
  "Сайт ще не підключено до гаманця": [
-  "src/wallet-solana.js:412"
+  "src/wallet-solana.js:453"
  ],
  "Сайти зі списків шахрайських ресурсів не можна додати в довірені.": [
-  "src/ipc.js:430"
+  "src/ipc.js:434"
  ],
  "Сайти отримують сигнал, що ви не хочете персоналізації": [
   "pages/settings.js:261"
@@ -4497,7 +4509,7 @@
   "src/wallet-simulate.js:111"
  ],
  "Симуляція показала, що транзакція завершиться помилкою — гроші можуть бути втрачені на комісію.": [
-  "src/wallet-solana.js:503"
+  "src/wallet-solana.js:544"
  ],
  "Симуляція показує, що транзакція завершиться помилкою: газ буде витрачено даремно. Не підтверджуйте, якщо не розумієте причини.": [
   "src/wallet-simulate.js:108"
@@ -4536,7 +4548,7 @@
   "pages/help-data.js:166"
  ],
  "Скасування дозволів токенів": [
-  "pages/wallet.js:720"
+  "pages/wallet.js:787"
  ],
  "Скасування дозволу {0}": [
   "src/wallet-extras.js:143"
@@ -4548,7 +4560,7 @@
   "src/solana.js:398"
  ],
  "Скасування дозволу токена": [
-  "pages/wallet.js:551"
+  "pages/wallet.js:615"
  ],
  "Скасування доступу до ВСІХ NFT колекції (setApprovalForAll: false)": [
   "src/wallet-approvals.js:117"
@@ -4560,7 +4572,7 @@
   "src/wallet-simulate.js:118"
  ],
  "Скасування надіслано: {0}": [
-  "pages/wallet.js:667"
+  "pages/wallet.js:732"
  ],
  "Скасування не гарантоване: воно спрацює, лише якщо заміна потрапить у блок раніше за початкову транзакцію.": [
   "src/wallet-extras.js:115"
@@ -4581,16 +4593,16 @@
   "src/app-window.js:936"
  ],
  "Скасувати дозвіл": [
-  "pages/wallet.js:549"
+  "pages/wallet.js:613"
  ],
  "Скасувати дозвіл…": [
-  "pages/wallet.js:720"
+  "pages/wallet.js:787"
  ],
  "Скасувати доступ до NFT колекції": [
   "src/wallet.js:87"
  ],
  "Скасувати небезпечні ({0})": [
-  "pages/wallet.js:654"
+  "pages/wallet.js:719"
  ],
  "Скинути": [
   "pages/settings.js:54"
@@ -4639,8 +4651,11 @@
  "Спершу виберіть папку.": [
   "pages/settings.js:224"
  ],
+ "Спершу відкрийте список NFT цього рахунку.": [
+  "src/wallet-solana.js:207"
+ ],
  "Спершу розблокуйте сховище паролів.": [
-  "src/ipc.js:353",
+  "src/ipc.js:357",
   "pages/import.js:49"
  ],
  "Спершу створіть [сховище паролів](w3ir://passwords) — гаманець зберігається в ньому. Потім відкрийте [гаманець](w3ir://wallet): «Створити новий» (з’явиться фраза з 12 слів) або «Імпортувати» вашу фразу.": [
@@ -4712,7 +4727,7 @@
  ],
  "Стандартна": [
   "pages/settings.js:267",
-  "pages/wallet.js:746"
+  "pages/wallet.js:813"
  ],
  "Старий токен перестане працювати": [
   "pages/settings.js:173"
@@ -4851,7 +4866,7 @@
   "pages/help-data.js:218"
  ],
  "Такого токена в цьому контракті немає.": [
-  "src/wallet-evm-nft.js:118"
+  "src/wallet-evm-nft.js:139"
  ],
  "ТБ": [
   "pages/common.js:19"
@@ -4902,7 +4917,7 @@
   "pages/dashboard.js:60"
  ],
  "Токен має розширення ({0}), які змінюють перекази: гаманець їх не підтримує.": [
-  "src/wallet-solana.js:275"
+  "src/wallet-solana.js:316"
  ],
  "Токен недійсний або прострочений. Підключіть GitHub заново.": [
   "src/github.js:129"
@@ -4911,10 +4926,10 @@
   "src/solana.js:406"
  ],
  "Токен-акаунт заморожено: імовірно, це програмований NFT (pNFT) або токен із замороженням. Гаманець такі токени поки не надсилає; скористайтеся маркетплейсом.": [
-  "src/wallet-solana.js:287"
+  "src/wallet-solana.js:328"
  ],
  "Токен-акаунт одержувача заморожено: переказ неможливий.": [
-  "src/wallet-solana.js:300"
+  "src/wallet-solana.js:341"
  ],
  "Токен/кількість": [
   "src/wallet.js:94"
@@ -4931,7 +4946,7 @@
   "src/wallet-simulate.js:123"
  ],
  "Токенів і NFT на цьому рахунку немає.": [
-  "pages/wallet.js:320"
+  "pages/wallet.js:323"
  ],
  "Торент-клієнт не знайдено": [
   "src/app-window.js:374"
@@ -4943,7 +4958,7 @@
   "src/wallet.js:564"
  ],
  "Транзакцій поки немає.": [
-  "pages/wallet.js:397"
+  "pages/wallet.js:461"
  ],
  "Транзакцію не знайдено серед очікуваних.": [
   "src/wallet-extras.js:92"
@@ -4961,13 +4976,13 @@
   "src/solana.js:428"
  ],
  "Транзакція Solana": [
-  "src/wallet-solana.js:523"
+  "src/wallet-solana.js:564"
  ],
  "Триває встановлення оновлення": [
   "main.js:67"
  ],
  "Тут видно, які адреси зараз можуть витрачати ваші токени ERC-20 чи всі NFT колекції. Небезпечні (необмежені чи для звичайного рахунку) угорі. Список складається з недавніх подій блокчейну й перевіряється за поточним станом контрактів.": [
-  "pages/wallet.js:672"
+  "pages/wallet.js:737"
  ],
  "Тут описано всі функції браузера. Використовуйте пошук ліворуч або натискайте розділи. Наведіть курсор на кнопки в інтерфейсі — підказки з’являться одразу.": [
   "pages/help.js:60"
@@ -4997,7 +5012,7 @@
   "pages/help-data.js:224"
  ],
  "У одержувача ще немає токен-акаунта для цього токена: його буде створено, а ≈{0} SOL (депозит за зберігання) спишеться з ВАШОГО рахунку.": [
-  "src/wallet-solana.js:306"
+  "src/wallet-solana.js:347"
  ],
  "У папці `%APPDATA%\\W3IR Browser` (профілі — у підпапці `profiles`). Паролі й гаманець лежать у файлі `vault.bin` у зашифрованому вигляді. Cookie зашифровані захистом Windows.": [
   "pages/help-data.js:220"
@@ -5006,7 +5021,7 @@
   "src/sync.js:101"
  ],
  "У папці немає manifest.json": [
-  "src/ipc.js:624"
+  "src/ipc.js:628"
  ],
  "У повідомленні багато ресурсів ({0}): сайт просить широкий доступ.": [
   "src/wallet-signguard.js:70"
@@ -5033,7 +5048,7 @@
   "src/wallet-signguard.js:69"
  ],
  "У цій мережі немає токенів з ненульовим балансом. Додайте токен за адресою контракту.": [
-  "pages/wallet.js:343"
+  "pages/wallet.js:342"
  ],
  "У CSV немає стовпців url та password.": [
   "src/vault.js:336"
@@ -5078,11 +5093,11 @@
   "src/tips.js:46"
  ],
  "Усі NFT колекції {0}": [
-  "pages/wallet.js:659"
+  "pages/wallet.js:724"
  ],
  "успішно": [
-  "src/wallet-solana.js:469",
-  "src/wallet-solana.js:501"
+  "src/wallet-solana.js:510",
+  "src/wallet-solana.js:542"
  ],
  "Файл .w3irbackup, збережений раніше з цього гаманця (зашифрований окремим паролем резервної копії).": [
   "pages/wallet.js:64"
@@ -5091,7 +5106,7 @@
   "src/downloads.js:114"
  ],
  "Файл завеликий для резервної копії.": [
-  "src/ipc.js:306"
+  "src/ipc.js:307"
  ],
  "Файл на вашому комп’ютері": [
   "ui/overlay.js:60"
@@ -5125,7 +5140,7 @@
   "pages/dashboard.js:68"
  ],
  "Фраза відновлення": [
-  "pages/wallet.js:830"
+  "pages/wallet.js:897"
  ],
  "Фраза відновлення (12 слів) — єдиний спосіб повернути кошти. Її бачите лише ви; ми її не зберігаємо в хмарі й не можемо відновити.": [
   "pages/wallet.js:56"
@@ -5134,13 +5149,13 @@
   "pages/wallet.js:120"
  ],
  "Фраза-пароль (25-те слово): {0}": [
-  "pages/wallet.js:832"
+  "pages/wallet.js:899"
  ],
  "Фраза-пароль завелика (до 128 символів).": [
   "src/wallet.js:182"
  ],
  "фраза-пароль задана": [
-  "pages/wallet.js:713"
+  "pages/wallet.js:778"
  ],
  "Фраза-пароль і шляхи деривації": [
   "pages/help-data.js:168"
@@ -5175,28 +5190,28 @@
   "src/wallet-evm-tokens.js:118"
  ],
  "Це адреса контракту самого NFT: токен, надісланий на неї, зазвичай втрачається.": [
-  "src/wallet-evm-nft.js:203"
+  "src/wallet-evm-nft.js:224"
  ],
  "Це адреса програми: токени на неї надсилати не можна.": [
-  "src/wallet-solana.js:296"
+  "src/wallet-solana.js:337"
  ],
  "Це адреса самого токена (mint), а не гаманця одержувача: токени було б втрачено.": [
-  "src/wallet-solana.js:261"
+  "src/wallet-solana.js:302"
  ],
  "Це адреса токен-акаунта або токена, а не гаманця одержувача: вкажіть адресу гаманця, токени було б втрачено.": [
-  "src/wallet-solana.js:295"
+  "src/wallet-solana.js:336"
  ],
  "Це вікно під керуванням ШІ: тимчасове, без ваших входів. Зупинити: Налаштування → Керування браузером ШІ": [
   "ui/renderer.js:80"
  ],
  "Це ім’я .sol не зареєстроване.": [
-  "src/wallet-solana.js:216"
+  "src/wallet-solana.js:257"
  ],
  "Це ім’я не зареєстровано або не вказує на адресу.": [
   "src/wallet-extras.js:200"
  ],
  "Це НЕ майстер-пароль: його знадобиться ввести при відновленні. Без нього файл не прочитати, а хто знає і файл, і пароль — контролює кошти. Зберігайте їх окремо.": [
-  "pages/wallet.js:622"
+  "pages/wallet.js:687"
  ],
  "Це не схоже на токен ERC-20 у цій мережі (немає decimals).": [
   "src/wallet-evm-tokens.js:49"
@@ -5205,7 +5220,7 @@
   "src/wallet-evm-nft.js:50"
  ],
  "Це не токен (mint) або його немає в цій мережі.": [
-  "src/wallet-solana.js:270"
+  "src/wallet-solana.js:311"
  ],
  "Це не файл резервної копії W3IR.": [
   "src/vault.js:305",
@@ -5242,23 +5257,26 @@
   "pages/warning.js:40"
  ],
  "Цей NFT не належить вибраному рахунку.": [
-  "src/wallet-evm-nft.js:216"
+  "src/wallet-evm-nft.js:237"
  ],
  "Ціни в USD": [
   "pages/help-data.js:161"
  ],
  "Ціни вимкнено в налаштуваннях безпеки: показано лише кількість.": [
-  "pages/wallet.js:583"
+  "pages/wallet.js:647"
  ],
  "Ціни завантажуються з CoinGecko: сервіс бачить ваш IP та ідентифікатори монет і адреси контрактів токенів, але не адреси ваших рахунків. Ціни лише для показу й нічого не впливають на підтвердження. Вимкніть, щоб гаманець не звертався до цього сервісу.": [
-  "pages/wallet.js:718"
+  "pages/wallet.js:783"
+ ],
+ "Цього NFT немає у вашому списку.": [
+  "src/wallet-evm-nft.js:117"
  ],
  "Цю адресу вже додано.": [
   "src/wallet-import.js:158"
  ],
  "Ця адреса не має приватного ключа (це адреса програми, PDA): кошти, надіслані на неї, зазвичай неможливо повернути.": [
-  "src/wallet-solana.js:241",
-  "src/wallet-solana.js:309"
+  "src/wallet-solana.js:282",
+  "src/wallet-solana.js:350"
  ],
  "Ця модель не вміє користуватися інструментами. Виберіть іншу (наприклад, llama3.1, qwen2.5, mistral-nemo).": [
   "src/assistant.js:102"
@@ -5270,7 +5288,7 @@
   "src/wallet-simulate.js:119"
  ],
  "Ця транзакція не потребує підпису вашого рахунку": [
-  "src/wallet-solana.js:484"
+  "src/wallet-solana.js:525"
  ],
  "Ця транзакція не потребує підпису цього рахунку": [
   "src/solana.js:174"
@@ -5279,7 +5297,7 @@
   "src/wallet-signguard.js:67"
  ],
  "частина без ціни": [
-  "pages/wallet.js:591"
+  "pages/wallet.js:655"
  ],
  "Частину інструкцій розшифрувати не вдалося — підтверджуйте лише на довірених сайтах.": [
   "src/solana.js:424"
@@ -5291,7 +5309,7 @@
   "src/tab-groups.js:8"
  ],
  "Через нього проходять запити про баланси та транзакції. Для приватності вкажіть власний вузол (https).": [
-  "pages/wallet.js:704"
+  "pages/wallet.js:769"
  ],
  "Через RPC-сервер мережі проходять усі ваші запити (адреси, баланси). Додавайте мережі лише з надійних джерел.": [
   "src/wallet.js:470"
@@ -5300,7 +5318,7 @@
   "pages/settings.js:185"
  ],
  "читання буфера обміну": [
-  "src/context.js:74"
+  "src/context.js:75"
  ],
  "Читання буфера обміну": [
   "pages/settings.js:47",
@@ -5313,17 +5331,17 @@
   "pages/warning.js:12"
  ],
  "Швидка (вища комісія)": [
-  "pages/wallet.js:746"
+  "pages/wallet.js:813"
  ],
  "Швидкий старт": [
   "pages/help-data.js:11"
  ],
  "Швидкі посилання маркетплейсів для першого рахунку:": [
-  "pages/wallet.js:891"
+  "pages/wallet.js:958"
  ],
  "Швидкість комісії": [
   "src/wallet.js:616",
-  "pages/wallet.js:747"
+  "pages/wallet.js:814"
  ],
  "швидко (комісія вища)": [
   "src/wallet.js:616"
@@ -5402,13 +5420,13 @@
   "ui/overlay.js:43"
  ],
  "Шукаю дозволи в недавніх подіях…": [
-  "pages/wallet.js:642"
+  "pages/wallet.js:707"
  ],
  "Шукаю серед недавніх переказів…": [
-  "pages/wallet.js:282"
+  "pages/wallet.js:283"
  ],
  "ще {0} рядків": [
-  "src/wallet-solana.js:497"
+  "src/wallet-solana.js:538"
  ],
  "ще не було": [
   "pages/dashboard.js:5"
@@ -5562,8 +5580,8 @@
   "pages/settings.js:148"
  ],
  "ID токена": [
-  "src/wallet-evm-nft.js:230",
-  "pages/wallet.js:271"
+  "src/wallet-evm-nft.js:251",
+  "pages/wallet.js:272"
  ],
  "Ledger Live, старі: m/44'/501'/i'": [
   "pages/wallet.js:47"
@@ -5575,7 +5593,10 @@
   "pages/settings.js:269"
  ],
  "NFT не знайдено. Додайте NFT за адресою контракту та id або знайдіть серед недавніх переказів.": [
-  "pages/wallet.js:369"
+  "pages/wallet.js:437"
+ ],
+ "NFT: {0} (показано {1}).": [
+  "pages/wallet.js:415"
  ],
  "Ollama не відповів вчасно.": [
   "src/ollama.js:63"
@@ -5593,7 +5614,7 @@
   "pages/assistant.js:46"
  ],
  "Passkeys і ключі безпеки поки не підтримуються в W3IR Browser: увійдіть паролем (🔑 менеджер паролів) або іншим способом.": [
-  "src/ipc.js:531"
+  "src/ipc.js:535"
  ],
  "PDA не знайдено": [
   "src/solana.js:212"
@@ -5605,14 +5626,14 @@
   "src/wallet-import.js:130"
  ],
  "RPC має бути https:// (або localhost).": [
-  "src/wallet-solana.js:50",
+  "src/wallet-solana.js:49",
   "src/wallet.js:271"
  ],
  "RPC-сервер EVM": [
-  "pages/wallet.js:704"
+  "pages/wallet.js:769"
  ],
  "RPC-сервер Solana": [
-  "pages/wallet.js:705"
+  "pages/wallet.js:770"
  ],
  "Sepolia (тестова)": [
   "src/wallet.js:21"
@@ -5627,10 +5648,10 @@
   "src/solana.js:388"
  ],
  "USD: забороняти переказ більше за (0 — без ліміту)": [
-  "pages/wallet.js:611"
+  "pages/wallet.js:676"
  ],
  "USD: підтвердження великих сум із паузою 5 с (від; 0 — вимкнено)": [
-  "pages/wallet.js:610"
+  "pages/wallet.js:675"
  ],
  "utm_*, fbclid, gclid та подібні": [
   "pages/settings.js:259"

@@ -33,7 +33,7 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     return { enabled: true, native, tokens: toks };
   };
 
-  const timed = (p, ms = 8000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  const timed = (p, ms = 15000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 
   // ---------- швидкість комісії ----------
   proto.applySpeed = function (populated, speed) {

@@ -267,6 +267,7 @@ async function renderDashboard(st) {
   const tokList = h('div', { class: 'list' });
   const nftGrid = h('div', { class: 'nft-grid' });
   const nftMsg = h('div', { class: 'note', style: 'margin:8px 0' });
+  const nftMore = h('div', { class: 'bar' });
   const nftContract = h('input', { type: 'text', class: 'pw', placeholder: 'Адреса контракту NFT', spellcheck: false, autocomplete: 'off', style: 'flex:1' });
   const nftId = h('input', { type: 'text', placeholder: 'ID токена', inputMode: 'numeric', autocomplete: 'off', style: 'width:120px' });
   const nftAddMsg = h('span', { class: 'note' });
@@ -303,7 +304,8 @@ async function renderDashboard(st) {
     tokChain.disabled = !!(picked && picked.chain);
     const isSol = tokChain.value === 'sol';
     const canSend = idx < 5000; // рахунки лише для перегляду нічого не надсилають
-    tokMsg.textContent = '…'; tokList.textContent = ''; nftGrid.textContent = ''; nftMsg.textContent = '';
+    nftGen++; const gen = nftGen; // нове завантаження скасовує незавершені запити метаданих попереднього рахунку
+    tokMsg.textContent = '…'; tokList.textContent = ''; nftGrid.textContent = ''; nftMsg.textContent = ''; nftMore.textContent = '';
     nftAddBar.style.display = 'none';
     const usdSpans = []; // [адреса, елемент, кількість] — ціни підставляються після завантаження
     const fillUsd = async (chain) => {
@@ -316,29 +318,26 @@ async function renderDashboard(st) {
     tokAddBar.style.display = isSol ? 'none' : '';
     if (isSol) {
       const r = await call('wallet:solTokens', { address: solAddrOf(idx) });
+      if (gen !== nftGen) return;
       if (!r.ok) { tokMsg.textContent = r.error || 'Помилка'; return; }
       if (!r.tokens.length) { tokMsg.textContent = 'Токенів і NFT на цьому рахунку немає.'; return; }
       tokMsg.textContent = (r.total > r.shown ? t('Показано {0} із {1}.', r.shown, r.total) + ' ' : '') + 'Назви токенів задають їхні творці й можуть вводити в оману: звіряйте адресу mint.';
       for (const tk of r.tokens) {
         const title = tk.name || short(tk.mint);
         const link = h('a', { href: solExplorer(tk.mint, r.cluster) }, 'Оглядач');
-        if (tk.nft) {
-          nftGrid.append(h('div', { class: 'nft-card' },
-            tk.image ? h('img', { class: 'nft-thumb', src: tk.image, alt: title, onerror: (e) => { e.target.style.display = 'none'; } }) : '',
-            h('div', { class: 'nft-body' }, h('span', { class: 'nft-badge' }, 'NFT'), h('div', { class: 'nft-title' }, title), tk.symbol ? h('div', { class: 'nft-desc' }, tk.symbol) : '',
-              h('div', { class: 'tools', style: 'margin-top:8px' }, canSend ? h('button', { class: 'link', onclick: () => sendDialog(idx, { chain: 'sol', nft: { chain: 'sol', mint: tk.mint, label: title, standard: 'spl' } }) }, 'Надіслати') : '', link))));
-        } else {
-          tokList.style.display = '';
-          const usd = h('span', { class: 'note' }, '');
-          usdSpans.push([tk.mint, usd, tk.amount]);
-          tokList.append(h('div', { class: 'item' }, h('div', { class: 'main' }, h('div', { class: 't' }, title + (tk.symbol ? ` (${tk.symbol})` : '')), h('div', { class: 's pw', style: 'user-select:text' }, tk.mint)),
-            h('span', { class: 'note' }, tk.amount), usd, canSend ? h('button', { class: 'link', onclick: () => sendDialog(idx, { chain: 'sol', asset: tk.mint }) }, 'Надіслати') : '', link));
-        }
+        if (tk.nft) continue; // NFT показує галерея нижче (з сторінками й лінивим завантаженням)
+        tokList.style.display = '';
+        const usd = h('span', { class: 'note' }, '');
+        usdSpans.push([tk.mint, usd, tk.amount]);
+        tokList.append(h('div', { class: 'item' }, h('div', { class: 'main' }, h('div', { class: 't' }, title + (tk.symbol ? ` (${tk.symbol})` : '')), h('div', { class: 's pw', style: 'user-select:text' }, tk.mint)),
+          h('span', { class: 'note' }, tk.amount), usd, canSend ? h('button', { class: 'link', onclick: () => sendDialog(idx, { chain: 'sol', asset: tk.mint }) }, 'Надіслати') : '', link));
       }
       fillUsd('sol');
+      loadSolNfts(idx, 0, gen);
       return;
     }
     const r = await call('wallet:evmTokens', { index: idx });
+    if (gen !== nftGen) return;
     if (!r.ok) { tokMsg.textContent = r.error || 'Помилка'; return; }
     tokMsg.textContent = r.tokens.length ? 'Баланси читаються з контрактів. Назви токенів задає їхній творець: звіряйте адресу контракту.' : 'У цій мережі немає токенів з ненульовим балансом. Додайте токен за адресою контракту.';
     for (const tk of r.tokens) {
@@ -353,35 +352,100 @@ async function renderDashboard(st) {
         tk.custom ? h('button', { class: 'link danger', title: 'Прибрати зі списку', onclick: async () => { await call('wallet:removeToken', { address: tk.address }); loadTokens(); } }, '✕') : ''));
     }
     fillUsd('evm');
-    loadEvmNfts(idx);
+    loadEvmNfts(idx, gen);
   }
 
   // ----- NFT на EVM (ERC-721 / ERC-1155): показ, додавання, пошук, переказ -----
-  async function loadEvmNfts(idx) {
+  // ----- ліниве завантаження метаданих NFT: лише для карток біля видимої частини, по 3 одночасно; велике зображення зменшується
+  // в пісочниці сторінки (canvas), а оригінал відкидається -----
+  let nftGen = 0;
+  const metaQueue = [];
+  let metaActive = 0;
+  const pumpMeta = () => { while (metaActive < 3 && metaQueue.length) { const job = metaQueue.shift(); metaActive++; job().catch(() => {}).finally(() => { metaActive--; pumpMeta(); }); } };
+  const metaObserver = new IntersectionObserver((entries) => {
+    for (const en of entries) if (en.isIntersecting) { metaObserver.unobserve(en.target); const f = en.target.__load; if (f) { metaQueue.push(f); pumpMeta(); } }
+  }, { rootMargin: '300px' });
+  function thumbnail(src, side = 360) {
+    return new Promise((resolve) => {
+      const im = new Image();
+      im.onload = () => {
+        try {
+          const w0 = im.naturalWidth || side, h0 = im.naturalHeight || side, k = Math.min(1, side / Math.max(w0, h0));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+          c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/webp', 0.82));
+        } catch { resolve(src.length < 400000 ? src : ''); }
+      };
+      im.onerror = () => resolve('');
+      im.src = src;
+    });
+  }
+  // Картка NFT: заголовок і зображення підставляються після завантаження метаданих (loader повертає { name, image, status|metadata })
+  function nftCard({ title, badge, extra, actions, loader, gen }) {
+    const img = h('img', { class: 'nft-thumb', alt: title, style: 'display:none' });
+    const ttl = h('div', { class: 'nft-title' }, title);
+    const note = h('div', { class: 'nft-desc' }, '');
+    const card = h('div', { class: 'nft-card' }, img, h('div', { class: 'nft-body' }, h('span', { class: 'nft-badge' }, badge), ttl, extra || '', note, h('div', { class: 'tools', style: 'margin-top:8px' }, actions)));
+    if (loader) {
+      card.__load = async () => {
+        if (gen !== nftGen) return;
+        const m = await loader();
+        if (gen !== nftGen || !m || !m.ok) return;
+        if (m.name) { ttl.textContent = m.name; img.alt = m.name; }
+        const state = m.status || m.metadata;
+        if (m.image) { const th = await thumbnail(m.image); if (th) { img.src = th; img.style.display = ''; } }
+        if (!m.image && state === 'external') note.textContent = t('Метадані на стороньому сервері не завантажуються (приватність). Дозвіл — у розділі «Безпека».');
+        else if (!m.image && state === 'unavailable') note.textContent = t('Метадані недоступні зараз.');
+      };
+      metaObserver.observe(card);
+    }
+    return card;
+  }
+  const NFT_WARN = 'Назви й зображення NFT задає їхній творець і вони можуть вводити в оману: звіряйте адресу контракту. Зображення завантажуються лише з IPFS, Arweave або з блокчейну.';
+
+  // Галерея NFT Solana: сторінки по 24, «Показати ще»
+  async function loadSolNfts(idx, offset, gen) {
+    const addr = solAddrOf(idx);
+    nftMore.textContent = '';
+    const r = await call('wallet:solNfts', { address: addr, offset, limit: 24 });
+    if (gen !== nftGen) return;
+    if (!r.ok) { nftMsg.textContent = r.error || 'Помилка'; return; }
+    const shown = Math.min(r.total, offset + r.items.length);
+    nftMsg.textContent = r.total ? t('NFT: {0} (показано {1}).', r.total, shown) + ' ' + t(NFT_WARN) : '';
+    for (const it of r.items) {
+      const title = it.name || short(it.mint);
+      nftGrid.append(nftCard({
+        title, badge: 'NFT', gen, loader: it.hasUri ? () => call('wallet:solNftMeta', { address: addr, mint: it.mint }) : null,
+        extra: it.symbol ? h('div', { class: 'nft-desc' }, it.symbol) : '',
+        actions: [idx < 5000 ? h('button', { class: 'link', onclick: () => sendDialog(idx, { chain: 'sol', nft: { chain: 'sol', mint: it.mint, label: title, standard: 'spl' } }) }, 'Надіслати') : '', h('a', { href: solExplorer(it.mint, r.cluster) }, 'Оглядач')],
+      }));
+    }
+    if (shown < r.total) nftMore.append(h('button', { onclick: () => loadSolNfts(idx, shown, gen) }, t('Показати ще ({0})', r.total - shown)));
+  }
+
+  // Галерея NFT на EVM: список із контрактів, метадані ліниво
+  async function loadEvmNfts(idx, gen) {
     nftAddBar.style.display = '';
     nftMsg.textContent = '…';
     const r = await call('wallet:nfts', { index: idx });
-    if (Number(tokAcct.value) !== idx || tokChain.value !== 'evm') return; // користувач уже перемкнув рахунок
+    if (gen !== nftGen) return; // користувач уже перемкнув рахунок
     if (!r.ok) { nftMsg.textContent = r.error || 'Помилка'; return; }
     const net2 = info.networks.find(n => n.chainId === r.chainId);
     nftMsg.textContent = r.items.length
-      ? 'Назви й зображення NFT задає їхній творець і вони можуть вводити в оману: звіряйте адресу контракту. Зображення завантажуються лише з IPFS, Arweave або з блокчейну.'
+      ? t(NFT_WARN)
       : (r.saved ? 'Збережені NFT цієї мережі не належать вибраному рахунку.' : 'NFT не знайдено. Додайте NFT за адресою контракту та id або знайдіть серед недавніх переказів.');
     for (const it of r.items) {
-      const title = it.name || (it.collection ? `${it.collection} #${it.id}` : `#${it.id}`);
-      nftGrid.append(h('div', { class: 'nft-card' },
-        it.image ? h('img', { class: 'nft-thumb', src: it.image, alt: title, onerror: (e) => { e.target.style.display = 'none'; } }) : '',
-        h('div', { class: 'nft-body' },
-          h('span', { class: 'nft-badge' }, it.standard === 'erc1155' ? 'ERC-1155' : 'NFT'),
-          h('div', { class: 'nft-title' }, title),
-          it.collection ? h('div', { class: 'nft-desc' }, it.collection) : '',
-          it.standard === 'erc1155' ? h('div', { class: 'nft-desc' }, t('Кількість: {0}', it.amount)) : '',
-          it.metadata === 'external' ? h('div', { class: 'nft-desc' }, 'Метадані на стороньому сервері не завантажуються (приватність).') : '',
-          h('div', { class: 'nft-desc pw', style: 'user-select:text' }, short(it.contract)),
-          h('div', { class: 'tools', style: 'margin-top:8px' },
-            idx < 5000 ? h('button', { class: 'link', onclick: () => sendDialog(idx, { chain: 'evm', nft: { chain: 'evm', contract: it.contract, id: it.id, standard: it.standard, label: title, amount: it.amount } }) }, 'Надіслати') : '',
-            net2 && net2.explorer ? h('a', { href: `${net2.explorer}/token/${it.contract}?a=${it.id}` }, 'Оглядач') : '',
-            h('button', { class: 'link danger', title: 'Прибрати зі списку (не видаляє NFT)', onclick: async () => { await call('wallet:removeNft', { contract: it.contract, id: it.id }); loadTokens(); } }, 'Прибрати')))));
+      const title = it.collection ? `${it.collection} #${it.id}` : `#${it.id}`;
+      nftGrid.append(nftCard({
+        title, badge: it.standard === 'erc1155' ? 'ERC-1155' : 'NFT', gen, loader: () => call('wallet:evmNftMeta', { contract: it.contract, id: it.id }),
+        extra: h('div', null, it.collection ? h('div', { class: 'nft-desc' }, it.collection) : '', it.standard === 'erc1155' ? h('div', { class: 'nft-desc' }, t('Кількість: {0}', it.amount)) : '', h('div', { class: 'nft-desc pw', style: 'user-select:text' }, short(it.contract))),
+        actions: [
+          idx < 5000 ? h('button', { class: 'link', onclick: () => sendDialog(idx, { chain: 'evm', nft: { chain: 'evm', contract: it.contract, id: it.id, standard: it.standard, label: title, amount: it.amount } }) }, 'Надіслати') : '',
+          net2 && net2.explorer ? h('a', { href: `${net2.explorer}/token/${it.contract}?a=${it.id}` }, 'Оглядач') : '',
+          h('button', { class: 'link danger', title: 'Прибрати зі списку (не видаляє NFT)', onclick: async () => { await call('wallet:removeNft', { contract: it.contract, id: it.id }); loadTokens(); } }, 'Прибрати'),
+        ],
+      }));
     }
   }
 
@@ -592,8 +656,8 @@ async function renderDashboard(st) {
       }
       return h('div', { class: 'item', style: 'flex-wrap:wrap' }, h('div', { class: 'main' }, h('div', { class: 't' }, title.name + (title.error ? ` \u2014 ${title.error}` : '')), parts.length ? parts : h('div', { class: 's' }, title.error ? '' : t('Порожньо'))), h('span', { class: 'note' }, r.pricesOn && !title.error ? money(usd) : ''));
     };
-    for (const c of r.chains) pfList.append(rowEl({ name: c.name, symbol: c.symbol, error: c.error }, c.usd, c.rows));
-    if (!r.sol.skipped) pfList.append(rowEl({ name: 'Solana', symbol: 'SOL' }, r.sol.usd, r.sol.rows));
+    for (const c of r.chains) pfList.append(rowEl({ name: c.name, symbol: c.symbol, error: c.error }, c.usd + c.watchUsd, c.rows));
+    if (!r.sol.skipped) pfList.append(rowEl({ name: 'Solana', symbol: 'SOL' }, r.sol.usd + r.sol.watchUsd, r.sol.rows));
     else pfList.append(h('div', { class: 'item' }, h('div', { class: 'main' }, h('div', { class: 't' }, 'Solana'), h('div', { class: 's' }, t('Не Mainnet Beta: ціни й підсумок не рахуються')))));
   }
   const portfolioBox = h('div', null, h('div', { class: 'bar' }, h('button', { class: 'primary', onclick: () => loadPortfolio(false) }, 'Показати портфель'), h('button', { onclick: () => loadPortfolio(true) }, 'Оновити')), pfMsg, pfTotal, pfList);
@@ -601,15 +665,16 @@ async function renderDashboard(st) {
   // ----- режими обережності -----
   const pol = info.policy || {};
   const polContacts = h('input', { type: 'checkbox', class: 'switch', checked: !!pol.contactsOnly });
-  const polConfirm = h('input', { type: 'number', min: '0', step: 'any', value: String(pol.confirmUsd || 0), style: 'width:110px' });
-  const polMax = h('input', { type: 'number', min: '0', step: 'any', value: String(pol.maxUsd || 0), style: 'width:110px' });
-  const polDays = h('input', { type: 'number', min: '0', max: '365', step: '1', value: String(pol.siteDays || 0), style: 'width:80px' });
+  const polConfirm = h('input', { type: 'number', min: '0', step: 'any', value: String(pol.confirmUsd || 0), style: 'width:110px;flex:none' });
+  const polMax = h('input', { type: 'number', min: '0', step: 'any', value: String(pol.maxUsd || 0), style: 'width:110px;flex:none' });
+  const polDays = h('input', { type: 'number', min: '0', max: '365', step: '1', value: String(pol.siteDays || 0), style: 'width:80px;flex:none' });
   const polMsg = h('span', { class: 'note' });
+  const polRow = 'display:flex;gap:10px;align-items:center;justify-content:flex-start';
   const policyBox = h('div', { style: 'display:grid;gap:8px' },
-    h('label', { class: 'bar' }, polContacts, h('span', null, 'Надсилати лише на мої рахунки та адреси з адресної книги')),
-    h('label', { class: 'bar' }, polConfirm, h('span', null, 'USD: підтвердження великих сум із паузою 5 с (від; 0 — вимкнено)')),
-    h('label', { class: 'bar' }, polMax, h('span', null, 'USD: забороняти переказ більше за (0 — без ліміту)')),
-    h('label', { class: 'bar' }, polDays, h('span', null, 'Відключати сайти, якими не користувались N днів (0 — ніколи)')),
+    h('label', { style: polRow }, polContacts, h('span', null, 'Надсилати лише на мої рахунки та адреси з адресної книги')),
+    h('label', { style: polRow }, polConfirm, h('span', null, 'USD: підтвердження великих сум із паузою 5 с (від; 0 — вимкнено)')),
+    h('label', { style: polRow }, polMax, h('span', null, 'USD: забороняти переказ більше за (0 — без ліміту)')),
+    h('label', { style: polRow }, polDays, h('span', null, 'Відключати сайти, якими не користувались N днів (0 — ніколи)')),
     h('div', { class: 'bar' }, h('button', { class: 'primary', onclick: async () => {
       polMsg.textContent = '\u2026';
       const r = await withAuth((x) => call('wallet:setPolicy', { ...x, policy: { contactsOnly: polContacts.checked, confirmUsd: Number(polConfirm.value) || 0, maxUsd: Number(polMax.value) || 0, siteDays: Math.floor(Number(polDays.value) || 0) } }));
@@ -681,7 +746,7 @@ async function renderDashboard(st) {
     h('div', { class: 'bar', style: 'margin-top:10px' }, info.accounts.length < 10 ? h('button', { onclick: async () => { const r = await call('wallet:addAccount'); if (!r.ok) alert(r.error); render(); } }, '+ Додати рахунок') : '', h('button', { onclick: importDialog }, 'Імпортувати ключ\u2026'), h('button', { onclick: watchDialog }, 'Додати адресу для перегляду\u2026')),
     h('h2', { id: 'tokens-anchor' }, 'Токени та NFT'),
     h('div', { class: 'bar' }, tokAcct, tokChain, h('button', { onclick: () => loadTokens() }, 'Оновити')),
-    tokMsg, tokList, nftMsg, nftGrid, tokAddBar, nftAddBar,
+    tokMsg, tokList, nftMsg, nftGrid, nftMore, tokAddBar, nftAddBar,
     h('h2', null, 'Історія Solana'),
     h('div', { class: 'bar' }, histAcct, h('button', { onclick: loadHistory }, 'Оновити')),
     histMsg, histList,
@@ -717,6 +782,8 @@ async function renderDashboard(st) {
         (() => { const cb = h('input', { type: 'checkbox', class: 'switch', checked: st.inject, onchange: () => call('wallet:setInject', { on: cb.checked }) }); return cb; })()),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Показувати орієнтовні ціни в USD'), h('div', { class: 'd' }, 'Ціни завантажуються з CoinGecko: сервіс бачить ваш IP та ідентифікатори монет і адреси контрактів токенів, але не адреси ваших рахунків. Ціни лише для показу й нічого не впливають на підтвердження. Вимкніть, щоб гаманець не звертався до цього сервісу.')),
         (() => { const cb = h('input', { type: 'checkbox', class: 'switch', checked: st.prices !== false, onchange: async () => { await call('wallet:setPrices', { on: cb.checked }); render(); } }); return cb; })()),
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Завантажувати картинки й метадані NFT з будь-яких сайтів'), h('div', { class: 'd' }, 'Вимкнено: лише IPFS, Arweave/Irys і дані з блокчейну (сторонні сайти не бачать вашого IP). Увімкніть, якщо ваші NFT зберігаються на звичайних сайтах: такі сайти побачать ваш IP. Завантаження виконує браузер із захистом від локальних адрес і ліміти розміру.')),
+        (() => { const cb = h('input', { type: 'checkbox', class: 'switch', checked: st.nftAnyHost === true, onchange: async () => { await call('wallet:setNftAnyHost', { on: cb.checked }); render(); } }); return cb; })()),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Скасування дозволів токенів'), h('div', { class: 'd' }, 'Відкликає право адреси витрачати ваш токен (approve 0). Корисно, якщо ви давали необмежений дозвіл сайту, якому більше не довіряєте.')), h('button', { onclick: revokeDialog }, 'Скасувати дозвіл…')),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Показати фразу відновлення'), h('div', { class: 'd' }, 'Потрібен майстер-пароль')),
         h('button', { onclick: async () => {
