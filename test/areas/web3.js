@@ -568,6 +568,24 @@ async function walletTests(ctx) {
   await sleep(300);
   ok((await call(wcA, 'eth_accounts')).ok.length === 0 && wal.dappIndex('evm') === 0 && !wal.info().connections.some(c => c.origin === A.origin) && JSON.stringify(await wcA.executeJavaScript('window.__acc')).endsWith('[]]'), 'dapp: видалення імпортованого рахунку відключає сайти, що ним користувались, і скидає типовий рахунок');
 
+  // --- рахунки лише для перегляду (watch-only) ---
+  const watchEvm = E.getAddress('0x00000000000000000000000000000000000000d4');
+  const watchSol = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+  const werr = (fn) => { try { fn(); return ''; } catch (e) { return e.message; } };
+  const wE = wal.addWatch(watchEvm.toLowerCase(), 'Чужий‮ гаманець');
+  const wS = wal.addWatch(watchSol, '');
+  ok(wE.chain === 'evm' && wE.address === watchEvm && wE.id >= 5000 && !/‮/.test(wE.name) && wS.chain === 'sol' && wS.address === watchSol, 'watch: адреси EVM (приводиться до контрольної суми) і Solana додаються, з імені прибрано керівні символи');
+  ok(/вже додано/.test(werr(() => wal.addWatch(watchEvm))) && /власного рахунку/.test(werr(() => wal.addWatch(addr0))) && /Некоректна адреса/.test(werr(() => wal.addWatch('0x123'))) && /Нульова/.test(werr(() => wal.addWatch(E.ZeroAddress))) && /Некоректна адреса/.test(werr(() => wal.addWatch(''))), 'watch: дублікат, власна адреса, сміття й нульова адреса відхиляються');
+  ok(wal.info().watch.length === 2 && !wal.ownEvm().includes(watchEvm) && !wal.ownSol().includes(watchSol) && !wal.isOwnEvm(watchEvm), 'watch: рахунки для перегляду видно в інформації, але вони не «власні» (підписувати з них не можна)');
+  ok((await wal.balances()).some(b => b.address === watchEvm && b.balance !== null) && (await wal.evmTokens(wE.id)).tokens !== undefined && wal.evmView(wE.id) === watchEvm, 'watch: баланс і токени рахунку для перегляду читаються');
+  ok(/Невідомий рахунок/.test(werr(() => wal.evmAccount(wE.id))) && /Невідомий рахунок/.test(werr(() => wal.solAccount(wS.id))), 'watch: як рахунок для підпису (evmAccount/solAccount) такі адреси недоступні');
+  const watchSendErr = async (fn) => { try { await fn(); return ''; } catch (e) { return e.message; } };
+  ok(/Невідомий рахунок/.test(await watchSendErr(() => wal.sendNative(w, () => true, { index: wE.id, to: addr0, amount: '0.01' }))) && /Невідомий рахунок/.test(await watchSendErr(() => wal.sendToken(w, () => true, { index: wE.id, token: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512', to: addr0, amount: '1' }))) && /Невідомий рахунок/.test(await watchSendErr(() => wal.sendNft(w, () => true, { index: wE.id, contract: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512', tokenId: '1', to: addr0 }))) && !w.approval, 'watch: переказ коштів, токенів і NFT з рахунку для перегляду неможливий і не доходить до підтвердження');
+  ok(/Невідомий рахунок/.test(werr(() => wal.setDappAccount('evm', wE.id))) && !wal.dappChoices('evm').some(o => o.value === String(wE.id)) && !wal.dappChoices('sol').some(o => o.value === String(wS.id)), 'watch: рахунок для перегляду не можна дати сайту (ні типовим, ні у виборі підключення)');
+  ok((await call(wcA, 'personal_sign', [E.hexlify(E.toUtf8Bytes('x')), watchEvm])).err === 4100 && !w.approval, 'watch: сайт не може підписати від адреси рахунку для перегляду');
+  ok(wal.rename(wE.id, 'Біржа') === 'Біржа' && wal.watchAccounts().find(a => a.id === wE.id).name === 'Біржа' && wal.qrFor(watchEvm).size > 0, 'watch: перейменування й QR працюють');
+  ok(wal.removeWatch(wS.id) === true && wal.removeWatch(wE.id) === true && wal.watchAccounts().length === 0 && /Невідомий рахунок/.test(werr(() => wal.removeWatch(5000))), 'watch: видалення рахунків для перегляду');
+
   // --- вибір рахунку під час підключення сайту ---
   if (wal.info().accounts.length < 2) wal.addAccount();
   const pickPr = call(wcA, 'eth_requestAccounts');
@@ -579,6 +597,40 @@ async function walletTests(ctx) {
   const pickRes = await pickPr;
   ok(goodPick.ok && pickRes.ok && pickRes.ok[0] === wal.section().addresses[1] && pickRes.ok[0] !== addr0, 'dapp: сайт підключено саме до вибраного рахунку');
   ok(wal.info().connections.find(c => c.origin === A.origin).accounts[0] === wal.section().addresses[1], 'dapp: вибраний рахунок збережено для сайту');
+  // --- розбір підписів і захист: SIWE, permit, EIP-7702, буфер обміну (у підключеного сайту) ---
+  const acc1 = wal.section().addresses[1];
+  const siweMsg = `evil.example wants you to sign in with your Ethereum account:\n${acc1}\n\nSign in.\n\nURI: https://evil.example/\nVersion: 1\nChain ID: 31337\nNonce: abcdef123456\nIssued At: ${new Date().toISOString()}`;
+  let spg = call(wcA, 'personal_sign', [E.hexlify(E.toUtf8Bytes(siweMsg)), acc1]);
+  const apSiwe = await waitApproval();
+  ok(apSiwe && apSiwe.spec.danger === true && apSiwe.spec.lines.some(l => l[0] === 'Домен у повідомленні' && l[1] === 'evil.example') && apSiwe.spec.warnings.some(x => /НЕ збігається з сайтом/.test(x)), 'dapp: вхід SIWE з чужим доменом показано як небезпечний із доменом у повідомленні');
+  await decide(false);
+  ok((await spg).err === 4001, 'dapp: відхилений вхід SIWE повертає помилку користувача');
+  const typedPermit = JSON.stringify({ domain: { name: 'T', chainId: 31337, verifyingContract: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512' }, primaryType: 'Permit', types: { Permit: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }, { name: 'value', type: 'uint256' }, { name: 'nonce', type: 'uint256' }, { name: 'deadline', type: 'uint256' }] }, message: { owner: acc1, spender: '0x00000000000000000000000000000000000000c3', value: (2n ** 256n - 1n).toString(), nonce: 0, deadline: (2n ** 256n - 1n).toString() } });
+  spg = call(wcA, 'eth_signTypedData_v4', [acc1, typedPermit]);
+  const apPermit = await waitApproval();
+  ok(apPermit && apPermit.spec.danger === true && apPermit.spec.lines.some(l => l[0] === 'Отримувач дозволу') && apPermit.spec.lines.some(l => l[1] === 'НЕОБМЕЖЕНО') && apPermit.spec.warnings.some(x => /звичайний рахунок, а не контракт/.test(x)), 'dapp: permit показує отримувача, необмежену суму й попередження про отримувача-не-контракт');
+  await decide(false);
+  await spg;
+  const r7702 = await call(wcA, 'wallet_sendCalls', [{ calls: [] }]);
+  const r7702b = await call(wcA, 'eth_sendTransaction', [{ from: acc1, to: addr0, value: '0x1', authorizationList: [{ chainId: '0x1', address: addr0, nonce: '0x0' }] }]);
+  const r7702c = await call(wcA, 'wallet_signAuthorization', [{}]);
+  ok(r7702.err === 4200 && /EIP-5792/.test(r7702.msg) && r7702b.err === 4200 && /EIP-7702/.test(r7702b.msg) && r7702c.err === 4200 && !w.approval, 'dapp: пакетні виклики, транзакція з делегуванням і підпис делегування відхиляються без підтвердження');
+  ok((await call(wcA, 'wallet_getCapabilities', [acc1])).ok !== undefined, 'dapp: wallet_getCapabilities відповідає порожніми можливостями');
+  // буфер обміну: скопійована в браузері адреса відрізняється від отримувача
+  const copied = '0x1111111111111111111111111111111111111111', target = '0x2222222222222222222222222222222222222222';
+  ctx.clipGuard.clear(); ctx.clipGuard.note(copied);
+  const sendP = wal.sendNative(w, () => true, { index: 0, to: target, amount: '0.01' }).catch(e => e);
+  const apClip = await waitApproval();
+  ok(apClip && apClip.spec.warnings.some(x => x.includes(copied) && x.includes(target) && /скопіювали в браузері/.test(x)), 'clip: у підтвердженні переказу є попередження, що скопійована адреса не збігається з отримувачем');
+  await decide(false);
+  await sendP;
+  ctx.clipGuard.note(target);
+  const sendP2 = wal.sendNative(w, () => true, { index: 0, to: target, amount: '0.01' }).catch(e => e);
+  const apClip2 = await waitApproval();
+  ok(apClip2 && !apClip2.spec.warnings.some(x => /скопіювали в браузері/.test(x)), 'clip: якщо отримувач збігається зі скопійованою адресою, попередження немає');
+  await decide(false);
+  await sendP2;
+  ctx.clipGuard.clear();
   wal.disconnectSite(A.origin);
 
   A.s.close(); B.s.close(); rpc.close();

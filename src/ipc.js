@@ -296,6 +296,8 @@ async function walletApi(ctx, entry, name, arg) {
         if (r.response !== 0) return { ok: false, error: '' };
         return { ok: true, removed: w.removeImported(arg.id) };
       }
+      case 'wallet:addWatch': return { ok: true, account: w.addWatch(arg.address, arg.name) };
+      case 'wallet:removeWatch': return { ok: true, removed: w.removeWatch(arg.id) };
       case 'wallet:qr': return { ok: true, qr: w.qrFor(arg.text) };
       case 'wallet:setDappAccount': return { ok: true, index: w.setDappAccount(String(arg.chain), arg.index) };
       case 'wallet:setSiteAccount': return { ok: true, address: w.setSiteAccount(arg.origin, String(arg.chain), arg.index) };

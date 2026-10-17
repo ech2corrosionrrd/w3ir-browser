@@ -16,6 +16,7 @@ const { groupTests, siteTests, splitTests, fullscreenTests, guardTests, tabClose
 const { agentShareTests, agentTests } = require('./areas/ai');
 const { i18nTests } = require('./areas/i18n');
 const { nftTests } = require('./areas/nft');
+const { signguardTests } = require('./areas/signguard');
 const { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests } = require('./areas/misc');
 
 // W3IR_ONLY=updateTests,agentTests — запустити лише названі області (швидка перевірка окремих тестів)
@@ -40,6 +41,7 @@ module.exports = async function run(ctx) {
     await step('solanaTests', () => solanaTests(ctx));
     await step('fuzzTests', () => fuzzTests());
     await step('nftTests', () => nftTests());
+    await step('signguardTests', () => signguardTests());
     await step('qrTests', () => qrTests());
     await step('placesTests', () => placesTests(ctx));
     await step('helpTests', () => helpTests(ctx));

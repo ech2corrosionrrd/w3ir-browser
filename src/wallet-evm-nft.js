@@ -90,7 +90,7 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
   proto.evmNfts = async function (index, { maxItems = 40, maxImages = 12 } = {}) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    const owner = this.evmAccount(index);
+    const owner = this.evmView(index);
     const chainId = this.activeChain();
     const list = savedList(this, chainId).slice(0, maxItems);
     const checked = await Promise.all(list.map(async (e) => {
@@ -145,7 +145,7 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
   proto.discoverNfts = async function (index, { blocks = 40000, chunk = 5000, maxLogs = 1500 } = {}) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    const owner = this.evmAccount(index);
+    const owner = this.evmView(index);
     const chainId = this.activeChain();
     const provider = this.provider(chainId);
     let head;

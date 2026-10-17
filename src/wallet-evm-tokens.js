@@ -65,7 +65,7 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
   proto.evmTokens = async function (index) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    const owner = this.evmAccount(index);
+    const owner = this.evmView(index);
     const chainId = this.activeChain();
     const custom = this._customTokens(chainId);
     const entries = [...(BUILTIN[chainId] || []).filter(([a]) => !custom.some(c => c.address === a)).map(([address, symbol]) => ({ address, expect: symbol, custom: false })), ...custom.map(c => ({ ...c, custom: true }))];
