@@ -133,6 +133,7 @@ async function walletTests(ctx) {
           case 'eth_getTransactionCount': return r('0x5');
           case 'eth_estimateGas': return r('0x5208');
           case 'eth_call': return r('0x');
+          case 'eth_getCode': return r(String(j.params[0]).toLowerCase() === '0x5fbdb2315678afecb367f032d93f642f64180aa3' ? '0x6080604052' : '0x');
           case 'eth_sendRawTransaction': rawTxs.push(j.params[0]); return r(E.keccak256(j.params[0]));
           default: return { jsonrpc: '2.0', id: j.id, error: { code: -32601, message: 'no ' + j.method } };
         }
@@ -206,6 +207,49 @@ async function walletTests(ctx) {
   const tx = sent && E.Transaction.from(sent);
   ok(res.ok && tx && tx.from === addr0 && tx.to === to && tx.value === 10n ** 18n && tx.chainId === 31337n && res.ok === E.keccak256(sent), 'wallet: транзакцію підписано ключем гаманця та надіслано в мережу');
 
+  // ---------- імена рахунків і переказ зі сторінки гаманця ----------
+  ok(wal.rename(0, '  Основний\u202E\u200B ') === 'Основний' && wal.info().names[0] === 'Основний', 'wallet: ім\u2019я рахунку очищається від керівних символів і зберігається');
+  ok(wal.rename(0, 'x'.repeat(100)).length === 32 && wal.rename(0, '') === '' && wal.info().names[0] === '', 'wallet: ім\u2019я обмежене 32 символами; порожнє повертає типове');
+  let badIdx = ''; try { wal.rename(7, 'x'); } catch (e) { badIdx = e.message; }
+  ok(/Невідомий рахунок/.test(badIdx), 'wallet: перейменувати неіснуючий рахунок не можна');
+  const startSend = (p) => wal.sendNative(w, () => true, p);
+  const sendErr = async (p) => { try { await wal.sendNative(w, () => true, p); return ''; } catch (e) { return e.message; } };
+  const rcpt = '0x90F79bf6EB2c4f870365E785982E1f101E93b906';
+  const sendBefore = rawTxs.length;
+  const badInputs = [{ index: 0, to: 'не адреса', amount: '1' }, { index: 0, to: '0x90F79bf6EB2c4f870365E785982E1f101E93B906', amount: '1' },
+    { index: 0, to: rcpt, amount: '0' }, { index: 0, to: rcpt, amount: '-1' }, { index: 0, to: rcpt, amount: '1e5' }, { index: 0, to: rcpt, amount: '0.0000000000000000001' }, { index: 0, to: rcpt, amount: 5 }, { index: 9, to: rcpt, amount: '1' }];
+  const badRes = await Promise.all(badInputs.map(sendErr));
+  ok(badRes.every(m => m.length > 0) && !w.approval && rawTxs.length === sendBefore, 'wallet: некоректні адреси (також із хибною контрольною сумою), суми й рахунок відхиляються до будь-якого підтвердження');
+
+  let sp = startSend({ index: 0, to: rcpt, amount: '0.5' });
+  const apSend = await waitApproval();
+  ok(apSend.spec.lines.some(l => l[0] === 'Кому' && l[1] === rcpt) && apSend.spec.lines.some(l => l[0] === 'Сума' && /^0\.5 TST/.test(l[1])) && apSend.spec.origin === 'w3ir://wallet', 'wallet: переказ зі сторінки — отримувач і сума у довіреному підтвердженні');
+  ok(apSend.spec.warnings.some(x => /ще не надсилали/.test(x)) && !apSend.spec.danger, 'wallet: нова адреса отримувача — попередження без тривоги');
+  await decide(true, MASTER);
+  const sentHash = await sp;
+  const sentTx = E.Transaction.from(rawTxs[rawTxs.length - 1]);
+  ok(sentTx.to === rcpt && sentTx.value === 5n * 10n ** 17n && sentTx.from === addr0 && sentHash === E.keccak256(rawTxs[rawTxs.length - 1]), 'wallet: переказ підписано ключем рахунку й надіслано, адреса та сума збігаються');
+  sp = startSend({ index: 0, to: rcpt, amount: '0.1' });
+  const apAgain = await waitApproval();
+  ok(!apAgain.spec.warnings.some(x => /ще не надсилали/.test(x)), 'wallet: адресу, на яку вже надсилали, запам\u2019ятовано');
+  await decide(false);
+  ok(await sp.then(() => 'sent', (e) => e.code) === 4001, 'wallet: відхилення переказу → 4001');
+
+  const poison = (addr0.slice(0, 6) + 'a'.repeat(32) + addr0.slice(-4)).toLowerCase();
+  ok(E.isAddress(poison) && poison.length === 42 && poison !== addr0.toLowerCase(), 'wallet: тестова «схожа» адреса коректна, але інша');
+  sp = startSend({ index: 0, to: poison, amount: '0.1' });
+  const apPoison = await waitApproval();
+  ok(apPoison.spec.danger === true && apPoison.spec.warnings.some(x => /address poisoning/.test(x)), 'wallet: адреса, схожа на власну (початок і кінець), — червоне попередження про підміну');
+  await decide(false); await sp.catch(() => {});
+  sp = startSend({ index: 0, to: addr0, amount: '0.1' });
+  const apSelf = await waitApproval();
+  ok(apSelf.spec.warnings.some(x => /власних рахунків/.test(x)), 'wallet: переказ на власний рахунок позначено');
+  await decide(false); await sp.catch(() => {});
+  sp = startSend({ index: 0, to: '0x5FbDB2315678afecb367f032d93F642f64180aa3', amount: '0.1' });
+  const apCode = await waitApproval();
+  ok(apCode.spec.warnings.some(x => /смарт-контракт/.test(x)), 'wallet: отримувач — контракт: попередження');
+  await decide(false); await sp.catch(() => {});
+
   // небезпечні виклики: попередження + відхилення
   const token = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
   pr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: token, data: iface.encodeFunctionData('approve', [spender, MAX]) }]);
@@ -213,7 +257,7 @@ async function walletTests(ctx) {
   ok(ap4.spec.warnings.some(x => /Необмежений/.test(x)) && ap4.spec.danger === true, 'wallet: необмежений approve — червоне попередження');
   await decide(false);
   res = await pr;
-  ok(res.err === 4001 && rawTxs.length === 1, 'wallet: відхилення → код 4001, нічого не надіслано');
+  ok(res.err === 4001 && rawTxs.length === 2, 'wallet: відхилення → код 4001, нічого не надіслано');
   pr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: token, data: iface.encodeFunctionData('setApprovalForAll', [spender, true]) }]);
   const ap5 = await waitApproval();
   ok(ap5.spec.warnings.some(x => /ВСІ/.test(x)), 'wallet: setApprovalForAll — попередження про ВСІ NFT');
@@ -255,7 +299,7 @@ async function walletTests(ctx) {
   w.exec('switchTab', w.tabs.find(t => t.view.webContents === wcA).id);
   ok((await call(wcA, 'eth_accounts')).ok.length === 0, 'wallet: при блокуванні сховища сайти не бачать рахунків');
   res = await call(wcA, 'eth_sendTransaction', [{ from: addr0, to, value: '0x1' }]);
-  ok(res.err === 4100 && rawTxs.length === 1, 'wallet: заблокований гаманець нічого не підписує');
+  ok(res.err === 4100 && rawTxs.length === 2, 'wallet: заблокований гаманець нічого не підписує');
   pr = call(wcA, 'eth_requestAccounts');
   const ap6 = await waitApproval();
   ok(ap6.spec.kind === 'connect' && w.approvalPayload(ap6).needsUnlock === true, 'wallet: запит при заблокованому сховищі вимагає майстер-пароль');

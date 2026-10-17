@@ -185,6 +185,7 @@ async function ipcPolicyTests() {
     ['profiles:create', 'w3ir://profiles', true], ['profiles:remove', 'w3ir://settings', false], ['import:run', 'w3ir://import', true], ['import:run', 'w3ir://newtab', false],
     ['settings:set', 'w3ir://settings', true], ['settings:set', 'w3ir://history', false], ['settings:set', 'w3ir://error?code=1', false], ['settings:get', 'w3ir://help', true], ['settings:get', 'w3ir://help#faq', true],
     ['clear', 'w3ir://settings', true], ['clear', 'w3ir://reader', false], ['ext:add', 'w3ir://bookmarks', false], ['reader:get', 'w3ir://reader', true], ['reader:get', 'w3ir://newtab', false],
+    ['vault:lock', 'w3ir://wallet', true], ['vault:lock', 'w3ir://history', false], ['wallet:send', 'w3ir://wallet', true], ['wallet:send', 'w3ir://newtab', false], ['wallet:rename', 'w3ir://wallet', true],
     ['assistant:run', 'w3ir://assistant', true], ['assistant:run', 'w3ir://settings', false], ['assistant:run', 'w3ir://assistant?x=1', false], ['assistant:share', 'w3ir://history', false],
     ['history:get', 'w3ir://history?q=a', true], ['history:clear', 'w3ir://history', true], ['history:clear', 'w3ir://newtab', false], ['downloads:action', 'w3ir://downloads', true], ['downloads:action', 'w3ir://history', false],
     ['topsites', 'w3ir://newtab', true], ['resolve', 'w3ir://newtab', true], ['resolve', 'w3ir://settings', false],

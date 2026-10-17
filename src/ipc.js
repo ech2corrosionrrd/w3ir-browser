@@ -167,7 +167,7 @@ const POLICY = {
   'sites:': { settings: '*' }, 'update:': { settings: '*' }, 'sync:': { settings: '*' }, 'github:': { settings: '*' }, 'agent:': { settings: '*' },
   'profiles:': { profiles: '*' },
   'dashboard:': { dashboard: '*' },
-  'vault:': { passwords: '*', import: ['vault:status', 'vault:importCsv'], wallet: ['vault:status', 'vault:unlock'] },
+  'vault:': { passwords: '*', import: ['vault:status', 'vault:importCsv'], wallet: ['vault:status', 'vault:unlock', 'vault:lock'] },
   'safe:': { warning: ['safe:proceed', 'safe:trust'], settings: ['safe:status', 'safe:update'] },
 };
 // Окремі команди без групи: назва → сторінки
@@ -266,6 +266,13 @@ async function walletApi(ctx, entry, name, arg) {
         return { ok: true };
       }
       case 'wallet:balances': return { ok: true, balances: await w.balances() };
+      case 'wallet:rename': return { ok: true, name: w.rename(arg.index, arg.name) };
+      case 'wallet:send': {
+        const sameTab = () => entry.win.tabs.includes(entry.tab);
+        if (arg.chain === 'sol') return { ok: true, hash: await w.solSend(entry.win, sameTab, { index: arg.index, to: arg.to, amount: arg.amount }), chain: 'sol' };
+        if (arg.chain === 'evm') return { ok: true, hash: await w.sendNative(entry.win, sameTab, { index: arg.index, to: arg.to, amount: arg.amount }), chain: 'evm' };
+        throw new Error('unknown');
+      }
       case 'wallet:solTokens': return { ok: true, ...(await w.solTokens(String(arg.address))) };
       case 'wallet:solBalances': return { ok: true, balances: await w.solBalances() };
       case 'wallet:solSetCluster': w.setSolCluster(String(arg.id)); return { ok: true };

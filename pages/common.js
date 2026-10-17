@@ -72,3 +72,22 @@ function ask(title, fields, { okText = 'OK', note = '' } = {}) {
   });
 }
 
+
+// ---------- бічна навігація за заголовками h2 розділів (як у налаштуваннях) ----------
+function railNav(label) {
+  document.querySelectorAll('nav.rail').forEach(n => n.remove());
+  const heads = [...document.querySelectorAll('main > h2')];
+  if (heads.length < 4) return;
+  const links = heads.map((hd, i) => {
+    hd.id = 'sec' + i;
+    return h('a', { href: '#sec' + i, onclick: (e) => { e.preventDefault(); hd.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, hd.textContent);
+  });
+  document.body.append(h('nav', { class: 'rail', 'aria-label': label }, links));
+  const mark = () => {
+    let cur = 0;
+    heads.forEach((hd, i) => { if (hd.getBoundingClientRect().top < 140) cur = i; });
+    links.forEach((a, i) => a.classList.toggle('on', i === cur));
+  };
+  window.addEventListener('scroll', mark, { passive: true });
+  mark();
+}
