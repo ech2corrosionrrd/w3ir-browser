@@ -1,7 +1,7 @@
 {
   "name": "w3ir-browser",
   "productName": "W3IR Browser",
-  "version": "1.27.0",
+  "version": "1.28.0",
   "description": "W3IR Browser — власний браузер на основі Chromium",
   "main": "main.js",
   "author": "W3IR",
@@ -79,7 +79,8 @@
     "electron": "^41.10.7",
     "electron-builder": "^26.15.3",
     "eslint": "^9.39.5",
-    "globals": "^17.13.0"
+    "globals": "^17.13.0",
+    "jsqr": "^1.4.0"
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.20.1",

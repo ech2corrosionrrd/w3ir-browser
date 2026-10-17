@@ -74,7 +74,7 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     if (mode !== 'speedup' && mode !== 'cancel') throw new RpcError(-32602, 'Невідома дія.');
     const p = (s.pending || []).find(x => x.hash === hash);
     if (!p) throw new RpcError(-32602, 'Транзакцію не знайдено серед очікуваних.');
-    if (!s.addresses.includes(p.from) || !this.network(p.chainId)) throw new RpcError(-32602, 'Рахунок або мережу транзакції більше не підтримується.');
+    if (!this.isOwnEvm(p.from) || !this.network(p.chainId)) throw new RpcError(-32602, 'Рахунок або мережу транзакції більше не підтримується.');
     const provider = this.provider(p.chainId);
     let latest;
     try { latest = await timed(provider.getTransactionCount(p.from, 'latest'), 8000); } catch (e) { throw new RpcError(-32000, `Не вдалося перевірити nonce: ${clip(e.message, 160)}`); }
@@ -113,12 +113,10 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
   proto.revokeAllowance = async function (win, sameTab, { index, token, spender }) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    index = Number(index);
-    if (!Number.isInteger(index) || index < 0 || index >= s.addresses.length) throw new RpcError(-32602, 'Невідомий рахунок');
+    const owner = this.evmAccount(index);
     if (typeof token !== 'string' || !isAddress(token) || typeof spender !== 'string' || !isAddress(spender)) throw new RpcError(-32602, 'Некоректна адреса токена або адреса, якій видано дозвіл.');
     const chainId = this.activeChain();
     const info = await this.tokenInfo(chainId, token);
-    const owner = s.addresses[index];
     const spenderAddr = getAddress(spender);
     let current;
     try { current = ALLOWANCE.decodeFunctionResult('allowance', await this._ethCall(chainId, info.address, ALLOWANCE.encodeFunctionData('allowance', [owner, spenderAddr])))[0]; }

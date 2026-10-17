@@ -91,7 +91,11 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   };
   proto._solKeypair = function (address) {
     const i = this.solAddresses().indexOf(address);
-    if (i < 0) throw unauthorized('Невідомий рахунок');
+    if (i < 0) {
+      const secret = this._importedSecret(address, 'sol'); // імпортований за приватним ключем
+      if (!secret) throw unauthorized('Невідомий рахунок');
+      return S.keypairFromSeed(Buffer.from(secret, 'base64'));
+    }
     return S.deriveAccount(this._solSeed(), i);
   };
   proto.solAccountsFor = function (origin) {
@@ -101,7 +105,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   };
   proto.solBalances = async function () {
     const cluster = this.solCluster();
-    return Promise.all(this.solAddresses().map(async (address) => {
+    return Promise.all(this.ownSol().map(async (address) => {
       try { const r = await this.solRpc(cluster, 'getBalance', [address, { commitment: 'confirmed' }], 8000, { fallbackOnError: true }); return { address, balance: S.sol(r.value), symbol: 'SOL' }; }
       catch { return { address, balance: null, symbol: 'SOL' }; }
     }));
@@ -141,7 +145,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   const ARWEAVE_URI = /^(?:ar:\/\/|https:\/\/(?:arweave\.net|gateway\.irys\.xyz|arweave\.dev)\/)([A-Za-z0-9_-]{43})(?:[/?#].*)?$/;
 
   proto.solTokens = async function (address, { maxMints = 60, maxImages = 12 } = {}) {
-    if (!this.solAddresses().includes(address)) throw unauthorized('Невідомий рахунок');
+    if (!this.isOwnSol(address)) throw unauthorized('Невідомий рахунок');
     const cluster = this.solCluster();
     const byMint = new Map();
     for (const [programId, label] of [[S.PROGRAMS.TOKEN, 'SPL Token'], [S.PROGRAMS.TOKEN22, 'Token-2022']]) {
@@ -187,13 +191,12 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   proto.solSend = async function (win, sameTab, { index, to, amount }) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    index = Number(index);
-    const addresses = this.solAddresses();
-    if (!Number.isInteger(index) || index < 0 || index >= addresses.length) throw new RpcError(-32602, 'Невідомий рахунок');
+    const addresses = this.ownSol();
+    const fromAcc = this.solAccount(index);
     if (typeof to !== 'string' || !S.isAddress(to)) throw new RpcError(-32602, 'Некоректна адреса отримувача.');
     let lamports;
     try { lamports = S.parseSol(amount); } catch (e) { throw new RpcError(-32602, e.message); }
-    const from = addresses[index];
+    const from = fromAcc;
     if (from === to) throw new RpcError(-32602, 'Не можна надсилати на той самий рахунок.');
     const cluster = this.solCluster();
     let bh;
@@ -215,12 +218,11 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   proto.solSendToken = async function (win, sameTab, { index, mint, to, amount }) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    index = Number(index);
-    const addresses = this.solAddresses();
-    if (!Number.isInteger(index) || index < 0 || index >= addresses.length) throw new RpcError(-32602, 'Невідомий рахунок');
+    const addresses = this.ownSol();
+    const fromAcc = this.solAccount(index);
     if (typeof to !== 'string' || !S.isAddress(to)) throw new RpcError(-32602, 'Некоректна адреса отримувача.');
     if (typeof mint !== 'string' || !S.isAddress(mint)) throw new RpcError(-32602, 'Некоректна адреса токена (mint).');
-    const from = addresses[index];
+    const from = fromAcc;
     if (from === to) throw new RpcError(-32602, 'Не можна надсилати на той самий рахунок.');
     if (to === mint) throw new RpcError(-32602, 'Це адреса самого токена (mint), а не гаманця одержувача: токени було б втрачено.');
     const cluster = this.solCluster();
@@ -287,7 +289,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
 
   // ---------- історія рахунку (з блокчейну) і статуси транзакцій ----------
   proto.solHistory = async function (address, { limit = 15 } = {}) {
-    if (!this.solAddresses().includes(address)) throw unauthorized('Невідомий рахунок');
+    if (!this.isOwnSol(address)) throw unauthorized('Невідомий рахунок');
     const cluster = this.solCluster();
     const sigs = await this.solRpc(cluster, 'getSignaturesForAddress', [address, { limit: Math.min(30, limit), commitment: 'confirmed' }], 12000, { fallbackOnError: true });
     const items = (sigs || []).map(x => ({ signature: String(x.signature), slot: Number(x.slot) || 0, time: x.blockTime ? Number(x.blockTime) * 1000 : 0, ok: !x.err, status: x.confirmationStatus || 'confirmed' }));
@@ -426,7 +428,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   // opts.address — переказ зі сторінки гаманця (власний рахунок без підключеного сайту); opts.warnings/danger — додаткові попередження
   proto._solSignTransactions = async function (win, origin, p, sameTab, send, opts = {}) {
     const address = opts.address || this._solConnected(origin);
-    if (opts.address && !this.solAddresses().includes(address)) throw unauthorized('Невідомий рахунок');
+    if (opts.address && !this.isOwnSol(address)) throw unauthorized('Невідомий рахунок');
     if (p.address && p.address !== address) throw unauthorized('Рахунок не підключено до цього сайту');
     const list = Array.isArray(p.transactions) ? p.transactions : [];
     if (!list.length || list.length > MAX_TXS || (send && list.length !== 1)) throw new RpcError(-32602, 'Некоректна кількість транзакцій');
