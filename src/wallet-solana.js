@@ -203,9 +203,12 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     try { bh = (await this.solRpc(cluster, 'getLatestBlockhash', [{ commitment: 'confirmed' }], 10000, { fallbackOnError: true })).value.blockhash; }
     catch (e) { throw new RpcError(-32000, `Не вдалося отримати blockhash: ${clip(e.message, 160)}`); }
     const message = S.buildTransferMessage({ from, to, lamports, blockhash: bh });
-    const { warnings, danger } = this.recipientWarnings(to, addresses);
+    const rw0 = this.recipientWarnings(to, addresses);
+    const gate = await this.policyGate({ to, chain: 'sol', amount });
+    const warnings = [...rw0.warnings, ...gate.warnings];
+    const danger = rw0.danger || gate.danger;
     if (!S.isOnCurve(S.b58decode(to))) warnings.push('Ця адреса не має приватного ключа (це адреса програми, PDA): кошти, надіслані на неї, зазвичай неможливо повернути.');
-    const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger });
+    const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger, delay: gate.delay });
     this.rememberRecipient(to);
     return r.signature;
   };
@@ -275,6 +278,8 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     if (!S.isOnCurve(S.b58decode(to))) warnings.push('Ця адреса не має приватного ключа (це адреса програми, PDA): кошти, надіслані на неї, зазвичай неможливо повернути.');
     const rw = this.recipientWarnings(to, addresses);
     warnings.push(...rw.warnings);
+    const gate = await this.policyGate({ to, chain: 'sol', token: mint, amount });
+    warnings.push(...gate.warnings);
 
     // 4. назва токена для підтвердження
     const meta = (await this._solMetadata(cluster, [mint])).get(mint) || {};
@@ -285,7 +290,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     const summary = [['Токен', `${label} (${mint})`], ['Кількість', `${S.formatUnits(raw, decimals)} ${label}`], ['Отримувач', to]];
     if (rent) summary.push(['Депозит за створення токен-акаунта (з вашого рахунку)', `${S.sol(rent)} SOL`]);
     if (tokenProgram === S.PROGRAMS.TOKEN22) summary.push(['Програма токена', 'Token-2022']);
-    const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger: rw.danger, summary, action: `Переказ токена ${label}` });
+    const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger: rw.danger || gate.danger, summary, action: `Переказ токена ${label}`, delay: gate.delay });
     this.rememberRecipient(to);
     return r.signature;
   };
@@ -469,7 +474,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       }
     });
     await this.approve(win, origin, sameTab, {
-      kind: 'tx', title: send ? tr('Підтвердження транзакції') : tr('Підпис транзакції'), danger, lines, warnings,
+      kind: 'tx', title: send ? tr('Підтвердження транзакції') : tr('Підпис транзакції'), danger, lines, warnings, ...(opts.delay ? { delay: opts.delay } : {}),
     });
 
     const kp = this._solKeypair(address);

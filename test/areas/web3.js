@@ -633,6 +633,87 @@ async function walletTests(ctx) {
   ctx.clipGuard.clear();
   wal.disconnectSite(A.origin);
 
+  // --- режими обережності ---
+  const perr = (fn) => { try { fn(); return ''; } catch (e) { return e.message; } };
+  ok(/Некоректне/.test(perr(() => wal.setPolicy({ maxUsd: -1 }))) && /Некоректне/.test(perr(() => wal.setPolicy({ confirmUsd: NaN }))) && /Некоректне/.test(perr(() => wal.setPolicy({ siteDays: 1.5 }))) && /Некоректне/.test(perr(() => wal.setPolicy({ siteDays: 999 }))) && /не може перевищувати/.test(perr(() => wal.setPolicy({ confirmUsd: 500, maxUsd: 100 }))) && wal.getPolicy().maxUsd === 0, 'policy: некоректні значення й суперечливі ліміти відхиляються, нічого не змінюється');
+  for (let i = 0; i < 5; i++) wal.removeContact(wal.contacts()[0].address); // у тестах уже майже 100 контактів: звільняємо місце
+  wal.setPolicy({ contactsOnly: true });
+  const stranger = E.getAddress('0x00000000000000000000000000000000000000e5');
+  const nativeErr = async (to) => { try { const pr0 = wal.sendNative(w, () => true, { index: 0, to, amount: '0.01' }); const a = await Promise.race([pr0.catch(e => e), waitApproval()]); if (a instanceof Error) return a.message; await w.decide(a.id, false); await pr0.catch(() => {}); return 'approval'; } catch (e) { return e.message; } };
+  ok(/лише адресна книга/.test(await nativeErr(stranger)) && !w.approval, 'policy: режим «лише адресна книга» відхиляє нового отримувача до підтвердження');
+  wal.addContact('Друг', stranger);
+  ok(await nativeErr(stranger) === 'approval' && await nativeErr(wal.section().addresses[1]) === 'approval', 'policy: контакт і власний рахунок у режимі «лише адресна книга» дозволені');
+  wal.setPolicy({ contactsOnly: false });
+  wal.removeContact(stranger);
+  const realUsd = wal.usdValue;
+  wal.usdValue = async () => 5000;
+  wal.setPolicy({ maxUsd: 1000, confirmUsd: 0 });
+  ok(/Перевищено ліміт 1000 USD/.test(await nativeErr(stranger)) && !w.approval, 'policy: переказ понад ліміт USD відхиляється до підтвердження');
+  wal.setPolicy({ maxUsd: 0, confirmUsd: 100 });
+  const prLarge = wal.sendNative(w, () => true, { index: 0, to: stranger, amount: '0.01' }).catch(e => e);
+  const apLarge = await waitApproval();
+  ok(apLarge && apLarge.spec.delay === 5 && apLarge.spec.danger === true && apLarge.spec.warnings.some(x => /Велика сума/.test(x)), 'policy: велика сума — підтвердження з паузою й попередженням');
+  const early = await w.decide(apLarge.id, true, MASTER);
+  ok(early.ok === false && /Зачекайте/.test(early.error) && w.approval && w.approval.id === apLarge.id, 'policy: рішення раніше строку паузи відхиляється самим браузером');
+  await w.decide(apLarge.id, false);
+  await prLarge;
+  wal.usdValue = async () => null;
+  wal.setPolicy({ maxUsd: 1000, confirmUsd: 100 });
+  const prUnk = wal.sendNative(w, () => true, { index: 0, to: stranger, amount: '0.01' }).catch(e => e);
+  const apUnk = await waitApproval();
+  ok(apUnk && !apUnk.spec.delay && apUnk.spec.warnings.some(x => /не визначено: ліміти/.test(x)), 'policy: якщо вартість невідома — лише попередження, переказ не блокується');
+  await w.decide(apUnk.id, false);
+  await prUnk;
+  wal.usdValue = realUsd;
+  wal.setPolicy({ maxUsd: 0, confirmUsd: 0 });
+  // автовідключення сайтів
+  pr = call(wcA, 'eth_requestAccounts');
+  const apSite = await waitApproval();
+  await w.decide(apSite.id, true, MASTER);
+  await pr;
+  wal.setPolicy({ siteDays: 1 });
+  wal.section().connections[A.origin].last = Date.now() - 2 * 86400000;
+  wal._lastExpire = 0;
+  ok(wal.expireSites() === 1 && !wal.info().connections.some(c => c.origin === A.origin), 'policy: сайт, яким не користувались довше за заданий строк, автоматично відключається');
+  wal.setPolicy({ siteDays: 0 });
+
+  // --- перевірка збереження фрази ---
+  ok(wal.backupInfo().confirmed === false, 'backup: створений гаманець без підтвердження резервної копії');
+  const quiz = wal.backupQuiz();
+  const words = wal.section().mnemonic.split(' ');
+  ok(quiz.positions.length === 3 && new Set(quiz.positions).size === 3 && quiz.positions.every(p => p >= 1 && p <= 12) && quiz.positions.every((p, i, a) => !i || a[i - 1] < p), 'backup: перевірка питає три різні випадкові позиції слів');
+  ok(wal.backupCheck(['ні', 'ні', 'ні']) === false && wal.backupInfo().confirmed === false, 'backup: хибні слова не підтверджують копію');
+  ok(wal.backupCheck(quiz.positions.map(p => ' ' + words[p - 1].toUpperCase() + ' ')) === true && wal.backupInfo().confirmed === true && wal.backupInfo().at > 0, 'backup: правильні слова (без урахування регістру й пробілів) підтверджують копію');
+  ok(/застаріла/.test(perr(() => wal.backupCheck(['a', 'b', 'c']))), 'backup: після успіху перевірку не можна повторити без нового питання');
+  wal.backupQuiz();
+  for (let i = 0; i < 5; i++) wal.backupCheck(['x', 'y', 'z']);
+  ok(/Забагато спроб/.test(perr(() => wal.backupCheck(['x', 'y', 'z']))) && /застаріла/.test(perr(() => wal.backupCheck(['x', 'y', 'z']))), 'backup: після 5 хибних спроб перевірка скасовується');
+
+  // --- шифрована резервна копія ---
+  const bk = require('../../src/wallet-backup');
+  const blob = bk.encryptBackup({ v: 1, secret: 'тест' }, 'довгий-пароль-123');
+  ok(bk.decryptBackup(blob, 'довгий-пароль-123').secret === 'тест' && !blob.includes(Buffer.from('тест')) && /Хибний пароль/.test(perr(() => bk.decryptBackup(blob, 'інший-пароль-123'))) && /не файл резервної копії/.test(perr(() => bk.decryptBackup(Buffer.from('сміття'.repeat(20)), 'x'))) && /щонайменше 12/.test(perr(() => bk.encryptBackup({}, 'коротко'))), 'backup: файл шифрується (пароль, GCM), хибний пароль і сміття відхиляються, короткий пароль заборонено');
+  const tampered = Buffer.from(blob); tampered[tampered.length - 1] ^= 1;
+  const tamperedHead = Buffer.from(blob); tamperedHead[3] ^= 1;
+  ok(/Хибний пароль або файл пошкоджено/.test(perr(() => bk.decryptBackup(tampered, 'довгий-пароль-123'))) && /не файл резервної копії/.test(perr(() => bk.decryptBackup(tamperedHead, 'довгий-пароль-123'))), 'backup: змінений файл (вміст чи заголовок) не розшифровується');
+  // повний цикл: експорт → видалення гаманця → відновлення з файлу
+  wal.addAccount();
+  wal.rename(1, 'Другий');
+  wal.addContact('Контакт', stranger);
+  const impKey = E.Wallet.createRandom().privateKey;
+  const impNow = wal.importKey(impKey, 'Імпорт');
+  const addrsBefore = [...wal.section().addresses];
+  const exported = wal.backupExport('резервний-пароль-1');
+  ok(Buffer.isBuffer(exported) && !exported.includes(Buffer.from(words[0] + ' ' + words[1])) && !exported.includes(Buffer.from(impKey.slice(2))), 'backup: у файлі немає відкритої фрази чи ключів');
+  ok(/уже існує/.test(perr(() => wal.backupImport(exported, 'резервний-пароль-1'))), 'backup: відновлення поверх наявного гаманця заборонено');
+  wal.remove();
+  ok(!wal.data() || !wal.data().mnemonic, 'backup: гаманець видалено перед відновленням');
+  ok(/Хибний пароль/.test(perr(() => wal.backupImport(exported, 'не-той-пароль-1'))) && !(wal.data() && wal.data().mnemonic), 'backup: хибний пароль не відновлює нічого');
+  const restored = wal.backupImport(exported, 'резервний-пароль-1');
+  ok(restored.accounts === addrsBefore.length && restored.imported === 1 && restored.contacts >= 1 && JSON.stringify(wal.section().addresses) === JSON.stringify(addrsBefore), 'backup: відновлення дає ті самі адреси, імпортований рахунок і контакти');
+  ok(wal.section().names[1] === 'Другий' && wal.importedAccounts().length === 1 && wal.importedAccounts()[0].address === impNow.address && wal.backupInfo().confirmed === true, 'backup: відновлено назви рахунків, імпортований ключ і позначку підтвердженої копії');
+  wal.removeImported(1000);
+
   A.s.close(); B.s.close(); rpc.close();
   ctx.settingsStore.flush();
   Object.assign(ctx, { vault: real.vault, wallet: real.wallet, settingsStore: real.settings });

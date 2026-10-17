@@ -176,6 +176,8 @@ class Wallet {
     if (![12, 15, 18, 21, 24].includes(phrase.split(' ').length) || !Mnemonic.isValidMnemonic(phrase)) throw new Error('Некоректна фраза відновлення (перевірте слова та порядок).');
     if (this.exists() && this.data()) throw new Error('Гаманець уже існує. Спершу видаліть його.');
     this._store(phrase);
+    this.section().backupConfirmedAt = Date.now();
+    this.vault.persist();
   }
 
   addAccount() {
@@ -193,6 +195,7 @@ class Wallet {
     const s = this.section();
     s.mnemonic = null; s.addresses = []; s.connections = {}; s.log = [];
     s.solAddresses = []; s.solConnections = {}; s.pending = []; s.contacts = []; s.tokens = {}; s.names = []; s.recipients = []; s.imported = []; s.watch = [];
+    s.backupConfirmedAt = 0; s.approvalsSeen = {}; s.nfts = {}; s.nftHidden = {};
     this.vault.persist();
     this.ctx.cfg().walletEnabled = false;
     this.ctx.settingsStore.save();
@@ -206,7 +209,7 @@ class Wallet {
     return {
       exists: true, accounts: s.addresses, activeChain: s.activeChain,
       networks: this.networks(), connections: Object.entries(s.connections).map(([origin, c]) => ({ origin, accounts: c.accounts, chainId: c.chainId })), dapp: { evm: this.dappIndex('evm'), sol: this.dappIndex('sol') },
-      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(), watch: this.watchAccounts(),
+      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(), watch: this.watchAccounts(), policy: this.getPolicy(), backup: this.backupInfo(),
     };
   }
 
@@ -316,6 +319,8 @@ class Wallet {
       win.toast('Створіть гаманець у W3IR: меню → Гаманець');
       throw unauthorized('Гаманець не створено');
     }
+    this.expireSites();
+    this.touchSite(origin);
     const sameTab = () => win.tabs.includes(tab) && (() => { try { return new URL(tab.view.webContents.getURL()).origin === origin; } catch { return false; } })();
     if (method.startsWith('solana_')) return this.solRequest(win, tab, origin, method, params[0], sameTab);
 
@@ -563,7 +568,7 @@ class Wallet {
       ...(opts.speed && opts.speed !== 'standard' ? [['Швидкість комісії', opts.speed === 'fast' ? 'швидко (комісія вища)' : 'повільно (комісія нижча, підтвердження може затягнутись)']] : []),
       ['Ліміт газу', String(populated.gasLimit)], ['Макс. комісія', `${formatEther(fee)} ${net.symbol}`], ['Макс. разом', `${formatEther(fee + value)} ${net.symbol}`],
     ];
-    await this.approve(win, origin, sameTab, { kind: 'tx', title: tr('Підтвердження транзакції'), danger: !!opts.danger || warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings });
+    await this.approve(win, origin, sameTab, { kind: 'tx', title: tr('Підтвердження транзакції'), danger: !!opts.danger || warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings, ...(opts.delay ? { delay: opts.delay } : {}) });
     let hash;
     try {
       const signed = await signer.signTransaction(populated);
@@ -648,12 +653,15 @@ class Wallet {
     if (typeof amount !== 'string' || !/^\d{1,30}(\.\d{1,18})?$/.test(amount)) throw new RpcError(-32602, 'Некоректна сума.');
     const value = parseUnits(amount, 18);
     if (value <= 0n) throw new RpcError(-32602, 'Сума має бути більшою за нуль.');
-    const { warnings, danger } = this.recipientWarnings(toAddr, this.ownEvm());
+    const rw = this.recipientWarnings(toAddr, this.ownEvm());
+    const gate = await this.policyGate({ to: toAddr, chain: 'evm', amount });
+    const warnings = [...rw.warnings, ...gate.warnings];
+    const danger = rw.danger || gate.danger;
     try {
       const code = await Promise.race([this.provider(this.activeChain()).getCode(toAddr), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 6000))]);
       if (code && code !== '0x') warnings.push('Отримувач — смарт-контракт: простий переказ на контракт може бути втрачений безповоротно, якщо він не призначений приймати кошти.');
     } catch { /* RPC недоступний: перевірку пропущено */ }
-    const hash = await this.sendTransaction(win, 'w3ir://wallet', { from, to: toAddr, value: '0x' + value.toString(16) }, sameTab, { internal: true, warnings, danger, speed });
+    const hash = await this.sendTransaction(win, 'w3ir://wallet', { from, to: toAddr, value: '0x' + value.toString(16) }, sameTab, { internal: true, warnings, danger, speed, delay: gate.delay });
     this.rememberRecipient(toAddr);
     return hash;
   }
@@ -664,5 +672,7 @@ require('./wallet-evm-tokens').install(Wallet, { RpcError, clip, unauthorized })
 require('./wallet-evm-nft').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-extras').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-import').install(Wallet, { RpcError, unauthorized });
+require('./wallet-safety').install(Wallet, { RpcError, unauthorized });
+require('./wallet-approvals').install(Wallet, { RpcError, clip, unauthorized });
 
 module.exports = { Wallet, RpcError, BUILTIN_NETWORKS, describeCall, hexChain, isSafeRpc };

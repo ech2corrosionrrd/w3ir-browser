@@ -604,6 +604,9 @@ class AppWindow {
     const item = this.approvalQueue.shift();
     this.approval = item;
     item.timer = setTimeout(() => this.finishApproval(false), 120000);
+    // пауза перед підтвердженням (великі суми): кнопка «Підтвердити» недоступна, а рішення раніше строку відхиляється й тут
+    const delay = Number(item.spec.delay);
+    item.notBefore = Number.isFinite(delay) && delay > 0 ? Date.now() + Math.min(delay, 30) * 1000 : 0;
     if (this.win.isMinimized()) this.win.restore();
     this.win.show();
     this.openOverlay('approve', this.approvalPayload(item), {});
@@ -632,6 +635,7 @@ class AppWindow {
     const item = this.approval;
     if (!item || item.id !== id) return { ok: false, error: 'Запит застарів.' };
     if (!approve) { this.finishApproval(false); return { ok: true }; }
+    if (item.notBefore && Date.now() < item.notBefore) return { ok: false, error: `Зачекайте ще ${Math.ceil((item.notBefore - Date.now()) / 1000)} с: це велика сума.` };
     // вибір дозволено лише серед запропонованих у запиті варіантів
     const opts = (item.spec.choice && item.spec.choice.options) || [];
     if (choice !== undefined && !(typeof choice === 'string' && opts.some(o => o.value === choice))) return { ok: false, error: 'Некоректний вибір.' };

@@ -125,14 +125,17 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     try { balance = ERC20.decodeFunctionResult('balanceOf', await this._ethCall(chainId, tokenAddr, ERC20.encodeFunctionData('balanceOf', [owner])))[0]; }
     catch (e) { throw new RpcError(-32000, `Не вдалося прочитати баланс токена: ${clip(e.shortMessage || e.message, 160)}`); }
     if (balance < raw) throw new RpcError(-32602, `Недостатньо токенів: на рахунку ${formatUnits(balance, info.decimals)} ${info.symbol}.`);
-    const { warnings, danger } = this.recipientWarnings(toAddr, this.ownEvm());
+    const rw = this.recipientWarnings(toAddr, this.ownEvm());
+    const gate = await this.policyGate({ to: toAddr, chain: 'evm', token: tokenAddr, amount });
+    const warnings = [...rw.warnings, ...gate.warnings];
+    const danger = rw.danger || gate.danger;
     try {
       const code = await timed(this.provider(chainId).getCode(toAddr), 6000);
       if (code && code !== '0x') warnings.push('Отримувач — смарт-контракт: токени, надіслані на контракт, який не вміє їх повертати, можуть бути втрачені.');
     } catch { /* RPC недоступний: перевірку пропущено */ }
     const net = this.network(chainId);
     const summary = [['Токен', `${info.symbol}${info.name ? ' — ' + info.name : ''} (${tokenAddr})`], ['Кількість', `${formatUnits(raw, info.decimals)} ${info.symbol}`], ['Отримувач', toAddr], ['Мережа токена', `${net.name} (${chainId})`]];
-    const hash = await this.sendTransaction(win, 'w3ir://wallet', { from: owner, to: tokenAddr, data: ERC20.encodeFunctionData('transfer', [toAddr, raw]) }, sameTab, { internal: true, warnings, danger, summary, action: `Переказ ${formatUnits(raw, info.decimals)} ${info.symbol}`, token: true, speed });
+    const hash = await this.sendTransaction(win, 'w3ir://wallet', { from: owner, to: tokenAddr, data: ERC20.encodeFunctionData('transfer', [toAddr, raw]) }, sameTab, { internal: true, warnings, danger, summary, action: `Переказ ${formatUnits(raw, info.decimals)} ${info.symbol}`, token: true, speed, delay: gate.delay });
     this.rememberRecipient(toAddr);
     return hash;
   };
