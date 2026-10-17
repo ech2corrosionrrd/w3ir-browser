@@ -8,6 +8,7 @@ const { withTip } = require('./tips');
 const tabGroups = require('./tab-groups');
 const splitView = require('./split-view');
 const aiTabs = require('./ai-tabs');
+const { chromeIdentity } = require('./chrome-identity');
 const fs = require('fs');
 const path = require('path');
 
@@ -265,11 +266,6 @@ class AppWindow {
     const url = this.ctx.resolveInput(input);
     if (!url) return;
     if (tab.sleep) tab.sleep = null;
-    if (/^https:\/\/accounts\.(google|youtube)\.[a-z.]+\//i.test(url)) {
-      tab.view.webContents.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0');
-    } else if (!url.startsWith('w3ir:')) {
-      tab.view.webContents.setUserAgent(this.ses.getUserAgent());
-    }
     tab.view.webContents.loadURL(url).catch(() => { /* помилки показує did-fail-load */ });
   }
 
@@ -292,15 +288,8 @@ class AppWindow {
     wc.on('page-favicon-updated', (e, favicons) => { if (!tab.sleep) { tab.favicon = favicons[0] || ''; push(); } });
     wc.on('did-start-navigation', (d) => {
       if (d.isMainFrame && !d.isSameDocument) tab.blocked = 0;
-      if (d.isMainFrame && d.url) {
-        // Вхід Google: для accounts.google.* використовуємо сумісний Firefox UA, що знімає блокування
-        if (/^https:\/\/accounts\.(google|youtube)\.[a-z.]+\//i.test(d.url)) {
-          wc.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0');
-        } else if (!d.url.startsWith('w3ir:')) {
-          wc.setUserAgent(this.ses.getUserAgent());
-        }
-      }
     });
+    chromeIdentity(wc);
     wc.on('did-navigate', (e, url) => {
       if (tab.sleep) return;
       tab.favicon = '';
