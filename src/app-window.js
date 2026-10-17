@@ -617,21 +617,25 @@ class AppWindow {
     return { id: item.id, ...item.spec, needsUnlock: st !== 'unlocked', needsAuth: st === 'unlocked' && !v.recentlyAuthed() };
   }
 
-  finishApproval(approved) {
+  finishApproval(approved, choice) {
     const item = this.approval;
     if (!item) return;
     clearTimeout(item.timer);
     this.approval = null;
     if (this.overlayType === 'approve') { this.overlayType = null; try { this.win.contentView.removeChildView(this.overlay); } catch {} }
-    item.resolve({ approved });
+    item.resolve({ approved, ...(choice !== undefined ? { choice } : {}) });
     this.push();
     this.showNextApproval();
   }
 
-  async decide(id, approve, master) {
+  async decide(id, approve, master, choice) {
     const item = this.approval;
     if (!item || item.id !== id) return { ok: false, error: 'Запит застарів.' };
     if (!approve) { this.finishApproval(false); return { ok: true }; }
+    // вибір дозволено лише серед запропонованих у запиті варіантів
+    const opts = (item.spec.choice && item.spec.choice.options) || [];
+    if (choice !== undefined && !(typeof choice === 'string' && opts.some(o => o.value === choice))) return { ok: false, error: 'Некоректний вибір.' };
+    if (choice === undefined && opts.length) choice = item.spec.choice.value;
     if (item.spec.agent) { this.finishApproval(true); return { ok: true }; }
     const v = this.ctx.vault;
     master = String(master || '').slice(0, 256);
@@ -641,7 +645,7 @@ class AppWindow {
     } else if (!v.recentlyAuthed()) {
       if (!(await v.reauth(master))) return { ok: false, error: 'Хибний майстер-пароль.' };
     }
-    this.finishApproval(true);
+    this.finishApproval(true, choice);
     return { ok: true };
   }
 
@@ -1105,7 +1109,7 @@ class AppWindow {
         }).then(r => { if (r.response === 0) up.install(); }).catch(() => {});
         break;
       }
-      case 'walletDecision': return this.decide(arg && arg.id, !!(arg && arg.approve), arg && arg.master);
+      case 'walletDecision': return this.decide(arg && arg.id, !!(arg && arg.approve), arg && arg.master, arg && typeof arg.choice === 'string' ? arg.choice : undefined);
       case 'githubMenu':
         if (this.overlayType === 'github') this.closeOverlay();
         else {

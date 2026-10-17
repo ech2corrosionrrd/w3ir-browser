@@ -52,6 +52,7 @@ const DEFAULT_SETTINGS = {
   keywords: '',
   walletEnabled: false,
   walletInject: true,
+  walletPrices: true, // орієнтовні ціни в USD (CoinGecko); без цього гаманець не звертається до сервісу цін
   walletChain: 1,
   torrentConfirm: true,
   autolockMinutes: 15,

@@ -105,7 +105,7 @@ w3ir://wallet (внутрішня сторінка) ──w3ir.invoke('wallet:*'
 
 ### 5.2. Для внутрішньої сторінки гаманця (`w3ir://wallet`)
 
-Команди `wallet:*` (усі — лише зі сторінки `wallet`): `status`, `create`, `import`, `addAccount`, `reveal`*, `remove`*, `balances`, `evmTokens`, `addToken`, `removeToken`, `solTokens`, `solBalances`, `solHistory`, `txStatuses`, `pending`, `replace`, `revoke`, `contacts`, `addContact`, `removeContact`, `resolveName`, `importKey`, `revealKey`*, `removeImported`*, `qr`, `setDappAccount`, `setSiteAccount`, `rename`, `send`, `setChain`, `setRpc`, `solSetCluster`, `solSetRpc`, `disconnect`, `setInject`. (* — потребують майстер-пароля: `authed()`; `remove*` ще й показують нативне діалогове вікно.) Також `vault:status/unlock/lock` для сторінки гаманця.
+Команди `wallet:*` (усі — лише зі сторінки `wallet`): `status`, `create`, `import`, `addAccount`, `reveal`*, `remove`*, `balances`, `evmTokens`, `addToken`, `removeToken`, `solTokens`, `solBalances`, `solHistory`, `txStatuses`, `pending`, `replace`, `revoke`, `contacts`, `addContact`, `removeContact`, `resolveName`, `importKey`, `revealKey`*, `removeImported`*, `qr`, `setDappAccount`, `setSiteAccount`, `rename`, `send`, `sendNft`, `nfts`, `addNft`, `removeNft`, `discoverNfts`, `prices`, `setPrices`, `setChain`, `setRpc`, `solSetCluster`, `solSetRpc`, `disconnect`, `setInject`. (* — потребують майстер-пароля: `authed()`; `remove*` ще й показують нативне діалогове вікно.) Також `vault:status/unlock/lock` для сторінки гаманця.
 
 Перелік і правила: `src/ipc.js` (`POLICY`, `permitted`); кожен виклик, який робить будь-яка сторінка, звіряється тестом із таблицею (`ipcPolicyTests`).
 
@@ -119,6 +119,7 @@ w3ir://wallet (внутрішня сторінка) ──w3ir.invoke('wallet:*'
 ## 7. Припущення, обмеження й відомі прогалини
 
 1. **Немає незалежного аудиту** — це головна прогалина; код новий (розроблено 2026-10-16/17).
+2a. **Нові поверхні (після 1.29.2).** (а) Ціни (`src/prices.js`): запити до api.coingecko.com без адрес рахунків; відповіді недовірені, використовуються лише для показу (перевірте, що жодне рішення про підпис чи попередження не залежить від ціни). (б) NFT (`src/wallet-evm-nft.js`, `src/nft-meta.js`): метадані тільки з data:/IPFS/Arweave через шлюзи, `redirect: 'error'`, ліміти розміру й часу, тип зображення за вмістом, `data:`-URL для сторінки (CSP `img-src data:`); SVG віддається лише в `<img>`. Звідси: раніше невідомий вхід недовірених даних творця NFT у інтерфейс. (в) Переказ NFT (`wallet:sendNft`, `solSendToken` для NFT) — перевірка власності контрактом перед підтвердженням. (г) Вибір рахунку в запиті підключення: значення від сторінки-оверлею перевіряється на списку, наданому гаманцем (`decide` у `app-window.js`).
 2. **Довіра до RPC.** Баланси, дозволи (`allowance`), nonce, симуляція й метадані токенів походять з RPC. Підроблена відповідь може ввести користувача в оману (наприклад, показати хибний баланс чи «успішну» симуляцію). Підпис при цьому будує гаманець, а підтвердження показує реальні поля транзакції.
 3. **Симуляція EVM немає** (лише розшифровка відомих викликів і `estimateGas`); симуляція Solana показує лише зміну балансу SOL (не токенів).
 4. **Апаратних гаманців, мультипідпису, обмінів/мостів, цін, історії EVM немає.**

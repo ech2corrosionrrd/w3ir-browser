@@ -52,6 +52,7 @@ const IFACE = new Interface([
   'function transferFrom(address from, address to, uint256 amount)',
   'function safeTransferFrom(address from, address to, uint256 tokenId)',
   'function safeTransferFrom(address from, address to, uint256 tokenId, bytes data)',
+  'function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)',
 ]);
 // ti — дані токена ({ symbol, decimals }) з ланцюга: тоді суми показуються у людському вигляді
 function describeCall(data, ti) {
@@ -363,19 +364,24 @@ class Wallet {
     const r = await win.requestApproval({ ...spec, origin });
     if (!r.approved) throw rejected();
     if (!sameTab()) throw new RpcError(4001, 'Сторінку закрито або змінено під час підтвердження');
-    return true;
+    return r;
   }
 
   async requestAccounts(win, origin, sameTab) {
     const have = this.accountsFor(origin);
     if (have.length) return have;
-    await this.approve(win, origin, sameTab, {
+    // Рахунків кілька — користувач вибирає, яким підключитися (за замовчуванням — типовий для сайтів)
+    const def = this.unlocked() ? this.dappIndex('evm') : 0;
+    const options = this.unlocked() ? this.dappChoices('evm') : [];
+    const choose = options.length > 1;
+    const ap = await this.approve(win, origin, sameTab, {
       kind: 'connect', title: tr('Підключення до сайту'),
-      lines: [['Сайт отримає', 'доступ до адреси вашого рахунку та право пропонувати транзакції'], ['Рахунок', this.unlocked() ? this.evmAccount(this.dappIndex('evm')) : 'буде показано після розблокування'], ['Мережа', (this.network(this.activeChain()) || {}).name || String(this.activeChain())]],
+      lines: [['Сайт отримає', 'доступ до адреси вашого рахунку та право пропонувати транзакції'], ...(choose ? [] : [['Рахунок', this.unlocked() ? this.evmAccount(def) : 'буде показано після розблокування']]), ['Мережа', (this.network(this.activeChain()) || {}).name || String(this.activeChain())]],
+      ...(choose ? { choice: { label: 'Рахунок для сайту', options, value: String(def) } } : {}),
       warnings: ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'],
     });
     const s = this.section();
-    s.connections[origin] = { accounts: [this.evmAccount(this.dappIndex('evm'))], chainId: s.activeChain, since: Date.now() };
+    s.connections[origin] = { accounts: [this.evmAccount(choose ? this.pickChoice(ap, options, def) : def)], chainId: s.activeChain, since: Date.now() };
     this.vault.persist();
     this.log({ origin, action: 'Підключення' });
     this.snapConns();
@@ -620,6 +626,7 @@ class Wallet {
 
 require('./wallet-solana').install(Wallet, { RpcError, isSafeRpc, clip, unauthorized });
 require('./wallet-evm-tokens').install(Wallet, { RpcError, clip, unauthorized });
+require('./wallet-evm-nft').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-extras').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-import').install(Wallet, { RpcError, unauthorized });
 
