@@ -41,7 +41,7 @@ if (!fs.existsSync(installer)) fail('Не знайдено інсталятор 
   fs.copyFileSync(installer, path.join(out, entry.url));
   const blockmap = installer + '.blockmap';
   if (fs.existsSync(blockmap)) fs.copyFileSync(blockmap, path.join(out, entry.url + '.blockmap'));
-  const portable = fs.readdirSync(dist).find(f => /portable|^W3IR-Browser-\d.*\.exe$/i.test(f) && f !== entry.url);
+  const portable = fs.readdirSync(dist).find(f => /portable|^W3IR-Browser-\d.*\.exe$/i.test(f) && f !== entry.url && f.includes(version));
   if (portable) fs.copyFileSync(path.join(dist, portable), path.join(out, portable));
 
   console.log(`Реліз ${version} підписано (ключ ${info.w3irKeyId}).`);
