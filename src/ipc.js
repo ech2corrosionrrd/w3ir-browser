@@ -266,6 +266,7 @@ async function walletApi(ctx, entry, name, arg) {
         return { ok: true };
       }
       case 'wallet:balances': return { ok: true, balances: await w.balances() };
+      case 'wallet:solTokens': return { ok: true, ...(await w.solTokens(String(arg.address))) };
       case 'wallet:solBalances': return { ok: true, balances: await w.solBalances() };
       case 'wallet:solSetCluster': w.setSolCluster(String(arg.id)); return { ok: true };
       case 'wallet:solSetRpc': w.setSolRpc(String(arg.cluster), arg.url); return { ok: true };

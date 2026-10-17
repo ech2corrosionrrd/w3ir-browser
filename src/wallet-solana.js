@@ -3,6 +3,7 @@
 // Ключі виводяться з тієї самої фрази відновлення, що й EVM-адреси, лише на мить підпису й ніде не кешуються.
 const { Mnemonic } = require('ethers');
 const S = require('./solana');
+const arweave = require('./arweave');
 const { t: tr } = require('./i18n');
 
 const CLUSTERS = {
@@ -53,7 +54,8 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   };
 
   // JSON-RPC із запасними вузлами й тайм-аутом
-  proto.solRpc = async function (cluster, method, params, timeout = 10000) {
+  // fallbackOnError: для запитів лише на читання (баланси, токени) відмову вузла (ліміт, блокування методу) обходимо іншим вузлом
+  proto.solRpc = async function (cluster, method, params, timeout = 10000, { fallbackOnError = false } = {}) {
     let last = null;
     for (const url of this.solRpcUrls(cluster)) {
       const ctl = new AbortController();
@@ -65,7 +67,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
         return j.result;
       } catch (e) {
         last = e;
-        if (e.rpc) throw e; // відповідь вузла (помилка транзакції) — не привід пробувати інший вузол
+        if (e.rpc && !fallbackOnError) throw e; // відповідь вузла (помилка транзакції) — не привід пробувати інший вузол
       } finally { clearTimeout(timer); }
     }
     throw last || new Error('Немає доступного RPC');
@@ -100,7 +102,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   proto.solBalances = async function () {
     const cluster = this.solCluster();
     return Promise.all(this.solAddresses().map(async (address) => {
-      try { const r = await this.solRpc(cluster, 'getBalance', [address, { commitment: 'confirmed' }], 8000); return { address, balance: S.sol(r.value), symbol: 'SOL' }; }
+      try { const r = await this.solRpc(cluster, 'getBalance', [address, { commitment: 'confirmed' }], 8000, { fallbackOnError: true }); return { address, balance: S.sol(r.value), symbol: 'SOL' }; }
       catch { return { address, balance: null, symbol: 'SOL' }; }
     }));
   };
@@ -115,6 +117,60 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   proto.solDisconnectSite = function (origin) {
     const s = this.data();
     if (s && s.solConnections && s.solConnections[origin]) { delete s.solConnections[origin]; this.vault.persist(); this.emit(origin, 'sol:disconnect', null); }
+  };
+
+
+  // ---------- токени SPL і NFT Metaplex ----------
+  // Назви беруться з рахунків метаданих у блокчейні (їх задає творець токена: це недовірені рядки). Зображення NFT
+  // завантажуються лише з шлюзів Arweave/Irys; інші адреси метаданих (https, ipfs) не відкриваються — це розкрило б вашу адресу стороннім.
+  const ARWEAVE_URI = /^(?:ar:\/\/|https:\/\/(?:arweave\.net|gateway\.irys\.xyz|arweave\.dev)\/)([A-Za-z0-9_-]{43})(?:[/?#].*)?$/;
+
+  proto.solTokens = async function (address, { maxMints = 60, maxImages = 12 } = {}) {
+    if (!this.solAddresses().includes(address)) throw unauthorized('Невідомий рахунок');
+    const cluster = this.solCluster();
+    const byMint = new Map();
+    for (const [programId, label] of [[S.PROGRAMS.TOKEN, 'SPL Token'], [S.PROGRAMS.TOKEN22, 'Token-2022']]) {
+      const r = await this.solRpc(cluster, 'getTokenAccountsByOwner', [address, { programId }, { encoding: 'jsonParsed', commitment: 'confirmed' }], 12000, { fallbackOnError: true });
+      for (const acc of (r && r.value) || []) {
+        const info = acc && acc.account && acc.account.data && acc.account.data.parsed && acc.account.data.parsed.info;
+        if (!info || !S.isAddress(info.mint) || !info.tokenAmount || !/^\d+$/.test(String(info.tokenAmount.amount))) continue;
+        const raw = BigInt(info.tokenAmount.amount);
+        if (raw === 0n) continue;
+        const decimals = Math.min(30, Math.max(0, Number(info.tokenAmount.decimals) | 0));
+        const cur = byMint.get(info.mint) || { mint: info.mint, raw: 0n, decimals, program: label };
+        cur.raw += raw;
+        byMint.set(info.mint, cur);
+      }
+    }
+    const all = [...byMint.values()];
+    const list = all.slice(0, maxMints);
+    // метадані: один запит getMultipleAccounts за всіма PDA
+    if (list.length) {
+      const pdas = list.map(t => S.metadataPda(t.mint));
+      const r = await this.solRpc(cluster, 'getMultipleAccounts', [pdas, { encoding: 'base64', commitment: 'confirmed' }], 12000, { fallbackOnError: true }).catch(() => null);
+      ((r && r.value) || []).forEach((acc, i) => {
+        if (!acc || acc.owner !== S.METADATA_PROGRAM || !acc.data || typeof acc.data[0] !== 'string') return;
+        const m = S.parseMetadata(Buffer.from(acc.data[0], 'base64'));
+        if (m && m.mint === list[i].mint) Object.assign(list[i], { name: m.name, symbol: m.symbol, uri: m.uri });
+      });
+    }
+    const out = list.map(t => ({
+      mint: t.mint, program: t.program, decimals: t.decimals, amount: S.formatUnits(t.raw, t.decimals),
+      nft: t.decimals === 0 && t.raw === 1n, name: clip(t.name || '', 64), symbol: clip(t.symbol || '', 16), uri: /^(https?:\/\/|ar:\/\/|ipfs:\/\/)/i.test(t.uri || '') ? clip(t.uri, 200) : '',
+    }));
+    // зображення NFT — лише зі сховища Arweave
+    let n = 0;
+    await Promise.all(out.filter(t => t.nft).map(async (t) => {
+      const m = ARWEAVE_URI.exec(t.uri || '');
+      if (!m || n++ >= maxImages) return;
+      try {
+        const meta = await Promise.race([arweave.fetchMetadata(m[1]), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
+        const img = String(meta.imageGateway || '');
+        if (/^https:\/\/(arweave\.net|gateway\.irys\.xyz|arweave\.dev)\/[A-Za-z0-9_-]{43}/.test(img)) t.image = img;
+        if (meta.name && !t.name) t.name = clip(meta.name, 64);
+      } catch { /* метадані недоступні — показуємо без зображення */ }
+    }));
+    return { cluster, tokens: out, total: all.length, shown: out.length };
   };
 
   // ---------- запити сторінок ----------

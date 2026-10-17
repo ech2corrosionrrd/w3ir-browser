@@ -178,8 +178,30 @@ function buildSolanaSection(sol) {
       h('div', { class: 'main' }, h('div', { class: 't' }, `Рахунок ${i + 1}`), h('div', { class: 's pw', style: 'user-select:text' }, a)),
       bal,
       h('button', { class: 'link', onclick: () => navigator.clipboard.writeText(a).catch(() => {}) }, 'Копіювати'),
-      h('a', { href: explorer(a, sol.cluster) }, 'Оглядач'));
+      h('a', { href: explorer(a, sol.cluster) }, 'Оглядач'),
+      h('button', { class: 'link', onclick: () => loadTokens(a) }, 'Токени та NFT'));
   }));
+  const tokMsg = h('div', { class: 'note', style: 'margin-top:8px' });
+  const tokList = h('div', { class: 'list' });
+  const nftGrid = h('div', { class: 'nft-grid' });
+  const loadTokens = async (a) => {
+    tokMsg.textContent = '…'; tokList.textContent = ''; nftGrid.textContent = '';
+    const r = await call('wallet:solTokens', { address: a });
+    if (!r.ok) { tokMsg.textContent = r.error || 'Помилка'; return; }
+    if (!r.tokens.length) { tokMsg.textContent = 'Токенів і NFT на цьому рахунку немає.'; return; }
+    tokMsg.textContent = (r.total > r.shown ? t('Показано {0} із {1}.', r.shown, r.total) + ' ' : '') + 'Назви токенів задають їхні творці й можуть вводити в оману: звіряйте адресу mint.';
+    for (const tk of r.tokens) {
+      const title = tk.name || short(tk.mint);
+      const link = h('a', { href: `https://explorer.solana.com/address/${tk.mint}` + (r.cluster === 'mainnet-beta' ? '' : `?cluster=${r.cluster}`) }, 'Оглядач');
+      if (tk.nft) {
+        nftGrid.append(h('div', { class: 'nft-card' },
+          tk.image ? h('img', { class: 'nft-thumb', src: tk.image, alt: title, onerror: (e) => { e.target.style.display = 'none'; } }) : '',
+          h('div', { class: 'nft-body' }, h('span', { class: 'nft-badge' }, 'NFT'), h('div', { class: 'nft-title' }, title), tk.symbol ? h('div', { class: 'nft-desc' }, tk.symbol) : '', h('div', { class: 'tools', style: 'margin-top:8px' }, link))));
+      } else {
+        tokList.append(h('div', { class: 'item' }, h('div', { class: 'main' }, h('div', { class: 't' }, title + (tk.symbol ? ` (${tk.symbol})` : '')), h('div', { class: 's pw', style: 'user-select:text' }, tk.mint)), h('span', { class: 'note' }, tk.amount), link));
+      }
+    }
+  };
   call('wallet:solBalances').then(r => {
     if (!r.ok) return;
     for (const b of r.balances) if (balEls[b.address]) balEls[b.address].textContent = b.balance === null ? 'баланс недоступний' : `${Number(b.balance).toFixed(5)} ${b.symbol}`;
@@ -192,6 +214,7 @@ function buildSolanaSection(sol) {
   return h('div', null,
     h('div', { class: 'list' }, h('div', { class: 'row' }, h('div', null, h('div', null, 'Мережа Solana'), h('div', { class: 'd' }, 'Адреси виводяться з тієї самої фрази відновлення (шлях m/44′/501′/N′/0′, як у Phantom).')), sel)),
     list,
+    tokMsg, tokList, nftGrid,
     sol.connections.length ? sites : '');
 }
 
