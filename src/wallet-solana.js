@@ -111,6 +111,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     if (!s) return null;
     return {
       addresses: this.solAddresses(), cluster: this.solCluster(), clusters: this.solClusters(),
+      rpc: { ...(s.solRpc || {}) }, defaultRpc: Object.fromEntries(Object.entries(CLUSTERS).map(([k, v]) => [k, v.rpc[0]])),
       connections: Object.entries(s.solConnections || {}).map(([origin, c]) => ({ origin, address: c.address })),
     };
   };
@@ -171,6 +172,30 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       } catch { /* метадані недоступні — показуємо без зображення */ }
     }));
     return { cluster, tokens: out, total: all.length, shown: out.length };
+  };
+
+  // Переказ SOL зі сторінки гаманця: транзакцію будує сам гаманець, а користувач підтверджує її у довіреному вікні з симуляцією
+  proto.solSend = async function (win, sameTab, { index, to, amount }) {
+    const s = this.data();
+    if (!s) throw unauthorized('Гаманець не створено');
+    index = Number(index);
+    const addresses = this.solAddresses();
+    if (!Number.isInteger(index) || index < 0 || index >= addresses.length) throw new RpcError(-32602, 'Невідомий рахунок');
+    if (typeof to !== 'string' || !S.isAddress(to)) throw new RpcError(-32602, 'Некоректна адреса отримувача.');
+    let lamports;
+    try { lamports = S.parseSol(amount); } catch (e) { throw new RpcError(-32602, e.message); }
+    const from = addresses[index];
+    if (from === to) throw new RpcError(-32602, 'Не можна надсилати на той самий рахунок.');
+    const cluster = this.solCluster();
+    let bh;
+    try { bh = (await this.solRpc(cluster, 'getLatestBlockhash', [{ commitment: 'confirmed' }], 10000, { fallbackOnError: true })).value.blockhash; }
+    catch (e) { throw new RpcError(-32000, `Не вдалося отримати blockhash: ${clip(e.message, 160)}`); }
+    const message = S.buildTransferMessage({ from, to, lamports, blockhash: bh });
+    const { warnings, danger } = this.recipientWarnings(to, addresses);
+    if (!S.isOnCurve(S.b58decode(to))) warnings.push('Ця адреса не має приватного ключа (це адреса програми, PDA): кошти, надіслані на неї, зазвичай неможливо повернути.');
+    const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger });
+    this.rememberRecipient(to);
+    return r.signature;
   };
 
   // ---------- запити сторінок ----------
@@ -253,8 +278,10 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     } catch (e) { return { ok: false, text: clip(e.message || 'не вдалося виконати', 120) }; }
   };
 
-  proto._solSignTransactions = async function (win, origin, p, sameTab, send) {
-    const address = this._solConnected(origin);
+  // opts.address — переказ зі сторінки гаманця (власний рахунок без підключеного сайту); opts.warnings/danger — додаткові попередження
+  proto._solSignTransactions = async function (win, origin, p, sameTab, send, opts = {}) {
+    const address = opts.address || this._solConnected(origin);
+    if (opts.address && !this.solAddresses().includes(address)) throw unauthorized('Невідомий рахунок');
     if (p.address && p.address !== address) throw unauthorized('Рахунок не підключено до цього сайту');
     const list = Array.isArray(p.transactions) ? p.transactions : [];
     if (!list.length || list.length > MAX_TXS || (send && list.length !== 1)) throw new RpcError(-32602, 'Некоректна кількість транзакцій');
@@ -268,8 +295,8 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     const sims = await Promise.all(txs.map(tx => this._solSimulate(cluster, tx, address)));
 
     const lines = [['Мережа', CLUSTERS[cluster].name], ['Рахунок Solana', address]];
-    const warnings = [];
-    let danger = false;
+    const warnings = [...(opts.warnings || [])];
+    let danger = !!opts.danger;
     txs.forEach((tx, i) => {
       const d = S.describe(tx.parsed, [address]);
       const head = txs.length > 1 ? `[${i + 1}/${txs.length}] ` : '';

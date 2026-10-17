@@ -11,7 +11,7 @@ const rules = {
 };
 
 // Загальні імена внутрішніх сторінок (pages/common.js, help-data.js, preload через contextBridge)
-const pageShared = { app: 'writable', h: 'readonly', fmtBytes: 'readonly', fmtTime: 'readonly', fmtDay: 'readonly', debounce: 'readonly', ask: 'readonly',
+const pageShared = { app: 'writable', h: 'readonly', fmtBytes: 'readonly', fmtTime: 'readonly', fmtDay: 'readonly', debounce: 'readonly', ask: 'readonly', railNav: 'readonly',
   HELP: 'readonly', SHORTCUTS: 'readonly', FAQ: 'readonly', w3ir: 'readonly', t: 'readonly', LOCALE: 'readonly' };
 
 module.exports = [

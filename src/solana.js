@@ -230,6 +230,32 @@ function parseMetadata(data) {
   } catch { return null; }
 }
 
+
+// ---------- побудова переказу SOL ----------
+// Сума у форматі «1.5» → лампорти (BigInt); не більше 9 знаків після коми, більше нуля
+function parseSol(text) {
+  if (typeof text !== 'string' || !/^\d{1,12}(\.\d{1,9})?$/.test(text)) throw new Error('Некоректна сума.');
+  const [whole, frac = ''] = text.split('.');
+  const lamports = BigInt(whole) * 1_000_000_000n + BigInt(frac.padEnd(9, '0'));
+  if (lamports <= 0n) throw new Error('Сума має бути більшою за нуль.');
+  return lamports;
+}
+
+// Повідомлення legacy-транзакції: System Program Transfer від from до to
+function buildTransferMessage({ from, to, lamports, blockhash }) {
+  if (from === to) throw new Error('Не можна надсилати на той самий рахунок.');
+  const data = Buffer.alloc(12);
+  data.writeUInt32LE(2, 0);
+  data.writeBigUInt64LE(BigInt(lamports), 4);
+  const bh = b58decode(blockhash);
+  if (bh.length !== 32) throw new Error('Некоректний blockhash');
+  return Buffer.concat([
+    Buffer.from([1, 0, 1]), // 1 підпис, 0 лише читання серед підписантів, 1 лише читання серед решти (програма)
+    encodeShortVec(3), b58decode(from), b58decode(to), b58decode('11111111111111111111111111111111'),
+    bh, encodeShortVec(1), Buffer.from([2]), encodeShortVec(2), Buffer.from([0, 1]), encodeShortVec(data.length), data,
+  ]);
+}
+
 // ---------- розшифровка інструкцій ----------
 const P = {
   SYSTEM: '11111111111111111111111111111111',
@@ -333,6 +359,6 @@ function describe(parsed, ours = []) {
 }
 
 module.exports = {
-  b58encode, b58decode, isAddress, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, sign, verify,
+  b58encode, b58decode, isAddress, parseSol, buildTransferMessage, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, sign, verify,
   parseMessage, parseTransaction, unsignedWire, signTransaction, encodeShortVec, describe, formatUnits, sol, short, PROGRAMS: P,
 };
