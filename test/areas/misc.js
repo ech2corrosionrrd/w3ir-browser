@@ -284,6 +284,12 @@ async function rpcListTests() {
   const { BUILTIN_NETWORKS, isSafeRpc } = require('../../src/wallet');
   ok(BUILTIN_NETWORKS.every(n => isSafeRpc(n.rpc) && n.rpc.startsWith('https://') && !/key|token|\$\{/i.test(n.rpc)), 'wallet: вбудовані RPC — https, без ключів у адресі');
   ok(new Set(BUILTIN_NETWORKS.map(n => n.chainId)).size === BUILTIN_NETWORKS.length && new Set(BUILTIN_NETWORKS.map(n => n.rpc)).size === BUILTIN_NETWORKS.length, 'wallet: chainId і RPC вбудованих мереж унікальні');
+
+  // --- особа Chrome лише для Google (інакше Cloudflare Turnstile не пускає браузер, напр. tensor.trade) ---
+  const { isGoogleUrl, cleanUserAgent } = require('../../src/chrome-identity');
+  ok(['https://accounts.google.com/signin', 'https://www.google.co.uk/', 'https://www.google.com.ua/', 'https://www.youtube.com/', 'https://google.com/'].every(isGoogleUrl), 'identity: особа Chrome вмикається на сторінках Google та YouTube');
+  ok(!['https://www.tensor.trade/', 'https://google.evil.com/', 'https://evil.google.evil.com/', 'https://notgoogle.com/', 'https://google.com.evil.io/', 'http://accounts.google.com/', 'not a url'].some(isGoogleUrl), 'identity: на інших сайтах (зокрема схожих на Google) особа Chrome не вмикається');
+  ok(cleanUserAgent('Mozilla/5.0 (X) W3IRBrowser/1.29.0 Chrome/146.0.0.0 Electron/41.0.0 Safari/537.36') === 'Mozilla/5.0 (X) Chrome/146.0.0.0 Safari/537.36', 'identity: з User-Agent для Google прибрано ознаки Electron і W3IR');
 }
 
 module.exports = { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };

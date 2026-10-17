@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { Store } = require('./store');
+const { isGoogleUrl, cleanUserAgent } = require('./chrome-identity');
 const { isBlockedUrl } = require('./blocklist');
 const { Downloads } = require('./downloads');
 const { Vault } = require('./vault');
@@ -349,8 +350,6 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   };
 
   ctx.setupSession = (ses, incognito) => {
-    ses.setUserAgent(ses.getUserAgent().replace(/\s(Electron|w3ir-browser|W3IR\S*)\/\S+/g, ''));
-
     ses.protocol.handle('w3ir', (req) => {
       let u;
       try { u = new URL(req.url); } catch { return new Response('Bad request', { status: 400 }); }
@@ -428,7 +427,9 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     ses.webRequest.onBeforeSendHeaders((details, cb) => {
       if (ctx.cfg().sendGpc) { details.requestHeaders['Sec-GPC'] = '1'; details.requestHeaders['DNT'] = '1'; }
       // Вхід Google відхиляє клієнтів без бренду «Google Chrome» (узгоджено з navigator.userAgentData, див. app-window.js)
-      if (/^https:\/\/([\w-]+\.)?(google|youtube)\.[a-z.]+\//i.test(details.url)) {
+      if (isGoogleUrl(details.url)) {
+        for (const k of Object.keys(details.requestHeaders)) if (k.toLowerCase() === 'user-agent') delete details.requestHeaders[k];
+        details.requestHeaders['User-Agent'] = cleanUserAgent(ses.getUserAgent());
         const major = process.versions.chrome.split('.')[0];
         const h = details.requestHeaders;
         for (const k of Object.keys(h)) if (k.toLowerCase() === 'sec-ch-ua') delete h[k];
