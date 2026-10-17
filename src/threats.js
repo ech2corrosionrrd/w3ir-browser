@@ -45,6 +45,8 @@ const BRANDS = {
   olx: ['olx.ua', 'olx.com', 'olx.pl'], diia: ['diia.gov.ua'], rozetka: ['rozetka.com.ua'], ukrposhta: ['ukrposhta.ua'], oschadbank: ['oschadbank.ua'],
 };
 const LEGIT = new Set(Object.values(BRANDS).flat());
+// Офіційні адреси бренду на чужому спільному домені (сервіс deep-link Branch): точний збіг хоста, піддомени не довіряються
+const LEGIT_HOSTS = new Set(['metamask.app.link']);
 const BRAND_NAMES = Object.keys(BRANDS);
 const RISKY_WORDS = ['login', 'signin', 'secure', 'verify', 'verification', 'wallet', 'support', 'airdrop', 'claim', 'account', 'update', 'auth', 'connect', 'free', 'bonus', 'giveaway', 'recover', 'recovery', 'unlock', 'validate', 'confirm', 'helpdesk', 'official', 'vyplat', 'viplat'];
 
@@ -220,7 +222,7 @@ class Threats {
       return { kind: 'userinfo', severity: 'suspicious', host, reason: `Адреса містить «${u.username.slice(0, 40)}@» — це відомий обман: насправді ви відкриваєте сайт «${host}», а не те, що написано перед @.`, canTrust: true };
     }
     if (isIp(host)) return null;
-    if (LEGIT.has(base) || (parsed.domain && LEGIT.has(parsed.domain))) return null;
+    if (LEGIT.has(base) || (parsed.domain && LEGIT.has(parsed.domain)) || LEGIT_HOSTS.has(host)) return null;
     if (this.knownDomains().has(base)) return null;
 
     const uni = domainToUnicode(host);
