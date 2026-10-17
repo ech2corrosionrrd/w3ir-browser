@@ -166,3 +166,31 @@ progress { accent-color: #00f2fe; }
 .chip.wait { background: color-mix(in srgb, #e0a100 22%, transparent); color: #b88400; }
 
 .acct .avatar.imp { background: linear-gradient(135deg, #0ea5e9, #14b8a6); }
+
+/* ===== Гаманець: оновлений дизайн (градієнтна шапка, картки рахунків, плавні стани) ===== */
+body.wallet main { max-width: 900px; }
+body.wallet .wsum { position: relative; gap: 20px; padding: 20px 22px; border-radius: 18px; border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, var(--card)), var(--card) 62%); box-shadow: 0 10px 34px rgba(60,30,160,.18); }
+body.wallet .wsum .wlock .t { font-size: 17px; }
+body.wallet .wnets select { min-width: 130px; border-radius: 10px; }
+body.wallet .acct { position: relative; padding: 18px 20px; border-radius: 18px; border-color: color-mix(in srgb, var(--accent) 18%, var(--line)); transition: border-color .15s, box-shadow .15s, transform .15s; }
+body.wallet .acct:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 12px 34px rgba(60,30,160,.2); transform: translateY(-1px); }
+body.wallet .acct .avatar { width: 40px; height: 40px; font-size: 16px; box-shadow: 0 4px 14px rgba(124,58,237,.4); }
+body.wallet .acct .aname { font-size: 17px; }
+body.wallet .acct .ahead { margin-bottom: 12px; }
+body.wallet .acct .chain { padding: 9px 10px; margin-top: 6px; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--bg) 70%, transparent); }
+body.wallet .acct .bal { color: var(--fg); font-weight: 600; font-size: 14px; }
+body.wallet .acct .tag { padding: 3px 8px; }
+body.wallet button { transition: background .15s, border-color .15s, transform .1s; }
+body.wallet button:active { transform: scale(.97); }
+body.wallet button:focus-visible, body.wallet a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body.wallet button.primary { box-shadow: 0 4px 14px rgba(124,58,237,.35); }
+body.wallet .list { border-radius: 16px; }
+body.wallet .row { padding: 16px 18px; }
+body.wallet .nft-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+body.wallet .nft-card { border-radius: 16px; transition: transform .15s, box-shadow .15s, border-color .15s; }
+body.wallet .nft-card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 12px 30px rgba(60,30,160,.25); }
+body.wallet .nft-title { font-size: 14px; }
+body.wallet .warnbox { border-radius: 14px; }
+@media (max-width: 600px) { body.wallet main { padding: 20px 12px 48px; } body.wallet .wsum, body.wallet .acct { padding: 14px; } }
+@media (prefers-reduced-motion: reduce) { body.wallet * { transition: none !important; } }
