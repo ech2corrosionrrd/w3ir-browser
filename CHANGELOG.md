@@ -2,7 +2,7 @@
 
 Версії 1.0.0–1.20.0 розроблені й випущені 2026-10-16, 1.21.0–1.29.0 — 2026-10-17. Формат: нові можливості, зміни, виправлення.
 
-## Не випущено
+## 1.29.1
 - **Виправлення:** сайти за Cloudflare Turnstile (напр. tensor.trade) не пускали браузер («Verification couldn't finish»). Причина — особа Chrome, застосована до всіх сайтів: Turnstile бачив «Chrome» без справжнього Google Chrome, тоді як чесний User-Agent з Electron проходить. Тепер особа Chrome (чистий User-Agent, бренд «Google Chrome», `window.chrome`) діє лише на сторінках Google/YouTube (вхід у Google), на решті сайтів User-Agent чесний. Перевірка хоста строгіша (`google.evil.com` більше не вважається Google). Тести: `identity: …`.
 
 ## 1.29.0
