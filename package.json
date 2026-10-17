@@ -1,7 +1,7 @@
 {
   "name": "w3ir-browser",
   "productName": "W3IR Browser",
-  "version": "1.29.4",
+  "version": "1.30.0",
   "description": "W3IR Browser — власний браузер на основі Chromium",
   "main": "main.js",
   "author": "W3IR",
