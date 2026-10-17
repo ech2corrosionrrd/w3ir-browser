@@ -714,6 +714,35 @@ async function walletTests(ctx) {
   ok(wal.section().names[1] === 'Другий' && wal.importedAccounts().length === 1 && wal.importedAccounts()[0].address === impNow.address && wal.backupInfo().confirmed === true, 'backup: відновлено назви рахунків, імпортований ключ і позначку підтвердженої копії');
   wal.removeImported(1000);
 
+  // --- фраза-пароль (BIP39) і шляхи деривації ---
+  const SOLLIB = require('../../src/solana');
+  const origBk = wal.backupExport('резервний-пароль-2');
+  const M = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+  const ledgerPath = (i) => `m/44'/60'/${i}'/0/0`;
+  const refEvm = (pass, i, f) => E.HDNodeWallet.fromMnemonic(E.Mnemonic.fromPhrase(M, pass), f(i)).address;
+  const seedOf = (pass) => Buffer.from(E.Mnemonic.fromPhrase(M, pass).computeSeed().slice(2), 'hex');
+  const pDef = wal.previewDerivation(M, {});
+  ok(pDef.evm[0] === '0x9858EfFD232B4033E47d90003D41EC34EcaEda94' && pDef.sol[0] === SOLLIB.deriveAccount(seedOf(''), 0, 'phantom').address, 'derivation: стандартні параметри дають відому адресу MetaMask для тестової фрази');
+  const pCustom = wal.previewDerivation(M, { passphrase: 'TREZOR', evmPath: 'ledgerLive', solPath: 'bip44' });
+  ok(pCustom.evm[0] === refEvm('TREZOR', 0, ledgerPath) && pCustom.evm[1] === refEvm('TREZOR', 1, ledgerPath) && pCustom.sol[1] === SOLLIB.deriveAccount(seedOf('TREZOR'), 1, 'bip44').address && pCustom.evm[0] !== pDef.evm[0] && pCustom.sol[0] !== pDef.sol[0], 'derivation: фраза-пароль і шляхи змінюють адреси; попередній перегляд збігається з незалежним розрахунком');
+  ok(wal.previewDerivation(M, { evmPath: 'legacy' }).evm[1] === refEvm('', 1, (i) => `m/44'/60'/0'/${i}`) && wal.previewDerivation(M, { solPath: 'bip44' }).sol[0] !== pDef.sol[0], 'derivation: старий шлях EVM (legacy) і шлях Solana bip44 обчислюються правильно');
+  ok(/Невідомий шлях деривації EVM/.test(perr(() => wal.previewDerivation(M, { evmPath: 'evil' }))) && /Невідомий шлях деривації Solana/.test(perr(() => wal.previewDerivation(M, { solPath: '../x' }))) && /завелика/.test(perr(() => wal.previewDerivation(M, { passphrase: 'x'.repeat(200) }))) && /Некоректна фраза/.test(perr(() => wal.previewDerivation('сміття сміття', {}))), 'derivation: невідомі шляхи, завелика фраза-пароль і хибна фраза відхиляються');
+  wal.remove();
+  wal.importPhrase(M, { passphrase: 'TREZOR', evmPath: 'ledgerLive', solPath: 'bip44' });
+  ok(wal.section().addresses[0] === refEvm('TREZOR', 0, ledgerPath) && wal.info().derivation.passphrase === true && wal.info().derivation.evmPath === 'ledgerLive' && wal.info().derivation.solPath === 'bip44' && !JSON.stringify(wal.info()).includes('TREZOR'), 'derivation: імпорт зберігає параметри; саме значення фрази-пароля в інформації для сторінки не повертається');
+  wal.addAccount();
+  ok(wal.section().addresses[1] === refEvm('TREZOR', 1, ledgerPath) && wal.signerFor(wal.section().addresses[1]).address === wal.section().addresses[1] && wal.solAddresses()[1] === SOLLIB.deriveAccount(seedOf('TREZOR'), 1, 'bip44').address && wal._solKeypair(wal.solAddresses()[1]).address === wal.solAddresses()[1], 'derivation: нові рахунки й підпис (EVM і Solana) використовують обрані шлях і фразу-пароль');
+  ok(wal.revealPassphrase() === 'TREZOR' && wal.reveal() === M, 'derivation: показ фрази повертає й фразу-пароль');
+  const addrsCustom = [...wal.section().addresses];
+  const bkCustom = wal.backupExport('резервний-пароль-3');
+  wal.remove();
+  wal.backupImport(bkCustom, 'резервний-пароль-3');
+  ok(JSON.stringify(wal.section().addresses) === JSON.stringify(addrsCustom) && wal.revealPassphrase() === 'TREZOR' && wal.info().derivation.evmPath === 'ledgerLive', 'derivation: резервна копія зберігає фразу-пароль і шляхи — відновлення дає ті самі адреси');
+  wal.remove();
+  ok(!wal.data() || !wal.data().mnemonic, 'derivation: гаманець видалено перед відновленням початкового');
+  wal.backupImport(origBk, 'резервний-пароль-2');
+  ok(wal.section().addresses[0] === addr0 && wal.info().derivation.passphrase === false && wal.info().derivation.evmPath === 'standard', 'derivation: початковий гаманець відновлено зі стандартними параметрами');
+
   A.s.close(); B.s.close(); rpc.close();
   ctx.settingsStore.flush();
   Object.assign(ctx, { vault: real.vault, wallet: real.wallet, settingsStore: real.settings });

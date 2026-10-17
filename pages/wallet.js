@@ -42,6 +42,11 @@ function renderUnlock() {
 }
 
 function renderSetup() {
+  const passInp = h('input', { type: 'password', placeholder: 'Фраза-пароль BIP39 (необов\u2019язково)', autocomplete: 'off', spellcheck: false });
+  const evmPathSel = h('select', null, [['standard', "MetaMask, Trezor: m/44'/60'/0'/0/i"], ['ledgerLive', "Ledger Live: m/44'/60'/i'/0/0"], ['legacy', "Старі MEW, Ledger: m/44'/60'/0'/i"]].map(([v, l]) => h('option', { value: v }, l)));
+  const solPathSel = h('select', null, [['phantom', "Phantom, Solflare: m/44'/501'/i'/0'"], ['bip44', "Ledger Live, старі: m/44'/501'/i'"]].map(([v, l]) => h('option', { value: v }, l)));
+  const previewBox = h('div');
+  const importOpts = () => ({ phrase: phrase.value, passphrase: passInp.value, evmPath: evmPathSel.value, solPath: solPathSel.value });
   const phrase = h('textarea', { rows: 3, placeholder: 'слово1 слово2 … (12 або 24 слова)', spellcheck: false });
   const err = h('div', { class: 'merr' });
   app.append(
@@ -70,10 +75,21 @@ function renderSetup() {
         } }, 'Вибрати файл і відновити'));
       })(),
       h('h2', null, 'Або імпортуйте наявний'),
-      phrase, err,
+      phrase,
+      h('details', { style: 'margin:8px 0' }, h('summary', null, 'Додатково: фраза-пароль і шлях деривації (для сумісності з іншими гаманцями)'),
+        h('p', { class: 'note' }, 'Потрібно, лише якщо гаманець у вас був створений із фразою-паролем (25-те слово BIP39) чи з нестандартним шляхом, наприклад Ledger Live. Звірте адреси в попередньому перегляді з тими, що показує ваш інший гаманець. Фразу-пароль не можна відновити: без неї кошти недоступні.'),
+        passInp, h('label', { class: 'mfield' }, h('span', null, 'Шлях EVM'), evmPathSel), h('label', { class: 'mfield' }, h('span', null, 'Шлях Solana'), solPathSel)),
+      h('div', { class: 'bar' }, h('button', { onclick: async () => {
+        previewBox.textContent = '\u2026'; err.textContent = '';
+        const r = await call('wallet:previewImport', importOpts());
+        if (!r.ok) { previewBox.textContent = ''; err.textContent = r.error; return; }
+        previewBox.textContent = '';
+        previewBox.append(h('div', { class: 'note' }, 'EVM: ' + r.evm.join(', ')), h('div', { class: 'note' }, 'Solana: ' + r.sol.join(', ')));
+      } }, 'Показати перші адреси')),
+      previewBox, err,
       h('button', { onclick: async () => {
-        const r = await call('wallet:import', { phrase: phrase.value });
-        phrase.value = '';
+        const r = await call('wallet:import', importOpts());
+        phrase.value = ''; passInp.value = '';
         if (!r.ok) { err.textContent = r.error; return; }
         render();
       } }, 'Імпортувати фразу')));
@@ -554,6 +570,34 @@ async function renderDashboard(st) {
     solRpcMsg.textContent = r.ok ? ' Збережено.' : ' ' + r.error;
   });
 
+  // ----- портфель по всіх мережах (за запитом: багато звернень до RPC) -----
+  const pfMsg = h('div', { class: 'note', style: 'margin:8px 0' }, 'Підсумок по всіх основних мережах EVM і Solana: нативні монети та відомі токени (вбудований список і додані вами) на всіх рахунках, в USD за орієнтовними цінами. Рахунки лише для перегляду в суму не входять.');
+  const pfTotal = h('div', { class: 'pf-total', style: 'font-size:22px;font-weight:600;margin:6px 0' });
+  const pfList = h('div', { class: 'list' });
+  const money = (v) => (v === null || v === undefined ? '\u2014' : usdFmt.format(v));
+  const fmtAmt = (a) => { const n = Number(a); return Number.isFinite(n) ? (n >= 1000 ? n.toFixed(2) : n.toFixed(5).replace(/0+$/, '').replace(/\.$/, '')) : String(a); };
+  async function loadPortfolio(force) {
+    pfMsg.textContent = '\u2026'; pfList.textContent = ''; pfTotal.textContent = '';
+    const r = await call('wallet:portfolio', { force: !!force });
+    if (!r.ok) { pfMsg.textContent = r.error; return; }
+    pfMsg.textContent = (r.pricesOn ? '' : t('Ціни вимкнено в налаштуваннях безпеки: показано лише кількість.') + ' ') + t('Оновлено {0}. Ціни орієнтовні.', new Date(r.at).toLocaleTimeString(LOCALE));
+    pfTotal.textContent = r.pricesOn ? t('Разом: {0}', money(r.total)) + (r.watchTotal ? '  \u00B7  ' + t('для перегляду: {0}', money(r.watchTotal)) : '') : '';
+    const rowEl = (title, usd, rows) => {
+      const parts = [];
+      for (const row of rows) {
+        const bits = [];
+        if (row.native && Number(row.native.amount) > 0) bits.push(`${fmtAmt(row.native.amount)} ${title.symbol}`);
+        for (const tk of row.tokens) bits.push(`${fmtAmt(tk.amount)} ${tk.symbol || short(tk.address)}`);
+        if (bits.length) parts.push(h('div', { class: 's' }, `${row.watch ? '\u{1F441} ' : ''}${short(row.address)}: ${bits.join(', ')}${row.priced === false ? ' (' + t('частина без ціни') + ')' : ''}`));
+      }
+      return h('div', { class: 'item', style: 'flex-wrap:wrap' }, h('div', { class: 'main' }, h('div', { class: 't' }, title.name + (title.error ? ` \u2014 ${title.error}` : '')), parts.length ? parts : h('div', { class: 's' }, title.error ? '' : t('Порожньо'))), h('span', { class: 'note' }, r.pricesOn && !title.error ? money(usd) : ''));
+    };
+    for (const c of r.chains) pfList.append(rowEl({ name: c.name, symbol: c.symbol, error: c.error }, c.usd, c.rows));
+    if (!r.sol.skipped) pfList.append(rowEl({ name: 'Solana', symbol: 'SOL' }, r.sol.usd, r.sol.rows));
+    else pfList.append(h('div', { class: 'item' }, h('div', { class: 'main' }, h('div', { class: 't' }, 'Solana'), h('div', { class: 's' }, t('Не Mainnet Beta: ціни й підсумок не рахуються')))));
+  }
+  const portfolioBox = h('div', null, h('div', { class: 'bar' }, h('button', { class: 'primary', onclick: () => loadPortfolio(false) }, 'Показати портфель'), h('button', { onclick: () => loadPortfolio(true) }, 'Оновити')), pfMsg, pfTotal, pfList);
+
   // ----- режими обережності -----
   const pol = info.policy || {};
   const polContacts = h('input', { type: 'checkbox', class: 'switch', checked: !!pol.contactsOnly });
@@ -631,6 +675,7 @@ async function renderDashboard(st) {
   app.append(
     info.backup && !info.backup.confirmed ? h('div', { class: 'warnbox', style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('div', { style: 'flex:1' }, 'Резервну копію не підтверджено: ви ще не перевіряли, що фразу відновлення записано. Без неї кошти не повернути, якщо пристрій втратиться.'), h('button', { class: 'primary', onclick: async () => { if (await backupQuizFlow()) render(); } }, 'Перевірити зараз')) : '',
     h('h2', null, 'Огляд'), summary,
+    h('h2', null, 'Портфель'), portfolioBox,
     h('h2', null, 'Рахунки'),
     accountsAll,
     h('div', { class: 'bar', style: 'margin-top:10px' }, info.accounts.length < 10 ? h('button', { onclick: async () => { const r = await call('wallet:addAccount'); if (!r.ok) alert(r.error); render(); } }, '+ Додати рахунок') : '', h('button', { onclick: importDialog }, 'Імпортувати ключ\u2026'), h('button', { onclick: watchDialog }, 'Додати адресу для перегляду\u2026')),
@@ -665,6 +710,7 @@ async function renderDashboard(st) {
       // режими обережності: ліміти, лише адресна книга, автовідключення сайтів
       h('div', { class: 'row', style: 'flex-direction:column;align-items:stretch;gap:8px' }, h('div', null, h('div', null, 'Режими обережності'), h('div', { class: 'd' }, 'Діють для переказів зі сторінки гаманця (не для транзакцій, які пропонують сайти). Зміна потребує майстер-пароля. Ліміти в USD працюють лише коли ціна відома.')),
         policyBox),
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Параметри ключів'), h('div', { class: 'd' }, `EVM: ${({ standard: "m/44'/60'/0'/0/i", ledgerLive: "m/44'/60'/i'/0/0", legacy: "m/44'/60'/0'/i" })[(info.derivation || {}).evmPath] || "m/44'/60'/0'/0/i"} · Solana: ${({ phantom: "m/44'/501'/i'/0'", bip44: "m/44'/501'/i'" })[(info.derivation || {}).solPath] || "m/44'/501'/i'/0'"} · ${(info.derivation || {}).passphrase ? t('фраза-пароль задана') : t('без фрази-пароля')}`))),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Резервна копія фрази'), h('div', { class: 'd' }, info.backup && info.backup.confirmed ? t('Підтверджено {0}.', new Date(info.backup.at).toLocaleDateString(LOCALE)) : 'Не підтверджено.')),
         h('div', { class: 'bar' }, h('button', { onclick: async () => { if (await backupQuizFlow()) { alert(t('Готово: резервну копію підтверджено.')); render(); } } }, 'Перевірити фразу'), h('button', { onclick: backupExportDialog }, 'Зберегти зашифровану копію\u2026'))),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Надавати провайдер сайтам (window.ethereum, window.solana)'), h('div', { class: 'd' }, 'Вимкніть, якщо не користуєтеся dApp — сайти не зможуть навіть побачити гаманець')),
@@ -675,7 +721,7 @@ async function renderDashboard(st) {
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Показати фразу відновлення'), h('div', { class: 'd' }, 'Потрібен майстер-пароль')),
         h('button', { onclick: async () => {
           const r = await withAuth((x) => call('wallet:reveal', x));
-          if (r && r.ok) showPhraseOnly(r.phrase); else if (r && r.error) alert(r.error);
+          if (r && r.ok) showPhraseOnly(r.phrase, r.passphrase); else if (r && r.error) alert(r.error);
         } }, 'Показати')),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Видалити гаманець'), h('div', { class: 'd' }, 'Видаляє ключі з цього пристрою. Без фрази відновлення кошти недоступні.')),
         h('button', { class: 'danger', onclick: async () => {
@@ -778,11 +824,12 @@ async function renderDashboard(st) {
   }
 }
 
-function showPhraseOnly(phrase) {
+function showPhraseOnly(phrase, passphrase) {
   const words = phrase.split(' ');
   const box = h('div', { class: 'modal', onmousedown: (e) => { if (e.target === box) box.remove(); } },
     h('div', { class: 'mbox' }, h('h2', { class: 'mtitle' }, 'Фраза відновлення'),
       h('div', { class: 'phrase' }, words.map((w, i) => h('div', { class: 'word' }, h('span', null, String(i + 1)), w))),
+      passphrase ? h('div', { class: 'warnbox' }, t('Фраза-пароль (25-те слово): {0}', passphrase)) : '',
       h('div', { class: 'mbtns' }, h('button', { class: 'primary', onclick: () => box.remove() }, 'Закрити'))));
   document.body.append(box);
   setTimeout(() => box.remove(), 60000);

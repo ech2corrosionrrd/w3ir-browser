@@ -77,14 +77,14 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   proto._solSeed = function () {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
-    return Buffer.from(Mnemonic.fromPhrase(s.mnemonic).computeSeed().slice(2), 'hex');
+    return Buffer.from(Mnemonic.fromPhrase(s.mnemonic, s.passphrase || '').computeSeed().slice(2), 'hex');
   };
   proto.solAddresses = function () {
     const s = this.data();
     if (!s) return [];
     if (!Array.isArray(s.solAddresses) || s.solAddresses.length !== s.addresses.length) {
       const seed = this._solSeed();
-      s.solAddresses = s.addresses.map((_, i) => S.deriveAccount(seed, i).address);
+      s.solAddresses = s.addresses.map((_, i) => S.deriveAccount(seed, i, s.solPath || 'phantom').address);
       this.vault.persist();
     }
     return s.solAddresses.slice();
@@ -96,7 +96,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       if (!secret) throw unauthorized('Невідомий рахунок');
       return S.keypairFromSeed(Buffer.from(secret, 'base64'));
     }
-    return S.deriveAccount(this._solSeed(), i);
+    return S.deriveAccount(this._solSeed(), i, (this.data() || {}).solPath || 'phantom');
   };
   proto.solAccountsFor = function (origin) {
     if (!this.unlocked() || !this.data()) return [];

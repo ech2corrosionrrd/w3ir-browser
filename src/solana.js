@@ -62,8 +62,12 @@ function keypairFromSeed(seed32) {
 }
 
 // Рахунок №index: m/44'/501'/index'/0' (перший рахунок збігається з Phantom/Solflare для тієї самої фрази)
-function deriveAccount(bip39Seed, index) {
-  return keypairFromSeed(slip10(bip39Seed, [44, 501, index, 0]));
+// Шляхи Solana: phantom — m/44'/501'/i'/0' (Phantom, Solflare, Backpack); bip44 — m/44'/501'/i' (Ledger Live, старі гаманці)
+const SOL_PATHS = { phantom: (i) => [44, 501, i, 0], bip44: (i) => [44, 501, i] };
+function deriveAccount(bip39Seed, index, kind = 'phantom') {
+  const f = SOL_PATHS[kind];
+  if (!f) throw new Error('Невідомий шлях деривації Solana');
+  return keypairFromSeed(slip10(bip39Seed, f(index)));
 }
 
 const sign = (secret, bytes) => crypto.sign(null, Buffer.from(bytes), secret);
@@ -413,6 +417,6 @@ function describe(parsed, ours = []) {
 }
 
 module.exports = {
-  b58encode, b58decode, isAddress, parseSol, parseUnits, buildTransferMessage, compileMessage, ixSystemTransfer, ixTransferChecked, ixCreateAtaIdempotent, ataAddress, u64, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, sign, verify,
+  b58encode, b58decode, isAddress, parseSol, parseUnits, buildTransferMessage, compileMessage, ixSystemTransfer, ixTransferChecked, ixCreateAtaIdempotent, ataAddress, u64, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, SOL_PATHS, sign, verify,
   parseMessage, parseTransaction, unsignedWire, signTransaction, encodeShortVec, describe, formatUnits, sol, short, PROGRAMS: P,
 };

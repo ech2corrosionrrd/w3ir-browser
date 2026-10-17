@@ -252,9 +252,10 @@ async function walletApi(ctx, entry, name, arg) {
         return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, prices: ctx.cfg().walletPrices !== false, info: st === 'unlocked' && w.exists() ? w.info() : null };
       }
       case 'wallet:create': return { ok: true, phrase: w.create() };
-      case 'wallet:import': w.importPhrase(arg.phrase); return { ok: true };
+      case 'wallet:import': w.importPhrase(arg.phrase, { passphrase: arg.passphrase, evmPath: arg.evmPath, solPath: arg.solPath }); return { ok: true };
+      case 'wallet:previewImport': return { ok: true, ...w.previewDerivation(arg.phrase, { passphrase: arg.passphrase, evmPath: arg.evmPath, solPath: arg.solPath }) };
       case 'wallet:addAccount': return { ok: true, accounts: w.addAccount() };
-      case 'wallet:reveal': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, phrase: w.reveal() };
+      case 'wallet:reveal': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, passphrase: w.revealPassphrase(), phrase: w.reveal() };
       case 'wallet:remove': {
         if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
         const r = await dialog.showMessageBox(entry.win.win, {
@@ -281,6 +282,7 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:pending': return { ok: true, items: await w.evmPending() };
       case 'wallet:replace': return { ok: true, hash: await w.replacePending(entry.win, () => entry.win.tabs.includes(entry.tab), { hash: String(arg.hash), mode: String(arg.mode) }) };
       case 'wallet:setPolicy': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, policy: w.setPolicy(arg.policy) };
+      case 'wallet:portfolio': return { ok: true, ...(await w.portfolio({ force: !!arg.force })) };
       case 'wallet:scanApprovals': return { ok: true, ...(await w.scanApprovals(arg.index)) };
       case 'wallet:approvals': return { ok: true, ...(await w.listApprovals(arg.index)) };
       case 'wallet:revokeApproval': return { ok: true, hash: await w.revokeApproval(entry.win, () => entry.win.tabs.includes(entry.tab), { index: arg.index, kind: String(arg.kind), token: arg.token, spender: arg.spender }) };

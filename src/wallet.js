@@ -21,6 +21,9 @@ const BUILTIN_NETWORKS = [
   { chainId: 11155111, name: 'Sepolia (тестова)', symbol: 'ETH', rpc: 'https://ethereum-sepolia-rpc.publicnode.com', rpcFallback: ['https://1rpc.io/sepolia'], explorer: 'https://sepolia.etherscan.io' },
 ];
 
+// Шляхи деривації EVM: standard — m/44'/60'/0'/0/i (MetaMask, Trezor, Ledger у MetaMask); ledgerLive — m/44'/60'/i'/0/0; legacy — m/44'/60'/0'/i (старі MEW/Ledger)
+const EVM_PATHS = { standard: (i) => `m/44'/60'/0'/0/${i}`, ledgerLive: (i) => `m/44'/60'/${i}'/0/0`, legacy: (i) => `m/44'/60'/0'/${i}` };
+
 // Лише читання — проксуємо до RPC вибраної мережі
 const READ_METHODS = new Set([
   'eth_call', 'eth_blockNumber', 'eth_getBalance', 'eth_getCode', 'eth_getLogs', 'eth_getTransactionByHash', 'eth_getTransactionReceipt',
@@ -153,16 +156,53 @@ class Wallet {
   }
 
   // ---------- керування гаманцем (зі сторінки w3ir://wallet) ----------
-  _store(phrase) {
+  _store(phrase, opts = {}) {
     const s = this.section();
     s.mnemonic = phrase;
+    s.passphrase = opts.passphrase || '';
+    s.evmPath = opts.evmPath || 'standard';
+    s.solPath = opts.solPath || 'phantom';
+    s.solAddresses = [];
     s.addresses = [this._derive(phrase, 0).address];
     this.vault.persist();
     this.ctx.cfg().walletEnabled = true;
     this.ctx.settingsStore.save();
     this.ctx.pushAll();
   }
-  _derive(phrase, i) { return HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(phrase), `m/44'/60'/0'/0/${i}`); }
+  // Фраза-пароль (25-те слово BIP39) і шлях деривації обираються під час імпорту; для наявних гаманців — стандартні (m/44'/60'/0'/0/i, без пароля)
+  _derive(phrase, i, o) {
+    const s = this.data() || {};
+    const pass = o && o.passphrase !== undefined ? o.passphrase : (s.passphrase || '');
+    const kind = (o && o.evmPath) || s.evmPath || 'standard';
+    return HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(phrase, pass), EVM_PATHS[kind](i));
+  }
+  // Перевірка обраних параметрів імпорту (без збереження)
+  _checkImportOpts(opts = {}) {
+    const passphrase = opts.passphrase === undefined || opts.passphrase === null ? '' : String(opts.passphrase);
+    if (passphrase.length > 128) throw new Error('Фраза-пароль завелика (до 128 символів).');
+    const evmPath = opts.evmPath || 'standard', solPath = opts.solPath || 'phantom';
+    if (!EVM_PATHS[evmPath]) throw new Error('Невідомий шлях деривації EVM.');
+    if (!require('./solana').SOL_PATHS[solPath]) throw new Error('Невідомий шлях деривації Solana.');
+    return { passphrase, evmPath, solPath };
+  }
+  _checkPhrase(text) {
+    const phrase = String(text || '').trim().toLowerCase().split(/\s+/).join(' ');
+    if (![12, 15, 18, 21, 24].includes(phrase.split(' ').length) || !Mnemonic.isValidMnemonic(phrase)) throw new Error('Некоректна фраза відновлення (перевірте слова та порядок).');
+    return phrase;
+  }
+  // Перші адреси за обраними параметрами — щоб звірити з іншим гаманцем до імпорту (нічого не зберігається)
+  previewDerivation(text, opts, count = 3) {
+    const phrase = this._checkPhrase(text);
+    const o = this._checkImportOpts(opts);
+    const S = require('./solana');
+    const seed = Buffer.from(Mnemonic.fromPhrase(phrase, o.passphrase).computeSeed().slice(2), 'hex');
+    const evm = [], sol = [];
+    for (let i = 0; i < count; i++) {
+      evm.push(HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(phrase, o.passphrase), EVM_PATHS[o.evmPath](i)).address);
+      sol.push(S.deriveAccount(seed, i, o.solPath).address);
+    }
+    return { evm, sol };
+  }
 
   create() {
     if (this.exists() && this.data()) throw new Error('Гаманець уже створено.');
@@ -171,11 +211,11 @@ class Wallet {
     return phrase;
   }
 
-  importPhrase(text) {
-    const phrase = String(text || '').trim().toLowerCase().split(/\s+/).join(' ');
-    if (![12, 15, 18, 21, 24].includes(phrase.split(' ').length) || !Mnemonic.isValidMnemonic(phrase)) throw new Error('Некоректна фраза відновлення (перевірте слова та порядок).');
+  importPhrase(text, opts) {
+    const phrase = this._checkPhrase(text);
+    const o = this._checkImportOpts(opts);
     if (this.exists() && this.data()) throw new Error('Гаманець уже існує. Спершу видаліть його.');
-    this._store(phrase);
+    this._store(phrase, o);
     this.section().backupConfirmedAt = Date.now();
     this.vault.persist();
   }
@@ -190,12 +230,14 @@ class Wallet {
   }
 
   reveal() { const s = this.data(); if (!s) throw new Error('Гаманець не створено'); return s.mnemonic; }
+  revealPassphrase() { const s = this.data(); if (!s) throw new Error('Гаманець не створено'); return s.passphrase || ''; }
 
   remove() {
     const s = this.section();
     s.mnemonic = null; s.addresses = []; s.connections = {}; s.log = [];
     s.solAddresses = []; s.solConnections = {}; s.pending = []; s.contacts = []; s.tokens = {}; s.names = []; s.recipients = []; s.imported = []; s.watch = [];
     s.backupConfirmedAt = 0; s.approvalsSeen = {}; s.nfts = {}; s.nftHidden = {};
+    s.passphrase = ''; s.evmPath = 'standard'; s.solPath = 'phantom';
     this.vault.persist();
     this.ctx.cfg().walletEnabled = false;
     this.ctx.settingsStore.save();
@@ -209,7 +251,7 @@ class Wallet {
     return {
       exists: true, accounts: s.addresses, activeChain: s.activeChain,
       networks: this.networks(), connections: Object.entries(s.connections).map(([origin, c]) => ({ origin, accounts: c.accounts, chainId: c.chainId })), dapp: { evm: this.dappIndex('evm'), sol: this.dappIndex('sol') },
-      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(), watch: this.watchAccounts(), policy: this.getPolicy(), backup: this.backupInfo(),
+      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(), watch: this.watchAccounts(), policy: this.getPolicy(), backup: this.backupInfo(), derivation: { evmPath: s.evmPath || 'standard', solPath: s.solPath || 'phantom', passphrase: !!s.passphrase },
     };
   }
 
@@ -674,5 +716,6 @@ require('./wallet-extras').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-import').install(Wallet, { RpcError, unauthorized });
 require('./wallet-safety').install(Wallet, { RpcError, unauthorized });
 require('./wallet-approvals').install(Wallet, { RpcError, clip, unauthorized });
+require('./wallet-portfolio').install(Wallet, { unauthorized });
 
-module.exports = { Wallet, RpcError, BUILTIN_NETWORKS, describeCall, hexChain, isSafeRpc };
+module.exports = { Wallet, RpcError, EVM_PATHS, BUILTIN_NETWORKS, describeCall, hexChain, isSafeRpc };

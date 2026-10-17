@@ -139,7 +139,7 @@ function install(Wallet, { RpcError, unauthorized }) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
     const payload = {
-      v: 1, createdAt: Date.now(), mnemonic: s.mnemonic, accounts: s.addresses.length, names: s.names || [], contacts: s.contacts || [],
+      v: 1, createdAt: Date.now(), mnemonic: s.mnemonic, passphrase: s.passphrase || '', evmPath: s.evmPath || 'standard', solPath: s.solPath || 'phantom', accounts: s.addresses.length, names: s.names || [], contacts: s.contacts || [],
       imported: this._imported().map((a, i) => ({ chain: a.chain, name: a.name || '', key: this.revealKey(IMP_BASE + i) })),
     };
     return backup.encryptBackup(payload, password);
@@ -151,7 +151,7 @@ function install(Wallet, { RpcError, unauthorized }) {
     const p = backup.decryptBackup(buf, password);
     if (!p || p.v !== 1 || typeof p.mnemonic !== 'string' || !Mnemonic.isValidMnemonic(p.mnemonic)) throw new RpcError(-32602, 'Файл резервної копії пошкоджено або має невідомий формат.');
     const accounts = Number.isInteger(p.accounts) && p.accounts >= 1 && p.accounts <= 10 ? p.accounts : 1;
-    this.importPhrase(p.mnemonic);
+    this.importPhrase(p.mnemonic, { passphrase: typeof p.passphrase === 'string' ? p.passphrase : '', evmPath: p.evmPath, solPath: p.solPath });
     for (let i = 1; i < accounts; i++) this.addAccount();
     const s = this.data();
     const names = Array.isArray(p.names) ? p.names : [];
