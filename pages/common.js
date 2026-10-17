@@ -79,8 +79,8 @@ function railNav(label) {
   const heads = [...document.querySelectorAll('main > h2')];
   if (heads.length < 4) return;
   const links = heads.map((hd, i) => {
-    hd.id = 'sec' + i;
-    return h('a', { href: '#sec' + i, onclick: (e) => { e.preventDefault(); hd.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, hd.textContent);
+    hd.id = hd.id || 'sec' + i;
+    return h('a', { href: '#' + hd.id, onclick: (e) => { e.preventDefault(); hd.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, hd.textContent);
   });
   document.body.append(h('nav', { class: 'rail', 'aria-label': label }, links));
   const mark = () => {

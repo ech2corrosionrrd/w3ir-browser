@@ -266,11 +266,29 @@ async function walletApi(ctx, entry, name, arg) {
         return { ok: true };
       }
       case 'wallet:balances': return { ok: true, balances: await w.balances() };
+      case 'wallet:evmTokens': return { ok: true, ...(await w.evmTokens(arg.index)) };
+      case 'wallet:addToken': return { ok: true, token: await w.addToken(String(arg.address)) };
+      case 'wallet:removeToken': return { ok: true, removed: w.removeToken(String(arg.address)) };
+      case 'wallet:solHistory': return { ok: true, ...(await w.solHistory(String(arg.address))) };
+      case 'wallet:txStatuses': return { ok: true, statuses: await w.txStatuses(arg.items) };
+      case 'wallet:pending': return { ok: true, items: await w.evmPending() };
+      case 'wallet:replace': return { ok: true, hash: await w.replacePending(entry.win, () => entry.win.tabs.includes(entry.tab), { hash: String(arg.hash), mode: String(arg.mode) }) };
+      case 'wallet:revoke': return { ok: true, hash: await w.revokeAllowance(entry.win, () => entry.win.tabs.includes(entry.tab), { index: arg.index, token: arg.token, spender: arg.spender }) };
+      case 'wallet:contacts': return { ok: true, contacts: w.contacts() };
+      case 'wallet:addContact': return { ok: true, contact: w.addContact(arg.name, arg.address) };
+      case 'wallet:removeContact': return { ok: true, removed: w.removeContact(String(arg.address)) };
+      case 'wallet:resolveName': return { ok: true, address: await w.resolveName(arg.name) };
       case 'wallet:rename': return { ok: true, name: w.rename(arg.index, arg.name) };
       case 'wallet:send': {
         const sameTab = () => entry.win.tabs.includes(entry.tab);
-        if (arg.chain === 'sol') return { ok: true, hash: await w.solSend(entry.win, sameTab, { index: arg.index, to: arg.to, amount: arg.amount }), chain: 'sol' };
-        if (arg.chain === 'evm') return { ok: true, hash: await w.sendNative(entry.win, sameTab, { index: arg.index, to: arg.to, amount: arg.amount }), chain: 'evm' };
+        if (arg.chain === 'sol') {
+          const hash = arg.asset ? await w.solSendToken(entry.win, sameTab, { index: arg.index, mint: arg.asset, to: arg.to, amount: arg.amount }) : await w.solSend(entry.win, sameTab, { index: arg.index, to: arg.to, amount: arg.amount });
+          return { ok: true, hash, chain: 'sol' };
+        }
+        if (arg.chain === 'evm') {
+          const hash = arg.asset ? await w.sendToken(entry.win, sameTab, { index: arg.index, token: arg.asset, to: arg.to, amount: arg.amount, speed: arg.speed }) : await w.sendNative(entry.win, sameTab, { index: arg.index, to: arg.to, amount: arg.amount, speed: arg.speed });
+          return { ok: true, hash, chain: 'evm' };
+        }
         throw new Error('unknown');
       }
       case 'wallet:solTokens': return { ok: true, ...(await w.solTokens(String(arg.address))) };

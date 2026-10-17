@@ -122,6 +122,20 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
 
 
   // ---------- токени SPL і NFT Metaplex ----------
+  // Метадані Metaplex для списку mint: Map(mint -> { name, symbol, uri }); помилки мережі дають порожній результат
+  proto._solMetadata = async function (cluster, mints) {
+    const out = new Map();
+    if (!mints.length) return out;
+    const pdas = mints.map(m => S.metadataPda(m));
+    const r = await this.solRpc(cluster, 'getMultipleAccounts', [pdas, { encoding: 'base64', commitment: 'confirmed' }], 12000, { fallbackOnError: true }).catch(() => null);
+    ((r && r.value) || []).forEach((acc, i) => {
+      if (!acc || acc.owner !== S.METADATA_PROGRAM || !acc.data || typeof acc.data[0] !== 'string') return;
+      const m = S.parseMetadata(Buffer.from(acc.data[0], 'base64'));
+      if (m && m.mint === mints[i]) out.set(mints[i], { name: m.name, symbol: m.symbol, uri: m.uri });
+    });
+    return out;
+  };
+
   // Назви беруться з рахунків метаданих у блокчейні (їх задає творець токена: це недовірені рядки). Зображення NFT
   // завантажуються лише з шлюзів Arweave/Irys; інші адреси метаданих (https, ipfs) не відкриваються — це розкрило б вашу адресу стороннім.
   const ARWEAVE_URI = /^(?:ar:\/\/|https:\/\/(?:arweave\.net|gateway\.irys\.xyz|arweave\.dev)\/)([A-Za-z0-9_-]{43})(?:[/?#].*)?$/;
@@ -147,13 +161,8 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     const list = all.slice(0, maxMints);
     // метадані: один запит getMultipleAccounts за всіма PDA
     if (list.length) {
-      const pdas = list.map(t => S.metadataPda(t.mint));
-      const r = await this.solRpc(cluster, 'getMultipleAccounts', [pdas, { encoding: 'base64', commitment: 'confirmed' }], 12000, { fallbackOnError: true }).catch(() => null);
-      ((r && r.value) || []).forEach((acc, i) => {
-        if (!acc || acc.owner !== S.METADATA_PROGRAM || !acc.data || typeof acc.data[0] !== 'string') return;
-        const m = S.parseMetadata(Buffer.from(acc.data[0], 'base64'));
-        if (m && m.mint === list[i].mint) Object.assign(list[i], { name: m.name, symbol: m.symbol, uri: m.uri });
-      });
+      const meta = await this._solMetadata(cluster, list.map(t => t.mint));
+      for (const t of list) if (meta.has(t.mint)) Object.assign(t, meta.get(t.mint));
     }
     const out = list.map(t => ({
       mint: t.mint, program: t.program, decimals: t.decimals, amount: S.formatUnits(t.raw, t.decimals),
@@ -196,6 +205,142 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger });
     this.rememberRecipient(to);
     return r.signature;
+  };
+
+  // ---------- переказ токена SPL ----------
+  // Розширення Token-2022, що змінюють перекази (комісія, хук, заборона переказу, постійний делегат тощо), не підтримуються
+  const SAFE_EXTENSIONS = new Set(['metadataPointer', 'tokenMetadata', 'mintCloseAuthority', 'groupPointer', 'groupMemberPointer', 'tokenGroup', 'tokenGroupMember']);
+  const ACCOUNT_RENT_FALLBACK = 2039280;
+
+  proto.solSendToken = async function (win, sameTab, { index, mint, to, amount }) {
+    const s = this.data();
+    if (!s) throw unauthorized('Гаманець не створено');
+    index = Number(index);
+    const addresses = this.solAddresses();
+    if (!Number.isInteger(index) || index < 0 || index >= addresses.length) throw new RpcError(-32602, 'Невідомий рахунок');
+    if (typeof to !== 'string' || !S.isAddress(to)) throw new RpcError(-32602, 'Некоректна адреса отримувача.');
+    if (typeof mint !== 'string' || !S.isAddress(mint)) throw new RpcError(-32602, 'Некоректна адреса токена (mint).');
+    const from = addresses[index];
+    if (from === to) throw new RpcError(-32602, 'Не можна надсилати на той самий рахунок.');
+    if (to === mint) throw new RpcError(-32602, 'Це адреса самого токена (mint), а не гаманця одержувача: токени було б втрачено.');
+    const cluster = this.solCluster();
+    const rpc = (m, p, t = 10000) => this.solRpc(cluster, m, p, t, { fallbackOnError: true });
+    const fail = (e, what) => new RpcError(-32000, `${what}: ${clip(e.message, 160)}`);
+
+    // 1. токен: власник-програма, decimals, розширення
+    let mi;
+    try { mi = (await rpc('getAccountInfo', [mint, { encoding: 'jsonParsed', commitment: 'confirmed' }])).value; } catch (e) { throw fail(e, 'Не вдалося прочитати токен'); }
+    const parsed = mi && mi.data && mi.data.parsed;
+    if (!parsed || parsed.type !== 'mint') throw new RpcError(-32602, 'Це не токен (mint) або його немає в цій мережі.');
+    const tokenProgram = mi.owner;
+    if (tokenProgram !== S.PROGRAMS.TOKEN && tokenProgram !== S.PROGRAMS.TOKEN22) throw new RpcError(-32602, 'Невідома програма токена.');
+    const decimals = Number(parsed.info.decimals);
+    const unsafeExt = (parsed.info.extensions || []).map(e => e.extension).filter(e => !SAFE_EXTENSIONS.has(e));
+    if (unsafeExt.length) throw new RpcError(-32602, `Токен має розширення (${unsafeExt.join(', ')}), які змінюють перекази: гаманець їх не підтримує.`);
+    let raw;
+    try { raw = S.parseUnits(amount, decimals); } catch (e) { throw new RpcError(-32602, e.message); }
+
+    // 2. рахунок-джерело з найбільшим балансом
+    let accs;
+    try { accs = (await rpc('getTokenAccountsByOwner', [from, { mint }, { encoding: 'jsonParsed', commitment: 'confirmed' }])).value || []; } catch (e) { throw fail(e, 'Не вдалося прочитати токен-акаунти'); }
+    const usable = accs.map(a => ({ pubkey: a.pubkey, info: a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info }))
+      .filter(a => a.info && a.info.tokenAmount && /^\d+$/.test(String(a.info.tokenAmount.amount)) && a.info.state === 'initialized' && S.isAddress(a.pubkey));
+    usable.sort((x, y) => (BigInt(y.info.tokenAmount.amount) > BigInt(x.info.tokenAmount.amount) ? 1 : -1));
+    const source = usable[0];
+    if (!source || BigInt(source.info.tokenAmount.amount) < raw) throw new RpcError(-32602, `Недостатньо токенів: на найбільшому токен-акаунті ${source ? S.formatUnits(BigInt(source.info.tokenAmount.amount), decimals) : '0'}.`);
+
+    // 3. одержувач: адреса не має бути токен-акаунтом чи програмою; його токен-акаунт (ATA) може ще не існувати
+    let toAcc;
+    try { toAcc = (await rpc('getAccountInfo', [to, { encoding: 'base64', commitment: 'confirmed' }])).value; } catch (e) { throw fail(e, 'Не вдалося перевірити отримувача'); }
+    const warnings = [];
+    if (toAcc && (toAcc.owner === S.PROGRAMS.TOKEN || toAcc.owner === S.PROGRAMS.TOKEN22)) throw new RpcError(-32602, 'Це адреса токен-акаунта або токена, а не гаманця одержувача: вкажіть адресу гаманця, токени було б втрачено.');
+    if (toAcc && toAcc.executable) throw new RpcError(-32602, 'Це адреса програми: токени на неї надсилати не можна.');
+    const destAta = S.ataAddress(to, mint, tokenProgram);
+    let destInfo = null;
+    try { destInfo = (await rpc('getAccountInfo', [destAta, { encoding: 'jsonParsed', commitment: 'confirmed' }])).value; } catch (e) { throw fail(e, 'Не вдалося перевірити токен-акаунт одержувача'); }
+    if (destInfo && destInfo.data && destInfo.data.parsed && destInfo.data.parsed.info && destInfo.data.parsed.info.state !== 'initialized') throw new RpcError(-32602, 'Токен-акаунт одержувача заморожено: переказ неможливий.');
+    const instructions = [];
+    let rent = 0;
+    if (!destInfo) {
+      try { rent = Number(await rpc('getMinimumBalanceForRentExemption', [tokenProgram === S.PROGRAMS.TOKEN22 ? 170 : 165])); } catch { rent = ACCOUNT_RENT_FALLBACK; }
+      instructions.push(S.ixCreateAtaIdempotent({ payer: from, owner: to, mint, tokenProgram }));
+      warnings.push(`У одержувача ще немає токен-акаунта для цього токена: його буде створено, а ≈${S.sol(rent)} SOL (депозит за зберігання) спишеться з ВАШОГО рахунку.`);
+    }
+    instructions.push(S.ixTransferChecked({ source: source.pubkey, mint, dest: destAta, owner: from, amount: raw, decimals, programId: tokenProgram }));
+    if (!S.isOnCurve(S.b58decode(to))) warnings.push('Ця адреса не має приватного ключа (це адреса програми, PDA): кошти, надіслані на неї, зазвичай неможливо повернути.');
+    const rw = this.recipientWarnings(to, addresses);
+    warnings.push(...rw.warnings);
+
+    // 4. назва токена для підтвердження
+    const meta = (await this._solMetadata(cluster, [mint])).get(mint) || {};
+    const label = meta.symbol || meta.name || S.short(mint);
+    let bh;
+    try { bh = (await rpc('getLatestBlockhash', [{ commitment: 'confirmed' }])).value.blockhash; } catch (e) { throw fail(e, 'Не вдалося отримати blockhash'); }
+    const message = S.compileMessage({ feePayer: from, instructions, blockhash: bh });
+    const summary = [['Токен', `${label} (${mint})`], ['Кількість', `${S.formatUnits(raw, decimals)} ${label}`], ['Отримувач', to]];
+    if (rent) summary.push(['Депозит за створення токен-акаунта (з вашого рахунку)', `${S.sol(rent)} SOL`]);
+    if (tokenProgram === S.PROGRAMS.TOKEN22) summary.push(['Програма токена', 'Token-2022']);
+    const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger: rw.danger, summary, action: `Переказ токена ${label}` });
+    this.rememberRecipient(to);
+    return r.signature;
+  };
+
+  // ---------- історія рахунку (з блокчейну) і статуси транзакцій ----------
+  proto.solHistory = async function (address, { limit = 15 } = {}) {
+    if (!this.solAddresses().includes(address)) throw unauthorized('Невідомий рахунок');
+    const cluster = this.solCluster();
+    const sigs = await this.solRpc(cluster, 'getSignaturesForAddress', [address, { limit: Math.min(30, limit), commitment: 'confirmed' }], 12000, { fallbackOnError: true });
+    const items = (sigs || []).map(x => ({ signature: String(x.signature), slot: Number(x.slot) || 0, time: x.blockTime ? Number(x.blockTime) * 1000 : 0, ok: !x.err, status: x.confirmationStatus || 'confirmed' }));
+    // зміна балансу SOL і токенів — для перших записів (по кілька запитів одночасно)
+    let next = 0;
+    const work = async () => {
+      while (next < Math.min(items.length, 10)) {
+        const it = items[next++];
+        try {
+          const tx = await this.solRpc(cluster, 'getTransaction', [it.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0, commitment: 'confirmed' }], 10000, { fallbackOnError: true });
+          if (!tx || !tx.meta) continue;
+          const keys = tx.transaction.message.accountKeys.map(k => (typeof k === 'string' ? k : k.pubkey));
+          const i = keys.indexOf(address);
+          if (i >= 0) it.solDelta = (BigInt(tx.meta.postBalances[i]) - BigInt(tx.meta.preBalances[i])).toString();
+          const byMint = new Map();
+          const add = (list, sign) => {
+            for (const b of list || []) {
+              if (b.owner !== address || !b.uiTokenAmount || !/^\d+$/.test(String(b.uiTokenAmount.amount))) continue;
+              const c = byMint.get(b.mint) || { mint: b.mint, decimals: b.uiTokenAmount.decimals, delta: 0n };
+              c.delta += sign * BigInt(b.uiTokenAmount.amount);
+              byMint.set(b.mint, c);
+            }
+          };
+          add(tx.meta.postTokenBalances, 1n); add(tx.meta.preTokenBalances, -1n);
+          it.tokens = [...byMint.values()].filter(c => c.delta !== 0n).slice(0, 4).map(c => ({ mint: c.mint, decimals: c.decimals, delta: c.delta.toString() }));
+        } catch { /* деталі недоступні — лишається підпис і статус */ }
+      }
+    };
+    await Promise.all([work(), work(), work(), work()]);
+    return { cluster, items };
+  };
+
+  // Статуси записів журналу: Solana (getSignatureStatuses) і EVM (квитанції)
+  proto.txStatuses = async function (entries) {
+    const out = {};
+    const list = (Array.isArray(entries) ? entries : []).slice(0, 30);
+    const sol = list.filter(e => e && typeof e.chainId === 'string' && CLUSTERS[e.chainId] && typeof e.hash === 'string' && e.hash.length < 100);
+    const evm = list.filter(e => e && typeof e.chainId === 'number' && /^0x[0-9a-fA-F]{64}$/.test(String(e.hash)));
+    for (const cl of new Set(sol.map(e => e.chainId))) {
+      const group = sol.filter(e => e.chainId === cl);
+      try {
+        const r = await this.solRpc(cl, 'getSignatureStatuses', [group.map(e => e.hash), { searchTransactionHistory: true }], 10000, { fallbackOnError: true });
+        group.forEach((e, i) => { const st = r.value[i]; out[e.hash] = !st ? 'unknown' : st.err ? 'failed' : (st.confirmationStatus === 'processed' ? 'pending' : 'confirmed'); });
+      } catch { /* мережа недоступна */ }
+    }
+    await Promise.all(evm.map(async (e) => {
+      try {
+        if (!this.network(e.chainId)) return;
+        const rc = await Promise.race([this.provider(e.chainId).getTransactionReceipt(e.hash), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000))]);
+        out[e.hash] = !rc ? 'pending' : rc.status === 1 ? 'confirmed' : 'failed';
+      } catch { /* RPC недоступний */ }
+    }));
+    return out;
   };
 
   // ---------- запити сторінок ----------
@@ -294,7 +439,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     });
     const sims = await Promise.all(txs.map(tx => this._solSimulate(cluster, tx, address)));
 
-    const lines = [['Мережа', CLUSTERS[cluster].name], ['Рахунок Solana', address]];
+    const lines = [...(opts.summary || []), ['Мережа', CLUSTERS[cluster].name], ['Рахунок Solana', address]];
     const warnings = [...(opts.warnings || [])];
     let danger = !!opts.danger;
     txs.forEach((tx, i) => {
@@ -328,7 +473,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     try {
       signature = await this.solRpc(cluster, 'sendTransaction', [signed[0].signedWire.toString('base64'), { encoding: 'base64', preflightCommitment: 'confirmed', maxRetries: 3 }], 15000);
     } catch (e) { throw new RpcError(-32000, `Не вдалося надіслати транзакцію: ${clip(e.message, 200)}`); }
-    this.log({ origin, action: 'Транзакція Solana', hash: signature, chainId: cluster });
+    this.log({ origin, action: opts.action || 'Транзакція Solana', hash: signature, chainId: cluster });
     return { signature, signedTransaction: signed[0].signedWire.toString('base64') };
   };
 }

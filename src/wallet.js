@@ -5,7 +5,7 @@ const { t: tr } = require('./i18n');
 // Кожен підпис і транзакція потребують явного підтвердження у довіреному вікні браузера, яке сторінка підробити не може.
 const {
   Mnemonic, HDNodeWallet, JsonRpcProvider, Network, formatEther, getAddress, isAddress, isHexString,
-  hexlify, getBytes, TypedDataEncoder, randomBytes, toUtf8String, MaxUint256, Interface, parseUnits,
+  hexlify, getBytes, TypedDataEncoder, randomBytes, toUtf8String, MaxUint256, Interface, parseUnits, formatUnits,
 } = require('ethers');
 
 const BUILTIN_NETWORKS = [
@@ -52,8 +52,10 @@ const IFACE = new Interface([
   'function safeTransferFrom(address from, address to, uint256 tokenId)',
   'function safeTransferFrom(address from, address to, uint256 tokenId, bytes data)',
 ]);
-function describeCall(data) {
-  const out = { lines: [], warnings: [] };
+// ti — дані токена ({ symbol, decimals }) з ланцюга: тоді суми показуються у людському вигляді
+function describeCall(data, ti) {
+  const out = { lines: [], warnings: [], token: false };
+  const human = (v) => (ti ? `${formatUnits(v, ti.decimals)} ${ti.symbol}` : `${v.toString()} (у мінімальних одиницях)`);
   if (!data || data === '0x') return out;
   let parsed = null;
   try { parsed = IFACE.parseTransaction({ data }); } catch { /* невідомий метод */ }
@@ -62,13 +64,15 @@ function describeCall(data) {
     out.warnings.push('Невідомий виклик контракту: підтверджуйте лише якщо довіряєте сайту.');
     return out;
   }
+  try {
   const a = parsed.args;
   switch (parsed.name) {
     case 'approve':
     case 'increaseAllowance': {
+      out.token = true;
       const amount = a[1];
       const unlimited = amount >= (MaxUint256 >> 1n);
-      out.lines.push(['Дія', 'Дозвіл витрачати токени'], ['Отримувач дозволу', getAddress(a[0])], ['Сума дозволу', unlimited ? 'НЕОБМЕЖЕНО' : `${amount.toString()} (у мінімальних одиницях)`]);
+      out.lines.push(['Дія', 'Дозвіл витрачати токени'], ['Отримувач дозволу', getAddress(a[0])], ['Сума дозволу', unlimited ? 'НЕОБМЕЖЕНО' : human(amount)]);
       if (unlimited) out.warnings.push('Необмежений дозвіл: цей адрес зможе витратити ВСІ ваші токени цього типу, доки ви не скасуєте дозвіл.');
       if (amount === 0n) out.lines.push(['Примітка', 'Нульова сума — це скасування дозволу']);
       break;
@@ -77,12 +81,20 @@ function describeCall(data) {
       out.lines.push(['Дія', a[1] ? 'Дати доступ до ВСІХ NFT колекції' : 'Скасувати доступ до NFT колекції'], ['Оператор', getAddress(a[0])]);
       if (a[1]) out.warnings.push('Оператор зможе забрати ВСІ ваші NFT цієї колекції. Шахраї часто використовують саме цей виклик.');
       break;
-    case 'transfer': out.lines.push(['Дія', 'Переказ токенів'], ['Отримувач', getAddress(a[0])], ['Кількість', `${a[1].toString()} (у мінімальних одиницях)`]); break;
+    case 'transfer': out.token = true; out.lines.push(['Дія', 'Переказ токенів'], ['Отримувач', getAddress(a[0])], ['Кількість', human(a[1])]); break;
     case 'transferFrom':
     case 'safeTransferFrom':
-      out.lines.push(['Дія', 'Переказ токена/NFT'], ['Від', getAddress(a[0])], ['Кому', getAddress(a[1])], ['Токен/кількість', a[2].toString()]);
+      out.token = parsed.name === 'transferFrom';
+      out.lines.push(['Дія', 'Переказ токена/NFT'], ['Від', getAddress(a[0])], ['Кому', getAddress(a[1])], ['Токен/кількість', ti && parsed.name === 'transferFrom' ? human(a[2]) : a[2].toString()]);
       break;
     default: break;
+  }
+  } catch {
+    // спотворені дані (наприклад, ненульові старші байти адреси): показуємо як невідомий виклик, а не падаємо
+    out.lines.length = 0;
+    out.token = false;
+    out.lines.push(['Виклик контракту', `спотворені дані методу ${data.slice(0, 10)}`]);
+    out.warnings.push('Дані виклику спотворені й не відповідають відомому формату. Підтверджуйте лише якщо повністю довіряєте сайту.');
   }
   return out;
 }
@@ -176,7 +188,7 @@ class Wallet {
   remove() {
     const s = this.section();
     s.mnemonic = null; s.addresses = []; s.connections = {}; s.log = [];
-    s.solAddresses = []; s.solConnections = {};
+    s.solAddresses = []; s.solConnections = {}; s.pending = []; s.contacts = []; s.tokens = {}; s.names = []; s.recipients = [];
     this.vault.persist();
     this.ctx.cfg().walletEnabled = false;
     this.ctx.settingsStore.save();
@@ -499,14 +511,22 @@ class Wallet {
     let populated;
     try { populated = await signer.populateTransaction(req); }
     catch (e) { throw new RpcError(-32000, `Не вдалося підготувати транзакцію (можливо, вона завершиться помилкою): ${clip(e.shortMessage || e.message, 200)}`); }
+    this.applySpeed(populated, opts.speed);
     const fee = (populated.maxFeePerGas || populated.gasPrice || 0n) * (populated.gasLimit || 0n);
-    const desc = describeCall(data);
+    let desc = describeCall(data);
+    let ti = null;
+    if (desc.token && to && !opts.summary) {
+      try { ti = await this.tokenInfo(chain, to); desc = describeCall(data, ti); } catch { /* не схоже на ERC-20 або RPC недоступний */ }
+    }
     const warnings = [...desc.warnings, ...(opts.warnings || [])];
     if (!to) warnings.push('Створення нового контракту.');
     if (fee > 10n ** 18n) warnings.push('Дуже висока комісія за газ.');
     const lines = [
+      ...(opts.summary || []),
       ['Мережа', `${net.name} (${chain})`], ['Від', from], ['Кому', to || 'новий контракт'],
-      ['Сума', `${formatEther(value)} ${net.symbol}`], ...desc.lines,
+      ...(ti ? [['Токен', `${ti.symbol}${ti.name ? ' — ' + ti.name : ''}`]] : []),
+      ['Сума', `${formatEther(value)} ${net.symbol}`], ...(opts.summary ? [] : desc.lines),
+      ...(opts.speed && opts.speed !== 'standard' ? [['Швидкість комісії', opts.speed === 'fast' ? 'швидко (комісія вища)' : 'повільно (комісія нижча, підтвердження може затягнутись)']] : []),
       ['Ліміт газу', String(populated.gasLimit)], ['Макс. комісія', `${formatEther(fee)} ${net.symbol}`], ['Макс. разом', `${formatEther(fee + value)} ${net.symbol}`],
     ];
     await this.approve(win, origin, sameTab, { kind: 'tx', title: tr('Підтвердження транзакції'), danger: !!opts.danger || warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings });
@@ -515,7 +535,8 @@ class Wallet {
       const signed = await signer.signTransaction(populated);
       hash = (await signer.provider.broadcastTransaction(signed)).hash;
     } catch (e) { throw new RpcError(-32000, `Не вдалося надіслати транзакцію: ${clip(e.shortMessage || e.message, 200)}`); }
-    this.log({ origin, action: `Транзакція ${formatEther(value)} ${net.symbol}`, hash, chainId: chain });
+    this.trackPending(hash, chain, populated);
+    this.log({ origin, action: opts.action || `Транзакція ${formatEther(value)} ${net.symbol}`, hash, chainId: chain });
     return hash;
   }
 
@@ -545,12 +566,13 @@ class Wallet {
     const s = this.section();
     const sameCase = (a) => (a.startsWith('0x') ? a.toLowerCase() : a);
     const toN = sameCase(to);
-    const known = [...own, ...(s.recipients || [])].map(sameCase);
+    const contacts = (s.contacts || []).map(c => c.address);
+    const known = [...own, ...(s.recipients || []), ...contacts].map(sameCase);
     const warnings = [];
     let danger = false;
     if (own.map(sameCase).includes(toN)) warnings.push('Отримувач — один із ваших власних рахунків.');
     else {
-      const used = (s.recipients || []).map(sameCase).includes(toN);
+      const used = [...(s.recipients || []), ...contacts].map(sameCase).includes(toN);
       if (!used) warnings.push('Ви ще не надсилали на цю адресу. Перевірте її символ за символом.');
       const pre = toN.startsWith('0x') ? 6 : 4;
       const twin = known.find(k => k !== toN && k.slice(0, pre) === toN.slice(0, pre) && k.slice(-4) === toN.slice(-4));
@@ -563,7 +585,7 @@ class Wallet {
   }
 
   // Переказ основної валюти активної EVM-мережі зі сторінки гаманця (підтвердження — у довіреному вікні)
-  async sendNative(win, sameTab, { index, to, amount }) {
+  async sendNative(win, sameTab, { index, to, amount, speed }) {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
     index = Number(index);
@@ -578,12 +600,14 @@ class Wallet {
       const code = await Promise.race([this.provider(this.activeChain()).getCode(toAddr), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 6000))]);
       if (code && code !== '0x') warnings.push('Отримувач — смарт-контракт: простий переказ на контракт може бути втрачений безповоротно, якщо він не призначений приймати кошти.');
     } catch { /* RPC недоступний: перевірку пропущено */ }
-    const hash = await this.sendTransaction(win, 'w3ir://wallet', { from: s.addresses[index], to: toAddr, value: '0x' + value.toString(16) }, sameTab, { internal: true, warnings, danger });
+    const hash = await this.sendTransaction(win, 'w3ir://wallet', { from: s.addresses[index], to: toAddr, value: '0x' + value.toString(16) }, sameTab, { internal: true, warnings, danger, speed });
     this.rememberRecipient(toAddr);
     return hash;
   }
 }
 
 require('./wallet-solana').install(Wallet, { RpcError, isSafeRpc, clip, unauthorized });
+require('./wallet-evm-tokens').install(Wallet, { RpcError, clip, unauthorized });
+require('./wallet-extras').install(Wallet, { RpcError, clip, unauthorized });
 
 module.exports = { Wallet, RpcError, BUILTIN_NETWORKS, describeCall, hexChain, isSafeRpc };

@@ -241,19 +241,73 @@ function parseSol(text) {
   return lamports;
 }
 
+// Кількість токенів «12.5» → мінімальні одиниці з урахуванням decimals (BigInt, без похибок); не більше u64
+function parseUnits(text, decimals) {
+  decimals = Number(decimals);
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 30) throw new Error('Некоректна кількість знаків токена.');
+  const re = decimals === 0 ? /^\d{1,30}$/ : new RegExp(String.raw`^\d{1,30}(\.\d{1,${decimals}})?$`);
+  if (typeof text !== 'string' || !re.test(text)) throw new Error('Некоректна сума.');
+  const [whole, frac = ''] = text.split('.');
+  const v = BigInt(whole) * 10n ** BigInt(decimals) + BigInt(frac.padEnd(decimals, '0'));
+  if (v <= 0n) throw new Error('Сума має бути більшою за нуль.');
+  if (v > 0xffffffffffffffffn) throw new Error('Сума завелика.');
+  return v;
+}
+
+// ---------- універсальний будівник legacy-повідомлень та інструкції ----------
+// instructions: [{ programId, keys: [{ pubkey, isSigner, isWritable }], data }]. Акаунти впорядковуються за правилами Solana:
+// підписанти з записом, підписанти лише для читання, решта з записом, решта лише для читання (платник комісії — перший).
+function compileMessage({ feePayer, instructions, blockhash }) {
+  const meta = new Map();
+  const touch = (pubkey, signer, writable) => {
+    const m = meta.get(pubkey) || { signer: false, writable: false };
+    meta.set(pubkey, { signer: m.signer || signer, writable: m.writable || writable });
+  };
+  touch(feePayer, true, true);
+  for (const ins of instructions) {
+    for (const k of ins.keys) touch(k.pubkey, !!k.isSigner, !!k.isWritable);
+    touch(ins.programId, false, false);
+  }
+  const all = [...meta.entries()].map(([pubkey, m], order) => ({ pubkey, ...m, order }));
+  const rank = (m) => (m.signer ? (m.writable ? 0 : 1) : (m.writable ? 2 : 3));
+  all.sort((x, y) => rank(x) - rank(y) || x.order - y.order);
+  if (all[0].pubkey !== feePayer) throw new Error('Платник комісії має бути першим');
+  const bh = b58decode(blockhash);
+  if (bh.length !== 32) throw new Error('Некоректний blockhash');
+  if (all.length > 64) throw new Error('Забагато акаунтів');
+  const index = new Map(all.map((m, i) => [m.pubkey, i]));
+  const numSigners = all.filter(m => m.signer).length;
+  const numReadonlySigned = all.filter(m => m.signer && !m.writable).length;
+  const numReadonlyUnsigned = all.filter(m => !m.signer && !m.writable).length;
+  const parts = [Buffer.from([numSigners, numReadonlySigned, numReadonlyUnsigned]), encodeShortVec(all.length), ...all.map(m => b58decode(m.pubkey)), bh, encodeShortVec(instructions.length)];
+  for (const ins of instructions) {
+    const data = Buffer.from(ins.data);
+    parts.push(Buffer.from([index.get(ins.programId)]), encodeShortVec(ins.keys.length), Buffer.from(ins.keys.map(k => index.get(k.pubkey))), encodeShortVec(data.length), data);
+  }
+  return Buffer.concat(parts);
+}
+
+const u64 = (n) => { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
+const ixSystemTransfer = (from, to, lamports) => ({ programId: P.SYSTEM, keys: [{ pubkey: from, isSigner: true, isWritable: true }, { pubkey: to, isSigner: false, isWritable: true }], data: Buffer.concat([Buffer.from([2, 0, 0, 0]), u64(lamports)]) });
+// TransferChecked (tag 12): [джерело, mint, одержувач, власник]; decimals перевіряє сама програма
+const ixTransferChecked = ({ source, mint, dest, owner, amount, decimals, programId = P.TOKEN }) => ({
+  programId, keys: [{ pubkey: source, isSigner: false, isWritable: true }, { pubkey: mint, isSigner: false, isWritable: false }, { pubkey: dest, isSigner: false, isWritable: true }, { pubkey: owner, isSigner: true, isWritable: false }],
+  data: Buffer.concat([Buffer.from([12]), u64(amount), Buffer.from([decimals])]),
+});
+// Асоційований токен-акаунт: PDA за [власник, програма токенів, mint] у програмі ATA
+const ataAddress = (owner, mint, tokenProgram = P.TOKEN) => findProgramAddress([b58decode(owner), b58decode(tokenProgram), b58decode(mint)], P.ATA).address;
+// CreateIdempotent (tag 1): не завершується помилкою, якщо акаунт уже існує
+const ixCreateAtaIdempotent = ({ payer, owner, mint, tokenProgram = P.TOKEN }) => ({
+  programId: P.ATA,
+  keys: [{ pubkey: payer, isSigner: true, isWritable: true }, { pubkey: ataAddress(owner, mint, tokenProgram), isSigner: false, isWritable: true }, { pubkey: owner, isSigner: false, isWritable: false },
+    { pubkey: mint, isSigner: false, isWritable: false }, { pubkey: P.SYSTEM, isSigner: false, isWritable: false }, { pubkey: tokenProgram, isSigner: false, isWritable: false }],
+  data: Buffer.from([1]),
+});
+
 // Повідомлення legacy-транзакції: System Program Transfer від from до to
 function buildTransferMessage({ from, to, lamports, blockhash }) {
   if (from === to) throw new Error('Не можна надсилати на той самий рахунок.');
-  const data = Buffer.alloc(12);
-  data.writeUInt32LE(2, 0);
-  data.writeBigUInt64LE(BigInt(lamports), 4);
-  const bh = b58decode(blockhash);
-  if (bh.length !== 32) throw new Error('Некоректний blockhash');
-  return Buffer.concat([
-    Buffer.from([1, 0, 1]), // 1 підпис, 0 лише читання серед підписантів, 1 лише читання серед решти (програма)
-    encodeShortVec(3), b58decode(from), b58decode(to), b58decode('11111111111111111111111111111111'),
-    bh, encodeShortVec(1), Buffer.from([2]), encodeShortVec(2), Buffer.from([0, 1]), encodeShortVec(data.length), data,
-  ]);
+  return compileMessage({ feePayer: from, instructions: [ixSystemTransfer(from, to, lamports)], blockhash });
 }
 
 // ---------- розшифровка інструкцій ----------
@@ -359,6 +413,6 @@ function describe(parsed, ours = []) {
 }
 
 module.exports = {
-  b58encode, b58decode, isAddress, parseSol, buildTransferMessage, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, sign, verify,
+  b58encode, b58decode, isAddress, parseSol, parseUnits, buildTransferMessage, compileMessage, ixSystemTransfer, ixTransferChecked, ixCreateAtaIdempotent, ataAddress, u64, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, sign, verify,
   parseMessage, parseTransaction, unsignedWire, signTransaction, encodeShortVec, describe, formatUnits, sol, short, PROGRAMS: P,
 };
