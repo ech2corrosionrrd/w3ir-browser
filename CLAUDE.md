@@ -21,5 +21,3 @@ Issues live in GitHub Issues of `ech2corrosionrrd/w3ir-browser` (via the `gh` CL
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root (created lazily). See `docs/agents/domain.md`.
-
-@AGENTS.md
