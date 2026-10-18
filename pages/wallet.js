@@ -205,7 +205,10 @@ async function renderDashboard(st) {
       h('label', null, h('span', null, 'Solana'), solSel),
       h('label', null, h('span', null, 'Сайти: EVM'), dappSel('evm', evmOpts, info.dapp.evm)),
       h('label', null, h('span', null, 'Сайти: Solana'), dappSel('sol', solOpts, info.dapp.sol))),
-    h('button', { onclick: async () => { await call('vault:lock'); render(); } }, 'Заблокувати'));
+    h('div', { class: 'wquick' },
+      h('button', { class: 'primary', title: 'Надіслати з першого рахунку (інший рахунок — у його картці нижче)', onclick: () => sendDialog(0) }, 'Надіслати'),
+      h('button', { title: 'QR-код і адреса першого рахунку EVM', onclick: () => showQr(`${nameOf(0)} · EVM`, info.accounts[0]) }, 'Отримати'),
+      h('button', { onclick: async () => { await call('vault:lock'); render(); } }, 'Заблокувати')));
 
   // ----- рахунки (EVM + Solana разом) -----
   const evmBal = {}, solBal = {};
@@ -309,7 +312,29 @@ async function renderDashboard(st) {
     } }, 'Знайти NFT'), nftAddMsg);
   const tokAdd = h('input', { type: 'text', class: 'pw', placeholder: 'Адреса контракту токена (ERC-20)', spellcheck: false, autocomplete: 'off', style: 'flex:1' });
   const tokAddMsg = h('span', { class: 'note' });
-  const tokAddBar = h('div', { class: 'bar', style: 'margin-top:10px' }, tokAdd, h('button', { onclick: async () => {
+  // Пошук токенів ERC-20 за недавніми переказами: показує знайдені (з ненульовим балансом), додає лише те, що ви оберете
+  const findTokens = async () => {
+    tokAddMsg.textContent = t('Шукаю серед недавніх переказів\u2026');
+    const r = await call('wallet:discoverTokens', { index: Number(tokAcct.value) });
+    if (!r.ok) { tokAddMsg.textContent = r.error; return; }
+    tokAddMsg.textContent = r.partial ? t('Пошук неповний (обмеження RPC): додайте решту вручну.') : '';
+    if (!r.tokens.length) { tokAddMsg.textContent = t('Нових токенів з балансом не знайдено.') + (r.partial ? ' ' + t('Пошук неповний (обмеження RPC): додайте решту вручну.') : ''); return; }
+    const box = h('div', { class: 'modal', onmousedown: (e) => { if (e.target === box) box.remove(); } });
+    const list = h('div', { class: 'list' }, r.tokens.map((tk) => {
+      const btn = h('button', { onclick: async () => {
+        btn.disabled = true;
+        const a = await call('wallet:addToken', { address: tk.address });
+        if (a.ok) { btn.textContent = t('Додано'); loadTokens(); } else { btn.disabled = false; alert(a.error); }
+      } }, 'Додати');
+      return h('div', { class: 'row' }, h('div', null, h('div', null, `${tk.symbol}${tk.name ? ' — ' + tk.name : ''}`, tk.suspicious ? h('span', { class: 'note' }, ' ⚠ ' + t('схоже на розсилку')) : ''),
+        h('div', { class: 'd' }, `${tk.amount} · ${tk.address}`)), btn);
+    }));
+    box.append(h('div', { class: 'mbox' }, h('h2', { class: 'mtitle' }, 'Знайдені токени'),
+      h('p', { class: 'note' }, 'Токени з недавніх переказів на цей рахунок. Додавайте лише ті, які впізнаєте: шахраї надсилають токени-приманки.'), list,
+      h('div', { class: 'mbtns' }, h('button', { class: 'primary', onclick: () => box.remove() }, 'Закрити'))));
+    document.body.append(box);
+  };
+  const tokAddBar = h('div', { class: 'bar', style: 'margin-top:10px' }, tokAdd, h('button', { onclick: findTokens }, 'Знайти токени'), h('button', { onclick: async () => {
     tokAddMsg.textContent = '…';
     const r = await call('wallet:addToken', { address: tokAdd.value.trim() });
     if (!r.ok) { tokAddMsg.textContent = r.error; return; }
@@ -836,6 +861,8 @@ async function renderDashboard(st) {
         h('div', { class: 'bar' }, h('button', { onclick: async () => { if (await backupQuizFlow()) { alert(t('Готово: резервну копію підтверджено.')); render(); } } }, 'Перевірити фразу'), h('button', { onclick: backupExportDialog }, 'Зберегти зашифровану копію\u2026'))),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Надавати провайдер сайтам (window.ethereum, window.solana)'), h('div', { class: 'd' }, 'Вимкніть, якщо не користуєтеся dApp — сайти не зможуть навіть побачити гаманець')),
         (() => { const cb = h('input', { type: 'checkbox', class: 'switch', checked: st.inject, onchange: () => call('wallet:setInject', { on: cb.checked }) }); return cb; })()),
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Повторно запитувати майстер-пароль'), h('div', { class: 'd' }, 'Скільки часу після введення пароля підтвердження транзакцій і підписів не вимагають його знову. Коротший час безпечніший; довший зручніший, якщо ви часто підтверджуєте дії.')),
+        (() => { const sel = h('select', { onchange: () => call('wallet:setReauth', { minutes: Number(sel.value) }) }, [2, 5, 10, 15].map(m => h('option', { value: String(m), selected: (st.reauthMinutes || 2) === m }, t('{0} хв', m)))); return sel; })()),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Щоразу питати, яким рахунком увійти на сайті'), h('div', { class: 'd' }, 'Під час авторизації (підключення гаманця, вхід через гаманець) браузер показує вибір рахунку навіть для сайту, який уже підключено. Вимкніть, якщо сайти запитують підключення дуже часто.')),
         (() => { const cb = h('input', { type: 'checkbox', class: 'switch', checked: st.askAccount !== false, onchange: () => call('wallet:setAskAccount', { on: cb.checked }) }); return cb; })()),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Показувати орієнтовні ціни в USD'), h('div', { class: 'd' }, 'Ціни завантажуються з CoinGecko: сервіс бачить ваш IP та ідентифікатори монет і адреси контрактів токенів, але не адреси ваших рахунків. Ціни лише для показу й нічого не впливають на підтвердження. Вимкніть, щоб гаманець не звертався до цього сервісу.')),

@@ -683,7 +683,7 @@ class AppWindow {
     const v = this.ctx.vault;
     const st = v.status();
     if (item.spec.agent) return { id: item.id, ...item.spec, needsUnlock: false, needsAuth: false }; // підтвердження сайту для ШІ не потребує майстер-пароля
-    return { id: item.id, ...item.spec, needsUnlock: st !== 'unlocked', needsAuth: st === 'unlocked' && !v.recentlyAuthed() };
+    return { id: item.id, ...item.spec, needsUnlock: st !== 'unlocked', needsAuth: st === 'unlocked' && !v.recentlyAuthed(this.ctx.wallet.reauthMs()) };
   }
 
   finishApproval(approved, choice) {
@@ -712,7 +712,7 @@ class AppWindow {
     if (v.status() !== 'unlocked') {
       const r = await v.unlock(master);
       if (!r.ok) return r;
-    } else if (!v.recentlyAuthed()) {
+    } else if (!v.recentlyAuthed(this.ctx.wallet.reauthMs())) {
       if (!(await v.reauth(master))) return { ok: false, error: 'Хибний майстер-пароль.' };
     }
     this.finishApproval(true, choice);

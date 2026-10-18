@@ -61,6 +61,36 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     return info;
   };
 
+  // Виявлення токенів ERC-20 за недавніми переказами (історія подій): повертає ті, що ще не у списку, з ненульовим балансом.
+  // Нічого не додає сама: користувач вирішує. Токени, усі перекази яких схожі на розсилку, позначаються suspicious і йдуть у кінець списку.
+  proto.evmDiscoverTokens = async function (index) {
+    const s = this.data();
+    if (!s) throw unauthorized('Гаманець не створено');
+    const owner = this.evmView(index);
+    const chainId = this.activeChain();
+    const hist = await this.evmHistory(index, {});
+    const known = new Set([...(BUILTIN[chainId] || []).map(([a]) => a), ...this._customTokens(chainId).map(c => c.address)].map(a => String(a).toLowerCase()));
+    const cand = new Map();
+    for (const it of hist.items) {
+      if (it.kind !== 'erc20' || known.has(it.token.toLowerCase())) continue;
+      const c = cand.get(it.token) || { address: it.token, allSuspicious: true, last: 0 };
+      c.last = Math.max(c.last, it.time || 0, it.block || 0);
+      if (!it.suspicious) c.allSuspicious = false; // хоч один не схожий на розсилку (ви відправляли, від контакту...) — не вважаємо спамом
+      cand.set(it.token, c);
+    }
+    const out = [];
+    await Promise.all([...cand.values()].slice(0, 24).map(async (c) => {
+      try {
+        const raw = ERC20.decodeFunctionResult('balanceOf', await this._ethCall(chainId, c.address, ERC20.encodeFunctionData('balanceOf', [owner])))[0];
+        if (raw === 0n) return;
+        const info = await this.tokenInfo(chainId, c.address);
+        out.push({ address: c.address, symbol: info.symbol, name: info.name, decimals: info.decimals, amount: formatUnits(raw, info.decimals), suspicious: c.allSuspicious, last: c.last });
+      } catch { /* не токен або вузол недоступний */ }
+    }));
+    out.sort((a, b) => (Number(a.suspicious) - Number(b.suspicious)) || (b.last - a.last));
+    return { tokens: out, scanned: hist.scanned, partial: !!hist.partial };
+  };
+
   proto._customTokens = function (chainId) {
     const s = this.section();
     s.tokens = s.tokens || {};

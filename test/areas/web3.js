@@ -662,6 +662,64 @@ async function walletTests(ctx) {
     ok(/Не вдалося підготувати транзакцію/.test(perr) && /reverted/.test(perr), 'prepare: помилка оцінки газу перетворюється на зрозуміле повідомлення');
   }
 
+  // --- виявлення токенів ERC-20 за недавніми переказами ---
+  {
+    const A1 = '0x' + '11'.repeat(20), A2 = '0x' + '22'.repeat(20), A3 = '0x' + '33'.repeat(20), A4 = '0x' + '44'.repeat(20);
+    const real = { evmHistory: wal.evmHistory, _ethCall: wal._ethCall, tokenInfo: wal.tokenInfo };
+    const coder = E.AbiCoder.defaultAbiCoder();
+    const balances = { [E.getAddress(A1)]: 5_000_000n, [E.getAddress(A2)]: 7n, [E.getAddress(A3)]: 0n, [E.getAddress(A4)]: 1n };
+    wal.evmHistory = async () => ({ scanned: 60000, partial: false, items: [
+      { kind: 'erc20', token: E.getAddress(A1), dir: 'in', suspicious: false, block: 100, time: 1000 },
+      { kind: 'erc20', token: E.getAddress(A2), dir: 'in', suspicious: true, block: 300, time: 3000 },
+      { kind: 'erc20', token: E.getAddress(A3), dir: 'in', suspicious: false, block: 200, time: 2000 },
+      { kind: 'erc20', token: E.getAddress(A4), dir: 'in', suspicious: true, block: 150, time: 1500 },
+      { kind: 'erc20', token: E.getAddress(A4), dir: 'out', suspicious: false, block: 160, time: 1600 },
+      { kind: 'nft', token: E.getAddress('0x' + '55'.repeat(20)), dir: 'in', block: 1 },
+    ] });
+    wal._ethCall = async (chain, token) => coder.encode(['uint256'], [balances[E.getAddress(token)] ?? 0n]);
+    wal.tokenInfo = async (chain, token) => ({ address: E.getAddress(token), symbol: 'T' + E.getAddress(token).slice(2, 4), name: 'Token', decimals: 6 });
+    try {
+      const d = await wal.evmDiscoverTokens(0);
+      const syms = d.tokens.map(x => x.symbol);
+      ok(d.tokens.length === 3 && !d.tokens.some(x => x.address === E.getAddress(A3)), `discover: токен з нульовим балансом і NFT не пропонуються (${syms.join()})`);
+      ok(d.tokens.map(x => x.address).join() === [A4, A1, A2].map(E.getAddress).join() && d.tokens[1].amount === '5.0', 'discover: звичайні токени за свіжістю, потім схожі на розсилку; кількість з урахуванням decimals');
+      ok(d.tokens[d.tokens.length - 1].address === E.getAddress(A2) && d.tokens[d.tokens.length - 1].suspicious === true, 'discover: токен, усі перекази якого схожі на розсилку, позначений і йде в кінець');
+      ok(d.tokens.find(x => x.address === E.getAddress(A4)).suspicious === false, 'discover: токен, який ви самі відправляли, не вважається розсилкою');
+      wal._customTokens(wal.activeChain()).push({ address: E.getAddress(A1) });
+      const d2 = await wal.evmDiscoverTokens(0);
+      ok(!d2.tokens.some(x => x.address === E.getAddress(A1)), 'discover: токен, який уже у списку, не пропонується повторно');
+      wal._customTokens(wal.activeChain()).pop();
+    } finally {
+      Object.assign(wal, real);
+    }
+  }
+
+  // --- інтервал повторного запиту майстер-пароля й типові запобіжники нового гаманця ---
+  {
+    ok(wal.getPolicy().siteDays === 30, 'defaults: новий гаманець відключає сайти, якими не користуються 30 днів');
+    ok(wal.reauthMs() === 120000, 'reauth: типово 2 хв');
+    const rt = w.createTab('w3ir://wallet', { activate: false });
+    await sleep(1500);
+    const invR = (a2) => rt.view.webContents.executeJavaScript(`w3ir.invoke('wallet:setReauth', ${JSON.stringify(a2)})`);
+    ok((await invR({ minutes: 7 })).ok === false && (await invR({ minutes: 'abc' })).ok === false && wal.reauthMs() === 120000, 'reauth: недопустиме значення відхиляється');
+    const stR = await rt.view.webContents.executeJavaScript(`w3ir.invoke('wallet:status')`);
+    ok(stR.reauthMinutes === 2, 'reauth: статус віддає поточне значення');
+    const needs = async () => {
+      ctx.vault.lastAuth = Date.now() - 5 * 60000; // пароль востаннє вводили 5 хв тому
+      const pr2 = call(wcA, 'personal_sign', [E.hexlify(E.toUtf8Bytes('reauth')), wal.section().addresses[1]]);
+      const ap2 = await waitApproval();
+      const flag = !!(ap2 && w.approvalPayload(ap2).needsAuth);
+      await w.decide(ap2.id, false);
+      await pr2;
+      return flag;
+    };
+    ok(await needs() === true, 'reauth: при 2 хв через 5 хв пароль знову потрібен');
+    ok((await invR({ minutes: 10 })).ok === true && wal.reauthMs() === 600000, 'reauth: інтервал змінюється на 10 хв');
+    ok(await needs() === false, 'reauth: при 10 хв через 5 хв пароль ще не потрібен');
+    wal.ctx.cfg().walletReauthMinutes = 2;
+    w.closeTab(rt.id);
+  }
+
   // --- сповіщення про результат транзакції (спостерігач) ---
   {
     const toasts = [];

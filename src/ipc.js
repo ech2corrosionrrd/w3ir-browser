@@ -246,7 +246,7 @@ async function assistantApi(ctx, entry, name, arg) {
 async function walletApi(ctx, entry, name, arg) {
   const w = ctx.wallet;
   const v = ctx.vault;
-  const authed = async () => v.recentlyAuthed() || (typeof arg.master === 'string' && v.status() === 'unlocked' && await v.reauth(arg.master.slice(0, 256)));
+  const authed = async () => v.recentlyAuthed(w.reauthMs()) || (typeof arg.master === 'string' && v.status() === 'unlocked' && await v.reauth(arg.master.slice(0, 256)));
   try {
     // прихований гаманець: сторінка може лише дізнатись стан, показати або приховати; усе інше відхиляється
     if (w.hidden() && !['wallet:status', 'wallet:hide', 'wallet:unhide'].includes(name)) return { ok: false, hidden: true, error: 'Гаманець приховано. Покажіть його на сторінці гаманця.' };
@@ -261,7 +261,7 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:status': {
         const st = v.status();
         if (w.hidden()) return { ok: true, vault: st, exists: w.exists(), hidden: true, info: null };
-        return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, askAccount: ctx.cfg().walletAskAccount !== false, prices: ctx.cfg().walletPrices !== false, nftAnyHost: ctx.cfg().walletNftAnyHost === true, info: st === 'unlocked' && w.exists() ? w.info() : null };
+        return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, askAccount: ctx.cfg().walletAskAccount !== false, reauthMinutes: w.reauthMs() / 60000, prices: ctx.cfg().walletPrices !== false, nftAnyHost: ctx.cfg().walletNftAnyHost === true, info: st === 'unlocked' && w.exists() ? w.info() : null };
       }
       case 'wallet:create': return { ok: true, phrase: w.create() };
       case 'wallet:import': w.importPhrase(arg.phrase, { passphrase: arg.passphrase, evmPath: arg.evmPath, solPath: arg.solPath }); return { ok: true };
@@ -288,6 +288,7 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:removeNft': return { ok: true, removed: w.removeNft(String(arg.contract), String(arg.id)) };
       case 'wallet:discoverNfts': return { ok: true, ...(await w.discoverNfts(arg.index)) };
       case 'wallet:sendNft': return { ok: true, hash: await w.sendNft(entry.win, () => entry.win.tabs.includes(entry.tab), { index: arg.index, contract: String(arg.contract), tokenId: String(arg.id), to: arg.to, amount: arg.amount === undefined ? undefined : String(arg.amount), speed: arg.speed }) };
+      case 'wallet:discoverTokens': return { ok: true, ...(await w.evmDiscoverTokens(Number(arg.index))) };
       case 'wallet:addToken': return { ok: true, token: await w.addToken(String(arg.address)) };
       case 'wallet:removeToken': return { ok: true, removed: w.removeToken(String(arg.address)) };
       case 'wallet:solHistory': return { ok: true, ...(await w.solHistory(String(arg.address))) };
@@ -373,6 +374,12 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:setRpc': w.setRpc(Number(arg.id), arg.url); return { ok: true };
       case 'wallet:disconnect': w.disconnectSite(String(arg.origin)); return { ok: true };
       case 'wallet:setInject': ctx.cfg().walletInject = !!arg.on; ctx.settingsStore.save(); return { ok: true };
+      case 'wallet:setReauth': {
+        const m = Number(arg.minutes);
+        if (![2, 5, 10, 15].includes(m)) return { ok: false, error: 'Некоректне значення.' };
+        ctx.cfg().walletReauthMinutes = m; ctx.settingsStore.save();
+        return { ok: true };
+      }
       case 'wallet:setAskAccount': ctx.cfg().walletAskAccount = !!arg.on; ctx.settingsStore.save(); return { ok: true };
       default: throw new Error('unknown');
     }

@@ -32,7 +32,7 @@ test('startpage: інформація не містить адрес вклад�
   const win = (tabs, incognito) => ({ incognito, tabs });
   const ctx = {
     windows: new Set([win([{ sleep: null }, { sleep: { url: 'x' } }], false), win([{ sleep: null }, { sleep: null }, { sleep: null }], true)]),
-    wallet: { exists: () => true }, vault: { status: () => 'locked' },
+    wallet: { exists: () => true, hidden: () => false }, vault: { status: () => 'locked' },
     stats: { blocked: 5, cookies: 3, https: 2, threats: 1 },
     downloads: { summary: () => ({ active: 2, percent: 40 }) },
     cfg: () => ({ protection: 'strict', adblock: true, safeBrowsing: true, searchEngine: 'duckduckgo' }),
@@ -50,6 +50,8 @@ test('startpage: інформація не містить адрес вклад�
   assert.equal(i.version, '9.9.9');
   ctx.wallet = null;
   assert.equal(sp.info(ctx, { version: '1' }).wallet, 'none');
-  ctx.wallet = { exists: () => true }; ctx.vault = { status: () => 'unlocked' };
+  ctx.wallet = { exists: () => true, hidden: () => false }; ctx.vault = { status: () => 'unlocked' };
   assert.equal(sp.info(ctx, { version: '1' }).wallet, 'ready');
+  ctx.wallet = { exists: () => true, hidden: () => true };
+  assert.equal(sp.info(ctx, { version: '1' }).wallet, 'hidden', 'прихований гаманець позначається, а не показує стан');
 });

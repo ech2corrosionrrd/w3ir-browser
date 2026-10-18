@@ -209,3 +209,7 @@ body.pdftools .note[role=status] { margin: 0; flex: 1; }
 .maturity.stable { background: color-mix(in srgb, #2ecc71 24%, transparent); }
 .maturity.beta { background: color-mix(in srgb, #f1c40f 26%, transparent); }
 .maturity.experimental { background: color-mix(in srgb, #e67e22 28%, transparent); }
+
+/* гаманець: швидкі дії у верхній панелі; панель лишається на екрані при прокручуванні, якщо вікно достатньо велике */
+.wquick { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+@media (min-width: 900px) and (min-height: 760px) { body.wallet .wsum { position: sticky; top: 8px; z-index: 6; backdrop-filter: blur(12px); } }

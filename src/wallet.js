@@ -118,6 +118,8 @@ class Wallet {
   // «Прихований» гаманець: дані лишаються у сховищі, але гаманця немає ні в меню, ні на стартовій сторінці й панелі, сайти його не бачать,
   // а сторінка гаманця показує лише кнопку «Показати» (потрібен майстер-пароль)
   hidden() { return this.ctx.cfg().walletHidden === true; }
+  // Через скільки після останнього введення майстер-пароля гаманець знову його просить для підтверджень (2, 5, 10 або 15 хв; типово 2)
+  reauthMs() { const m = Number(this.ctx.cfg().walletReauthMinutes); return ([2, 5, 10, 15].includes(m) ? m : 2) * 60000; }
   injectEnabled() { return this.exists() && !this.hidden() && this.ctx.cfg().walletInject !== false; }
   setHidden(on) {
     const cfg = this.ctx.cfg();
@@ -182,6 +184,7 @@ class Wallet {
     s.solPath = opts.solPath || 'phantom';
     s.solAddresses = [];
     s.addresses = [this._derive(phrase, 0).address];
+    if (!s.policy) s.policy = { siteDays: 30 }; // новий гаманець: сайти, якими не користуються 30 днів, відключаються (змінюється в режимах обережності)
     this.vault.persist();
     this.ctx.cfg().walletEnabled = true;
     this.ctx.settingsStore.save();

@@ -197,7 +197,7 @@ class Vault {
     if (ok) this.lastAuth = Date.now();
     return ok;
   }
-  recentlyAuthed() { return Date.now() - this.lastAuth < REAUTH_MS; }
+  recentlyAuthed(ms = REAUTH_MS) { return Date.now() - this.lastAuth < ms; }
 
   _pub(e) {
     let host = e.origin;

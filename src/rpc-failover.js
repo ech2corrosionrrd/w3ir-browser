@@ -13,19 +13,57 @@ function nodeFault(res) {
   return (Array.isArray(res) ? res : [res]).some(r => r && r.error && (NODE_FAULT_CODES.has(Number(r.error.code)) || NODE_FAULT_MESSAGE.test(String(r.error.message || ''))));
 }
 
+// Запити лише для читання: якщо вузол мовчить понад hedgeMs, запит одразу дублюється на наступний вузол, а не чекає повного тайм-ауту;
+// перемагає перша успішна відповідь. Відправлення транзакцій (eth_sendRawTransaction) і пакетні запити так не дублюються.
+const READ_METHODS = new Set(['eth_call', 'eth_getBalance', 'eth_blockNumber', 'eth_getBlockByNumber', 'eth_getCode', 'eth_getTransactionCount', 'eth_estimateGas',
+  'eth_gasPrice', 'eth_maxPriorityFeePerGas', 'eth_feeHistory', 'eth_getTransactionReceipt', 'eth_getLogs', 'eth_chainId', 'eth_simulateV1']);
+
 const ALREADY_KNOWN = /already known|known transaction|already imported|already in the mempool/i;
 
 class FailoverProvider extends JsonRpcProvider {
-  constructor(urls, network, { timeout = 5000 } = {}) {
+  constructor(urls, network, { timeout = 5000, hedgeMs = 1200 } = {}) {
     const opts = { staticNetwork: network, batchMaxCount: 1 };
     super(urls[0], network, opts);
     this._nodes = urls.map((u) => ({ url: u, p: new JsonRpcProvider(u, network, opts) }));
     this._timeout = timeout;
+    this._hedgeMs = hedgeMs;
   }
 
   get activeUrl() { return this._nodes[0].url; }
 
+  // Читання з «хеджуванням»: наступний вузол підключається, коли попередній відмовив або мовчить hedgeMs
+  _hedgedSend(payload) {
+    return new Promise((resolve, reject) => {
+      const nodes = [...this._nodes];
+      let next = 0, inflight = 0, done = false, lastError, lastResult, hedgeTimer;
+      const finish = (fn, v) => { done = true; clearTimeout(hedgeTimer); fn(v); };
+      const advance = () => {
+        if (done) return;
+        if (!launch() && inflight === 0) { if (lastResult) finish(resolve, lastResult); else finish(reject, lastError || new Error('RPC unavailable')); }
+      };
+      const launch = () => {
+        if (done || next >= nodes.length) return false;
+        const node = nodes[next++];
+        inflight++;
+        let timer;
+        Promise.race([node.p._send(payload), new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('RPC timeout')), this._timeout); })]).then((res) => {
+          clearTimeout(timer); inflight--;
+          if (done) return;
+          if (nodeFault(res)) { lastResult = res; return advance(); }
+          const i = this._nodes.indexOf(node); // найшвидший працюючий вузол стає першим
+          if (i > 0) { this._nodes.splice(i, 1); this._nodes.unshift(node); }
+          finish(resolve, res);
+        }, (e) => { clearTimeout(timer); inflight--; lastError = e; advance(); });
+        clearTimeout(hedgeTimer);
+        if (next < nodes.length) hedgeTimer = setTimeout(() => { if (!done) launch(); }, this._hedgeMs);
+        return true;
+      };
+      launch();
+    });
+  }
+
   async _send(payload) {
+    if (!Array.isArray(payload) && payload && READ_METHODS.has(payload.method) && this._nodes.length > 1) return this._hedgedSend(payload);
     let lastError, lastResult;
     for (let i = 0; i < this._nodes.length; i++) {
       const node = this._nodes[i];
