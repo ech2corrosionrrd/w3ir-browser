@@ -567,7 +567,7 @@ function registerIpc(resolve) {
   const SETTING_TYPES = {
     homepage: 'string', searchEngine: 'string', startup: 'string', adblock: 'boolean',
     sendGpc: 'boolean', showBookmarksBar: 'boolean', askDownload: 'boolean', downloadDir: 'string',
-    httpsFirst: 'boolean', stripTracking: 'boolean', protection: 'string', sleepTabs: 'boolean', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean',
+    httpsFirst: 'boolean', stripTracking: 'boolean', protection: 'string', sleepTabs: 'boolean', sleepMinutes: 'number', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean',
   };
 
   ipcMain.handle('internal', async (e, name, arg) => {
@@ -608,6 +608,7 @@ function registerIpc(resolve) {
           if (!(k in SETTING_TYPES) || typeof v !== SETTING_TYPES[k]) continue;
           if (k === 'searchEngine' && !ctx.ENGINES[v]) continue;
           if (k === 'startup' && !['newtab', 'restore'].includes(v)) continue;
+          if (k === 'sleepMinutes' && ![5, 15, 30, 60, 120].includes(v)) continue;
           if (k === 'protection') {
             if (!protection.LEVELS.includes(v)) continue;
             // режим вмикає потрібні перемикачі приватності; окремі з них можна потім вимкнути вручну

@@ -72,4 +72,69 @@ async function protectionTests(ctx) {
   }
 }
 
-module.exports = { protectionTests };
+// Автосон вкладок: налаштований час, винятки (закріплена, відео, незбережене введення)
+async function sleepTests(ctx) {
+  const w = [...ctx.windows][0];
+  const srv = http.createServer((req, res) => { res.setHeader('content-type', 'text/html'); res.end('<!doctype html><title>sleep</title><input id="a" type="text"><textarea id="b"></textarea><p>x</p>'); });
+  await new Promise(r => srv.listen(0, r));
+  const url = `http://127.0.0.1:${srv.address().port}/`;
+  const prevMin = ctx.cfg().sleepMinutes;
+  const prevOn = ctx.cfg().sleepTabs;
+  ctx.cfg().sleepTabs = true;
+  const open = async () => { w.exec('newTab'); w.exec('go', url); await sleep(2500); return w.active(); };
+  const old = (t, min) => { t.lastActive = Date.now() - min * 60000; };
+  try {
+    ctx.cfg().sleepMinutes = 15;
+    const t1 = await open();
+    await open(); // t1 стає фоновою
+    old(t1, 10);
+    await w.sleepIdle();
+    ok(!t1.sleep, 'sleep: вкладка, неактивна 10 хв, при порозі 15 хв не засинає');
+    old(t1, 16);
+    await w.sleepIdle();
+    ok(!!t1.sleep, 'sleep: вкладка, неактивна 16 хв, при порозі 15 хв засинає');
+
+    ctx.cfg().sleepMinutes = 30;
+    const t2 = await open(); await open();
+    old(t2, 20);
+    await w.sleepIdle();
+    ok(!t2.sleep, 'sleep: налаштований поріг 30 хв працює (20 хв — ще не спить)');
+    old(t2, 31);
+    await w.sleepIdle();
+    ok(!!t2.sleep, 'sleep: налаштований поріг 30 хв працює (31 хв — спить)');
+
+    ctx.cfg().sleepMinutes = 5;
+    const t3 = await open(); await open();
+    t3.pinned = true; old(t3, 60);
+    await w.sleepIdle();
+    ok(!t3.sleep, 'sleep: закріплена вкладка не засинає');
+    t3.pinned = false;
+
+    const t4 = await open(); await open();
+    t4.playing = true; old(t4, 60);
+    await w.sleepIdle();
+    ok(!t4.sleep, 'sleep: вкладка з відео чи звуком не засинає');
+    t4.playing = false;
+
+    const t5 = await open();
+    await t5.view.webContents.executeJavaScript(`document.getElementById('a').value = 'незбережений текст'`);
+    await open();
+    old(t5, 60);
+    await w.sleepIdle();
+    ok(!t5.sleep, 'sleep: вкладка з незбереженим введенням у формі не засинає');
+    await t5.view.webContents.executeJavaScript(`document.getElementById('a').value = ''`);
+    await w.sleepIdle();
+    ok(!!t5.sleep, 'sleep: після очищення поля вкладка знову може заснути');
+
+    const active = w.active();
+    old(active, 600);
+    await w.sleepIdle();
+    ok(!active.sleep, 'sleep: активна вкладка не засинає');
+  } finally {
+    ctx.cfg().sleepMinutes = prevMin;
+    ctx.cfg().sleepTabs = prevOn;
+    srv.close();
+  }
+}
+
+module.exports = { protectionTests: async (ctx) => { await protectionTests(ctx); await sleepTests(ctx); } };

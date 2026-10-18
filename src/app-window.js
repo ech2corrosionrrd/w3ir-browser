@@ -16,7 +16,8 @@ const ROOT = path.join(__dirname, '..');
 const ICON = path.join(ROOT, 'build', 'icon.png');
 const NEWTAB = 'w3ir://newtab';
 const SIDEBAR_W = 240;
-const SLEEP_AFTER = Number(process.env.W3IR_SLEEP_MS) || 15 * 60 * 1000;
+const SLEEP_ENV = Number(process.env.W3IR_SLEEP_MS) || 0; // перекриває налаштування (для тестів)
+const SLEEP_MINUTES = [5, 15, 30, 60, 120];
 let counter = 0;
 let readabilitySrc = null;
 
@@ -97,7 +98,7 @@ class AppWindow {
       if (opts.maximized) this.win.maximize();
     });
 
-    this.sleepTimer = setInterval(() => this.sleepIdle(), Math.min(60000, SLEEP_AFTER));
+    this.sleepTimer = setInterval(() => this.sleepIdle(), Math.min(60000, SLEEP_ENV || 60000));
     ctx.windows.add(this);
     this.chrome.once('did-finish-load', () => {
       const urls = (opts.urls && opts.urls.length) ? opts.urls : [NEWTAB];
@@ -299,6 +300,9 @@ class AppWindow {
     const push = () => this.push();
     for (const ev of ['did-start-loading', 'did-stop-loading', 'did-navigate-in-page', 'audio-state-changed'])
       wc.on(ev, push);
+    // відео чи звук у вкладці (навіть без звуку) не дають їй заснути
+    wc.on('media-started-playing', () => { tab.playing = true; });
+    wc.on('media-paused', () => { tab.playing = false; });
 
     wc.on('page-title-updated', (e, title) => {
       if (!this.incognito && !tab.sleep) this.ctx.historyTitle(wc.getURL(), title);
@@ -741,13 +745,38 @@ class AppWindow {
     } catch { fallback(); }
   }
 
-  sleepIdle() {
-    if (!this.ctx.cfg().sleepTabs || this.agent) return;
-    const now = Date.now();
-    for (const t of this.tabs) {
-      if (this.split && (t.id === this.split.a || t.id === this.split.b)) continue;
-      if (!t.sleep && t.id !== this.activeId && now - t.lastActive > SLEEP_AFTER) this.sleepTab(t);
-    }
+  // через скільки неактивна вкладка засинає: налаштування «sleepMinutes» (5–120 хв), типово 15
+  sleepDelay() {
+    if (SLEEP_ENV) return SLEEP_ENV;
+    const m = Number(this.ctx.cfg().sleepMinutes);
+    return (SLEEP_MINUTES.includes(m) ? m : 15) * 60 * 1000;
+  }
+
+  // Чи є на сторінці незбережене введення (текст у полях, змінені прапорці/списки): сон знищив би його
+  async hasUnsavedInput(tab) {
+    const wc = tab.view.webContents;
+    const probe = wc.executeJavaScript(`(() => { try { return [...document.querySelectorAll('input,textarea,select')].some(e => {
+      if (e.tagName === 'SELECT') return [...e.options].some(o => o.selected !== o.defaultSelected);
+      if (e.type === 'checkbox' || e.type === 'radio') return e.checked !== e.defaultChecked;
+      if (['hidden', 'button', 'submit', 'reset', 'image', 'file'].includes(e.type)) return false;
+      return e.value !== e.defaultValue && e.value !== '';
+    }) || [...document.querySelectorAll('[contenteditable=""],[contenteditable="true"]')].some(e => (e.textContent || '').trim().length > 0); } catch { return false; } })()`).catch(() => false);
+    return Promise.race([probe, new Promise(r => setTimeout(() => r(false), 1500))]);
+  }
+
+  async sleepIdle() {
+    if (!this.ctx.cfg().sleepTabs || this.agent || this.sleepBusy) return;
+    this.sleepBusy = true;
+    try {
+      const now = Date.now();
+      const after = this.sleepDelay();
+      for (const t of this.tabs.slice()) {
+        if (this.split && (t.id === this.split.a || t.id === this.split.b)) continue;
+        if (t.sleep || t.pinned || t.playing || t.id === this.activeId || now - t.lastActive <= after) continue;
+        if (await this.hasUnsavedInput(t)) continue;
+        if (this.tabs.includes(t) && t.id !== this.activeId) this.sleepTab(t);
+      }
+    } finally { this.sleepBusy = false; }
   }
 
   // ---------- режим читання ----------

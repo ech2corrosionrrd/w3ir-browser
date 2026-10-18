@@ -42,6 +42,7 @@ const DEFAULT_SETTINGS = {
   httpsFirst: true,
   stripTracking: true,
   sleepTabs: true,
+  sleepMinutes: 15, // через скільки хвилин неактивна вкладка засинає (5, 15, 30, 60, 120)
   verticalTabs: false,
   savePasswords: true,
   theme: 'system',
