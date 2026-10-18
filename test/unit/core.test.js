@@ -21,6 +21,24 @@ test('util: stripCtl прибирає керівні символи й обрі�
   assert.equal(queryMatcher('')('x', 'y'), true);
 });
 
+test('queryMatcher: крайні випадки', () => {
+  const { queryMatcher } = src('util.js');
+  const w = (n) => Array.from({ length: n }, (_, i) => 'w' + (i + 1)).join(' ');
+  // Враховується лише перші 8 слів: 9-те слово ігнорується.
+  assert.equal(queryMatcher(w(9))('w1 w2 w3 w4 w5 w6 w7 w8', ''), true);
+  assert.equal(queryMatcher(w(9))('w1 w2 w3 w4 w5 w6 w7 w9', ''), false);
+  assert.equal(queryMatcher(w(9))('w2 w3 w4 w5 w6 w7 w8 w9', ''), false);
+  // Порожній запит збігається завжди, навіть без title/url.
+  for (const q of ['', null, undefined, '   \t ']) {
+    assert.equal(queryMatcher(q)('x', 'y'), true);
+    assert.equal(queryMatcher(q)(null, null), true);
+  }
+  // null/undefined у title/url не кидають виняток.
+  assert.equal(queryMatcher('x')(null, null), false);
+  assert.equal(queryMatcher('x')(undefined, 'x'), true);
+  assert.equal(queryMatcher('x')('x', undefined), true);
+});
+
 test('urlrules: прибирає трекінгові параметри й залишає решту', () => {
   const { stripTracking } = src('urlrules.js');
   assert.equal(stripTracking('https://a.com/p?utm_source=x&id=7&fbclid=1'), 'https://a.com/p?id=7');
