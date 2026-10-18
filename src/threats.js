@@ -11,6 +11,27 @@ const { parse: parseHost } = require('tldts-experimental');
 const { writeAtomic } = require('./crypto-util');
 
 const MAX_LIST_BYTES = 60 * 1024 * 1024;
+
+// the body is read in chunks and cut off at the limit (a server without Content-Length cannot make us buffer more)
+async function readCapped(res, max, id) {
+  const tooBig = () => new Error(`${id}: список надто великий`);
+  if (!res.body || typeof res.body.getReader !== 'function') {
+    const text = await res.text();
+    if (Buffer.byteLength(text) > max) throw tooBig();
+    return text;
+  }
+  const reader = res.body.getReader();
+  const chunks = [];
+  let n = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    n += value.length;
+    if (n > max) { try { await reader.cancel(); } catch { /* ignore */ } throw tooBig(); }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
 const UPDATE_EVERY = 24 * 60 * 60 * 1000;
 
 const SOURCES = [
@@ -149,10 +170,10 @@ class Threats {
           if (!this.allowInsecure && !src.url.startsWith('https://')) throw new Error('insecure source');
           const res = await fetch(src.url, { signal: AbortSignal.timeout(90000), redirect: 'follow', headers: { 'User-Agent': 'W3IR-Browser' } });
           if (!res.ok) throw new Error(`${src.id}: HTTP ${res.status}`);
+          if (!this.allowInsecure && res.url && !res.url.startsWith('https://')) throw new Error('insecure redirect');
           const len = Number(res.headers.get('content-length') || 0);
           if (len > MAX_LIST_BYTES) throw new Error(`${src.id}: список надто великий`);
-          const text = await res.text();
-          if (text.length > MAX_LIST_BYTES) throw new Error(`${src.id}: список надто великий`);
+          const text = await readCapped(res, MAX_LIST_BYTES, src.id);
           const set = src.format === 'json-blacklist' ? parseBlacklistJson(text) : parseList(text);
           if (set.size < 1) throw new Error(`${src.id}: порожній список`);
           const target = (fresh[src.kind] = fresh[src.kind] || new Set());

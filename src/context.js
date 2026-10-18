@@ -363,7 +363,15 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
         ? path.join(UI, path.basename(u.pathname))
         : path.join(PAGES, ext ? path.basename(u.pathname) : path.basename(u.hostname) + '.html');
       if (!fs.existsSync(file)) return new Response('Not found', { status: 404 });
-      return net.fetch(pathToFileURL(file).toString());
+      // internal pages must never be framed and must not be sniffed (frame-ancestors cannot be set from a <meta> CSP)
+      return net.fetch(pathToFileURL(file).toString()).then((r) => {
+        const h = new Headers(r.headers);
+        h.set('Content-Security-Policy', "frame-ancestors 'none'");
+        h.set('X-Frame-Options', 'DENY');
+        h.set('X-Content-Type-Options', 'nosniff');
+        h.set('Referrer-Policy', 'no-referrer');
+        return new Response(r.body, { status: r.status, statusText: r.statusText, headers: h });
+      });
     });
 
     ses.protocol.handle('ar', async (req) => {
@@ -387,7 +395,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     ctx.sessions.push(ses);
     attachCosmetic(ctx, ses);
 
-    ses.webRequest.onBeforeRequest((details, cb) => {
+    const baseBeforeRequest = (details, cb) => {
       const cfg = ctx.cfg();
       const url = details.url;
       if (details.resourceType === 'mainFrame') {
@@ -423,6 +431,21 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
         }
       }
       cb({});
+    };
+    // pages controlled by the AI agent: resolve the host in the network layer and refuse private addresses (DNS rebinding / SSRF)
+    ses.webRequest.onBeforeRequest((details, cb) => {
+      const a = ctx.agent;
+      if (a && (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame') && /^https?:/i.test(details.url) && a.guardsContents(details.webContentsId)) {
+        return a.netGuard(ses, details.url).then(blocked => (blocked ? cb({ cancel: true }) : baseBeforeRequest(details, cb)), () => baseBeforeRequest(details, cb));
+      }
+      baseBeforeRequest(details, cb);
+    });
+    // second line of defence: the real peer address after the connection (resolution may differ from the pre-check)
+    ses.webRequest.onResponseStarted((details) => {
+      try {
+        const a = ctx.agent;
+        if (a && details.ip && (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame') && a.guardsContents(details.webContentsId)) a.lateIpCheck(details);
+      } catch { /* ignore */ }
     });
     ses.webRequest.onHeadersReceived((details, cb) => {
       if (ctx.blocker && ctx.cfg().adblock && /^https?:/i.test(details.url) && !ctx.adblockAllowed(ctx.topHost(details.webContentsId))) return ctx.blocker.onHeadersReceived(details, cb);

@@ -14,6 +14,9 @@ const MAGIC = 'W3IRSYNC1';
 const MAX_ITEMS = 20000;
 const MAX_FILE = 8 * 1024 * 1024;
 const TOMB_TTL = 90 * 864e5;
+// rollback protection: the file carries a monotonically growing counter bound into the AEAD associated data.
+// Legacy files (no counter) are read with the old AAD; a counter lower than the last one seen is rejected.
+const aadFor = (seq) => Buffer.from(seq ? MAGIC + '|seq=' + seq : MAGIC);
 
 const cleanItem = (x) => {
   if (!x || typeof x.url !== 'string' || !/^(https?|file):/i.test(x.url) || x.url.length > 4096) return null;
@@ -55,7 +58,7 @@ class Sync {
   constructor({ dir, bookmarks, onChange = () => {} }) {
     this.dir = dir;
     this.keyFile = path.join(dir, 'sync.key');
-    this.state = new Store('sync', { enabled: false, folder: '', lastSync: 0, lastError: '', tomb: {} }, dir);
+    this.state = new Store('sync', { enabled: false, folder: '', lastSync: 0, lastError: '', tomb: {}, seq: 0 }, dir);
     this.bookmarks = bookmarks;
     this.onChange = onChange;
     this.running = null;
@@ -82,12 +85,14 @@ class Sync {
     if (fs.statSync(file).size > MAX_FILE) throw new Error('Файл синхронізації надто великий.');
     const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
     if (raw.magic !== MAGIC) throw new Error('Невідомий формат файлу синхронізації.');
+    const seq = Number.isSafeInteger(raw.seq) && raw.seq > 0 ? raw.seq : 0;
     let plain;
-    try { plain = decrypt(key, { iv: unb64(raw.iv), tag: unb64(raw.tag), ct: unb64(raw.ct) }, Buffer.from(MAGIC)); }
+    try { plain = decrypt(key, { iv: unb64(raw.iv), tag: unb64(raw.tag), ct: unb64(raw.ct) }, aadFor(seq)); }
     catch { throw new Error('Не вдалося розшифрувати файл: хибна парольна фраза або файл змінено.'); }
     const data = JSON.parse(plain.toString('utf8'));
     if (!data || !Array.isArray(data.items)) throw new Error('Пошкоджені дані синхронізації.');
-    return { items: data.items.slice(0, MAX_ITEMS), tomb: data.tomb && typeof data.tomb === 'object' ? data.tomb : {} };
+    if (seq < (this.state.data.seq || 0)) throw new Error('Файл синхронізації старіший за вже бачений (можливий відкат). Вимкніть і ввімкніть синхронізацію знову, якщо ви свідомо відновили стару копію.');
+    return { items: data.items.slice(0, MAX_ITEMS), tomb: data.tomb && typeof data.tomb === 'object' ? data.tomb : {}, seq };
   }
 
   async enable(folder, passphrase) {
@@ -95,6 +100,7 @@ class Sync {
     if (!folder || !fs.existsSync(folder) || !fs.statSync(folder).isDirectory()) throw new Error('Папку не знайдено.');
     if (String(passphrase || '').length < 12) throw new Error('Парольна фраза має містити щонайменше 12 символів.');
     const file = path.join(folder, FILE_NAME);
+    this.state.data.seq = 0; // explicit (re)connection: the counter is learned again from the file
     let salt;
     if (fs.existsSync(file)) {
       const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -148,6 +154,7 @@ class Sync {
         if (!fs.existsSync(s.folder)) throw new Error('Папка синхронізації недоступна.');
         const remote = this._readRemote(file, k.key) || { items: [], tomb: {} };
         const local = this.bookmarks.get();
+        s.seq = Math.max(s.seq || 0, remote.seq || 0);
         const merged = merge(local, s.tomb, remote.items, remote.tomb);
 
         // застосовуємо до локальних закладок
@@ -159,8 +166,10 @@ class Sync {
         // записуємо у спільну папку лише коли є зміни
         const remoteNorm = merge(remote.items, remote.tomb, [], {});
         if (!same(remoteNorm.items, merged.items) || !same(remoteNorm.tomb, merged.tomb)) {
-          const env = encrypt(k.key, Buffer.from(JSON.stringify({ v: 1, items: merged.items, tomb: merged.tomb, time: Date.now() })), Buffer.from(MAGIC));
-          writeAtomic(fs, file, JSON.stringify({ magic: MAGIC, salt: b64(k.salt), iv: b64(env.iv), tag: b64(env.tag), ct: b64(env.ct) }));
+          const seq = (s.seq || 0) + 1;
+          const env = encrypt(k.key, Buffer.from(JSON.stringify({ v: 1, items: merged.items, tomb: merged.tomb, time: Date.now() })), aadFor(seq));
+          writeAtomic(fs, file, JSON.stringify({ magic: MAGIC, seq, salt: b64(k.salt), iv: b64(env.iv), tag: b64(env.tag), ct: b64(env.ct) }));
+          s.seq = seq;
         }
         s.lastSync = Date.now();
         s.lastError = '';

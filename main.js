@@ -23,6 +23,12 @@ protocol.registerSchemesAsPrivileged([
 // Лише для розробки/тестів: окрема тека даних (ізоляція від встановленої копії та власне блокування одного екземпляра)
 if (!app.isPackaged && process.env.W3IR_USER_DATA) app.setPath('userData', process.env.W3IR_USER_DATA);
 
+// Crash log without secrets + handlers: errors are logged (not swallowed silently); repeated fatal errors end the app safely
+const { CrashLog, install: installCrashHandlers } = require('./src/crash-log');
+const crashLog = new CrashLog(path.join(app.getPath('userData'), 'crash.log'));
+app.on('render-process-gone', (e, wc, d) => crashLog.note('render-process-gone', { message: d && d.reason }, { exitCode: d && d.exitCode }));
+app.on('child-process-gone', (e, d) => crashLog.note('child-process-gone', { message: d && d.reason }, { type: d && d.type, exitCode: d && d.exitCode }));
+
 if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 
 const { ProfileManager } = require('./src/profiles');
@@ -33,6 +39,11 @@ const { initBlocker } = require('./src/adblock');
 const { Updater, installerIsRunning } = require('./src/updater');
 
 let manager;
+installCrashHandlers(process, crashLog, {
+  flush: () => { try { flushAll(); } catch { /* ignore */ } },
+  onFirst: () => { try { const w = ctx && [...ctx.windows].pop(); if (w) w.toast(tr('Сталася внутрішня помилка. Подробиці записано в журнал crash.log.')); } catch { /* ignore */ } },
+  onRepeated: () => { try { flushAll(); closeAllPlaces(); } catch { /* ignore */ } app.exit(1); },
+});
 let ctx; // основний профіль
 
 const urlsFromArgv = (argv) => argv.filter(a => /^https?:\/\//i.test(a));
@@ -52,7 +63,14 @@ app.on('before-quit', () => {
   if (manager) for (const c of manager.all()) { c.vault.lock(); c.saveSession(); c.quitting = true; }
   flushAll();
 });
-app.on('will-quit', () => { flushAll(); closeAllPlaces(); });
+app.on('will-quit', () => {
+  try { flushAll(); } catch (e) { crashLog.note('flush-on-quit', e); }
+  try { closeAllPlaces(); } catch (e) { crashLog.note('places-close', e); }
+});
+// Windows logoff/shutdown: write pending data before the session ends
+app.on('browser-window-created', (e, w) => w.on('session-end', () => {
+  try { if (manager) for (const c of manager.all()) { c.vault.lock(); c.saveSession(); } flushAll(); closeAllPlaces(); } catch (err) { crashLog.note('session-end', err); }
+}));
 app.on('window-all-closed', () => app.quit());
 
 app.whenReady().then(async () => {

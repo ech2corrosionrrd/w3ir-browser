@@ -345,9 +345,14 @@ class Agent {
       if (req.headers.origin) return bad(403, 'browser origins are not allowed');
       const now = Date.now();
       this.fails = this.fails.filter(t => now - t < 60000);
-      if (this.fails.length >= 8) return bad(429, 'too many failed attempts', { 'Retry-After': '60' });
       if (req.url !== '/mcp') return bad(404, 'not found');
-      if (!bearerOk(req.headers.authorization, this.token)) { this.fails.push(now); return bad(401, 'unauthorized', { 'WWW-Authenticate': 'Bearer' }); }
+      // the listener is loopback-only, so the peer address is always the same: a global counter would let any local process lock out
+      // the legitimate client. Only requests WITHOUT a valid token are counted and throttled; a valid token is never locked out.
+      if (!bearerOk(req.headers.authorization, this.token)) {
+        if (this.fails.length >= 8) return bad(429, 'too many failed attempts', { 'Retry-After': '60' });
+        this.fails.push(now);
+        return bad(401, 'unauthorized', { 'WWW-Authenticate': 'Bearer' });
+      }
       if (req.method !== 'POST') return bad(405, 'use POST', { Allow: 'POST' });
       if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) return bad(415, 'application/json required');
       let size = 0; const chunks = [];
@@ -535,6 +540,43 @@ class Agent {
 
   // Чи вказує ім'я сайту (через DNS) на локальну або приватну мережу: перевірка лише за ім'ям пропускає «публічні» домени
   // з адресою 127.0.0.1 (захист від SSRF). Не повна гарантія (адреса може змінитися після перевірки), але закриває очевидний обхід.
+  // network layer (called from webRequest in context.js): does this webContents belong to the agent (shared tab or agent window)?
+  guardsContents(id) {
+    if (!id || this.allowLocal) return false;
+    const has = (tab) => { try { return tab.view.webContents.id === id; } catch { return false; } };
+    for (const s of this.shares.values()) if (has(s.tab)) return true;
+    const w = this.liveWin();
+    return !!(w && w.tabs.some(has));
+  }
+
+  // resolves the host via the session resolver (the same cache Chromium connects with) and reports true when any answer is private
+  async netGuard(ses, url) {
+    if (this.allowLocal) return false;
+    let host;
+    try { host = new URL(url).hostname; } catch { return false; }
+    if (/^[\d.]+$/.test(host) || host.includes(':') || host.startsWith('[')) return false; // IP literals are checked by checkUrl
+    try {
+      const r = await ses.resolveHost(host);
+      if ((r.endpoints || []).some(x => isPrivateAddress(x.address))) { this.log('block-dns-net', siteKey(host)); return true; }
+    } catch { /* resolution error: the browser reports it itself */ }
+    return false;
+  }
+
+  // the peer address actually used for the response: if it is private, stop the page and revoke sharing
+  lateIpCheck(details) {
+    if (this.allowLocal || !isPrivateAddress(details.ip)) return false;
+    this.log('block-dns-late', clean(details.url, 80));
+    try {
+      const wc = require('electron').webContents.fromId(details.webContentsId);
+      if (wc && !wc.isDestroyed()) {
+        for (const s of [...this.shares.values()]) { try { if (s.tab.view.webContents.id === wc.id) this.unshare(s.id, 'DNS'); } catch { /* ignore */ } }
+        wc.stop();
+        wc.loadURL('about:blank').catch(() => {});
+      }
+    } catch { /* ignore */ }
+    return true;
+  }
+
   async resolvesToPrivate(host) {
     if (this.allowLocal) return false;
     if (/^[\d.]+$/.test(host) || String(host).includes(':')) return false; // IP-адреси вже перевірено isPrivateHost
