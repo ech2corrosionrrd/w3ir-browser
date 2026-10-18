@@ -93,12 +93,12 @@ function statusRow(i) {
     pill('shield', t('Захист'), t('{0} заблоковано · {1}', num(i.protection.blocked), t(MODES[i.protection.mode] || MODES.standard)), 'w3ir://dashboard'),
     pill('update', t('Оновлення'), up ? t('Доступне {0}: натисніть ⬆', i.update.version) : t('Актуальна версія {0}', i.version), 'w3ir://settings', up ? 'hot' : ''),
     pill('tabs', t('Вкладки'), i.tabs.sleeping ? t('{0} · сплять: {1}', i.tabs.total, i.tabs.sleeping) : String(i.tabs.total), 'w3ir://dashboard'),
-    pill('wallet', t('Гаманець'), wallet, 'w3ir://wallet'),
+    i.wallet === 'hidden' ? null : pill('wallet', t('Гаманець'), wallet, 'w3ir://wallet'),
     pill('download', t('Завантаження'), dl, 'w3ir://downloads'));
 }
 
-function launchers() {
-  return h('div', { class: 'groups' }, LAUNCHERS.map(([group, items], gi) => h('section', { class: 'group g' + gi },
+function launchers(hideWallet) {
+  return h('div', { class: 'groups' }, LAUNCHERS.map(([group, all], gi) => [group, hideWallet ? all.filter(x => x[3] !== 'w3ir://wallet') : all, gi]).map(([group, items, gi]) => h('section', { class: 'group g' + gi },
     h('h3', null, group),
     h('div', { class: 'lcs' }, items.map(([ic, name, desc, href, key]) => h('a', { class: 'lc', href, title: t(name) + ' — ' + t(desc) + (key ? ' (' + key + ')' : '') },
       h('span', { class: 'lic' }, icon(ic, 21)),
@@ -152,7 +152,7 @@ async function main() {
   }) : h('div', { class: 'empty-s' }, 'Тут з’являться сайти, які ви відвідуєте найчастіше.'));
 
   const main = h('div', { class: 'col-main' },
-    h('h2', null, 'Швидкий доступ'), launchers(),
+    h('h2', null, 'Швидкий доступ'), launchers(info && info.wallet === 'hidden'),
     h('h2', null, 'Мої сайти'), tiles);
 
   // бокова колонка: закладки, порада, гарячі клавіші

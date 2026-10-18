@@ -110,9 +110,10 @@ function state(ctx) {
   const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
   const a = base.agent ? base.agent.status() : null;
   const w = ctx.wallet;
-  const unlocked = !!w && w.exists() && ctx.vault.status() === 'unlocked';
+  const hidden = !!w && w.hidden(); // прихований гаманець: ні адрес, ні мереж, ні подій гаманця
+  const unlocked = !hidden && !!w && w.exists() && ctx.vault.status() === 'unlocked';
   const info = unlocked ? w.info() : null;
-  const nets = w ? w.networks() : [];
+  const nets = w && !hidden ? w.networks() : [];
   const active = info ? nets.find(n => n.chainId === info.activeChain) : null;
   const events = [];
   if (a) for (const l of a.log) events.push({ t: Date.parse(l.t) || 0, src: 'ШІ', text: clean(l.tool + ' ' + l.detail) });
@@ -122,7 +123,7 @@ function state(ctx) {
   const cfg = ctx.cfg();
   return {
     agent: a && { enabled: a.enabled, running: a.running, port: a.port, windowOpen: a.windowOpen, sites: a.sites.length, lastCall: a.lastCall, error: a.error, client: a.client, shares: a.shares.map(x => ({ id: x.id, site: clean(x.site, 80), mode: x.mode, until: x.until })) },
-    wallet: { exists: !!w && w.exists(), unlocked, accounts: info ? info.accounts : [], chain: active ? { id: active.chainId, name: clean(active.name, 60), symbol: clean(active.symbol, 10) } : null },
+    wallet: { hidden, exists: !!w && w.exists() && !hidden, unlocked, accounts: info ? info.accounts : [], chain: active ? { id: active.chainId, name: clean(active.name, 60), symbol: clean(active.symbol, 10) } : null },
     networks: nets.map(n => ({ chainId: n.chainId, name: clean(n.name, 60) })),
     protection: { safe: cfg.safeBrowsing !== false, adblock: !!cfg.adblock, https: cfg.httpsFirst !== false, lists: th ? th.counts : { malware: 0, phishing: 0 }, updated: th ? th.updated : 0 },
     events: events.slice(0, 30),
@@ -139,7 +140,7 @@ function createApi(ctx, { fetchFn } = {}) {
         case 'dashboard:metrics': return { ok: true, ...metrics(ctx) };
         case 'dashboard:ping': {
           if (lastPing.data && Date.now() - lastPing.t < PING_MIN_INTERVAL) return { ok: true, results: lastPing.data, cached: true };
-          const results = await pingNetworks(ctx.wallet ? ctx.wallet.networks() : [], { fetchFn });
+          const results = await pingNetworks(ctx.wallet && !ctx.wallet.hidden() ? ctx.wallet.networks() : [], { fetchFn });
           lastPing = { t: Date.now(), data: results };
           return { ok: true, results };
         }

@@ -87,6 +87,7 @@ async function walletTests(ctx) {
   const { Wallet: W, describeCall, isSafeRpc } = require('../../src/wallet');
   const { Store } = require('../../src/store');
   const MASTER = 'Wallet-Master-Pass-55!';
+  const startInfo = async (c) => require('../../src/startpage').info(c, { version: 't' });
 
   // --- модульні перевірки ---
   const MAX = E.MaxUint256;
@@ -635,6 +636,33 @@ async function walletTests(ctx) {
   const quiet = await call(wcA, 'eth_requestAccounts');
   ok(quiet.ok && quiet.ok[0] === addr1 && !w.approval, 'auth: з вимкненим налаштуванням підключений сайт отримує рахунок без вікна');
   ctx.cfg().walletAskAccount = true;
+  // --- приховати гаманець: зникає з меню й для сайтів, сторінка віддає лише стан; показати можна лише з майстер-паролем ---
+  const labels = (list) => list.map(x => x.label || '');
+  ok(labels(w.menuItems()).some(l => /Гаманець \(Web3\)/.test(l)) && labels(w.commandList()).some(l => /Гаманець \(Web3\)/.test(l)), 'hide: до приховування гаманець є в меню й палітрі команд');
+  const walletTab = w.createTab('w3ir://wallet', { activate: false });
+  const settingsTab = w.createTab('w3ir://settings', { activate: false });
+  await sleep(1800);
+  const inv2 = (tab, n, a) => tab.view.webContents.executeJavaScript(`w3ir.invoke('${n}', ${JSON.stringify(a || {})}).catch(e => ({ thrown: String(e.message) }))`);
+  ok((await inv2(settingsTab, 'wallet:hide')).ok === true && wal.hidden() && !wal.injectEnabled(), 'hide: приховати можна зі сторінки налаштувань; провайдер для сайтів вимикається');
+  ok(!labels(w.menuItems()).some(l => /Гаманець \(Web3\)/.test(l)) && !labels(w.commandList()).some(l => /Гаманець \(Web3\)/.test(l)), 'hide: гаманця немає в меню й палітрі команд');
+  const hiddenReq = await call(wcA, 'eth_accounts');
+  ok(hiddenReq.err !== undefined && !w.approval, `hide: сайт більше не може користуватись гаманцем (${JSON.stringify(hiddenReq).slice(0, 60)})`);
+  const stH = await inv2(walletTab, 'wallet:status');
+  ok(stH.ok && stH.hidden === true && stH.info === null, 'hide: стан віддає лише ознаку «приховано» без даних рахунків');
+  const balH = await inv2(walletTab, 'wallet:balances');
+  const sendH = await inv2(walletTab, 'wallet:revealKey', {});
+  ok(balH.ok === false && balH.hidden === true && sendH.ok === false && sendH.hidden === true, 'hide: решта команд гаманця відхиляються, поки він прихований');
+  ok((await inv2(settingsTab, 'wallet:balances')).thrown !== undefined, 'hide: зі сторінки налаштувань доступні лише hide і status');
+  const si = await startInfo(ctx);
+  ok(si.wallet === 'hidden', 'hide: стартова сторінка отримує «hidden» (плитку й запуск гаманця буде прибрано)');
+  ctx.vault.lastAuth = 0; // пароль давно не вводили
+  const noPw = await inv2(walletTab, 'wallet:unhide');
+  const badPw = await inv2(walletTab, 'wallet:unhide', { master: 'неправильний пароль' });
+  ok(noPw.ok === false && noPw.needAuth === true && badPw.ok === false && wal.hidden(), 'hide: показати без пароля або з хибним паролем не можна');
+  const okPw = await inv2(walletTab, 'wallet:unhide', { master: MASTER });
+  ok(okPw.ok === true && !wal.hidden() && wal.injectEnabled() && labels(w.menuItems()).some(l => /Гаманець \(Web3\)/.test(l)), 'hide: з правильним майстер-паролем гаманець повертається');
+  ok((await call(wcA, 'eth_accounts')).ok !== undefined, 'hide: після показу сайти знову бачать гаманець');
+  w.closeTab(walletTab.id); w.closeTab(settingsTab.id);
   // сховище заблоковано: спершу розблокування, потім вибір рахунку серед усіх доступних (а не мовчазний рахунок за замовчуванням)
   ctx.vault.lock();
   ok(!wal.unlocked(), 'auth: сховище заблоковано для перевірки');

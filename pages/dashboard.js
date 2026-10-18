@@ -264,7 +264,7 @@ async function renderStatic() {
   const st = await call('dashboard:state');
   lastState = st;
   statics.textContent = '';
-  statics.append(cardNetworks(st), cardAgent(st), cardLog(st));
+  statics.append(...(st.wallet.hidden ? [] : [cardNetworks(st)]), cardAgent(st), cardLog(st));
 }
 
 async function tick() {

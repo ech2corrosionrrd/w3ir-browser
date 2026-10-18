@@ -28,7 +28,7 @@ function info(ctx, deps = {}) {
     for (const t of w.tabs) { total++; if (t.sleep) sleeping++; }
   }
   const w = ctx.wallet;
-  const walletState = !w || !w.exists() ? 'none' : (ctx.vault.status() === 'unlocked' ? 'ready' : 'locked');
+  const walletState = w && w.hidden() ? 'hidden' : (!w || !w.exists() ? 'none' : (ctx.vault.status() === 'unlocked' ? 'ready' : 'locked'));
   const up = ctx.manager && ctx.manager.updater ? ctx.manager.updater.brief() : null;
   const s = ctx.stats || { blocked: 0, cookies: 0, https: 0, threats: 0 };
   const dl = ctx.downloads ? ctx.downloads.summary() : { active: 0, percent: -1 };

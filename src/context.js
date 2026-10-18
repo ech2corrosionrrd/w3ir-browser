@@ -55,6 +55,7 @@ const DEFAULT_SETTINGS = {
   keywords: '',
   walletEnabled: false,
   walletInject: true,
+  walletHidden: false, // гаманець приховано (дані збережено; показати можна на сторінці гаманця з майстер-паролем)
   walletAskAccount: true, // щоразу питати, яким рахунком авторизуватись на сайті (навіть якщо сайт уже підключено)
   walletNftAnyHost: false, // дозволити завантаження метаданих і картинок NFT з довільних https-сайтів (вони бачать ваш IP)
   walletPrices: true, // орієнтовні ціни в USD (CoinGecko); без цього гаманець не звертається до сервісу цін

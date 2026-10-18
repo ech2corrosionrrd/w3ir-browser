@@ -17,6 +17,7 @@ async function render() {
   const st = await call('wallet:status');
   app.textContent = '';
   app.append(h('h1', null, 'Гаманець (Web3)'));
+  if (st.hidden) return renderHidden(st);
   if (st.vault === 'none') return gate('Гаманець зберігається у зашифрованому сховищі паролів.', 'Створити сховище паролів', 'w3ir://passwords');
   if (st.vault === 'locked') return renderUnlock();
   if (!st.exists) return renderSetup();
@@ -25,6 +26,26 @@ async function render() {
 
 function gate(text, linkText, href) {
   app.append(h('div', { class: 'card' }, h('p', null, text), h('a', { href }, linkText)));
+}
+
+// Гаманець приховано: бачимо лише картку з кнопкою «Показати» (потрібен майстер-пароль; заблоковане сховище розблоковується тим самим паролем)
+function renderHidden(st) {
+  const m = h('input', { type: 'password', placeholder: 'Майстер-пароль', autocomplete: 'off' });
+  const err = h('div', { class: 'merr' });
+  const go = async () => {
+    if (st.vault === 'locked') {
+      const u = await call('vault:unlock', { master: m.value });
+      if (!u.ok) { err.textContent = u.error; return; }
+    }
+    const r = await call('wallet:unhide', { master: m.value });
+    m.value = '';
+    if (r && r.ok) render(); else err.textContent = (r && r.error) || t('Не вдалося показати гаманець.');
+  };
+  m.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+  app.append(h('div', { class: 'card' }, h('h2', null, 'Гаманець приховано'),
+    h('p', { class: 'note' }, 'Гаманця немає в меню, на стартовій сторінці й панелі, а сайти його не бачать. Дані лишаються в зашифрованому сховищі. Щоб показати гаманець, введіть майстер-пароль.'),
+    m, err, h('button', { class: 'primary', onclick: go }, 'Показати гаманець')));
+  m.focus();
 }
 
 function renderUnlock() {
@@ -827,6 +848,8 @@ async function renderDashboard(st) {
           const r = await withAuth((x) => call('wallet:reveal', x));
           if (r && r.ok) showPhraseOnly(r.phrase, r.passphrase); else if (r && r.error) alert(r.error);
         } }, 'Показати')),
+      h('div', { class: 'row' }, h('div', null, h('div', null, 'Приховати гаманець'), h('div', { class: 'd' }, 'Прибирає гаманець з меню, стартової сторінки й панелі та вимикає його для сайтів. Ключі лишаються у сховищі; показати знову можна лише з майстер-паролем.')),
+        h('button', { onclick: async () => { const r = await call('wallet:hide'); if (r && r.ok) render(); else if (r && r.error) alert(r.error); } }, 'Приховати')),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Видалити гаманець'), h('div', { class: 'd' }, 'Видаляє ключі з цього пристрою. Без фрази відновлення кошти недоступні.')),
         h('button', { class: 'danger', onclick: async () => {
           const r = await withAuth((x) => call('wallet:remove', x));

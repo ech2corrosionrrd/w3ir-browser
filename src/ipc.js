@@ -161,7 +161,7 @@ async function githubApi(ctx, name, arg) {
 // ('*' — усі команди групи). Конфіденційні групи не приймають адреси із запитом (QUERY_OK).
 const PAGE_RE = /^w3ir:\/\/([a-z]+)\/?(\?[^#]*)?(#.*)?$/;
 const POLICY = {
-  'wallet:': { wallet: '*' },
+  'wallet:': { wallet: '*', settings: ['wallet:hide'] },
   'pdf:': { pdftools: '*' },
   'arweave:': { wallet: '*', dashboard: '*' },
   'assistant:': { assistant: '*' },
@@ -248,9 +248,19 @@ async function walletApi(ctx, entry, name, arg) {
   const v = ctx.vault;
   const authed = async () => v.recentlyAuthed() || (typeof arg.master === 'string' && v.status() === 'unlocked' && await v.reauth(arg.master.slice(0, 256)));
   try {
+    // прихований гаманець: сторінка може лише дізнатись стан, показати або приховати; усе інше відхиляється
+    if (w.hidden() && !['wallet:status', 'wallet:hide', 'wallet:unhide'].includes(name)) return { ok: false, hidden: true, error: 'Гаманець приховано. Покажіть його на сторінці гаманця.' };
     switch (name) {
+      case 'wallet:hide': w.setHidden(true); return { ok: true };
+      case 'wallet:unhide': {
+        if (v.status() !== 'unlocked') return { ok: false, needUnlock: true, error: 'Спершу розблокуйте сховище.' };
+        if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
+        w.setHidden(false);
+        return { ok: true };
+      }
       case 'wallet:status': {
         const st = v.status();
+        if (w.hidden()) return { ok: true, vault: st, exists: w.exists(), hidden: true, info: null };
         return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, askAccount: ctx.cfg().walletAskAccount !== false, prices: ctx.cfg().walletPrices !== false, nftAnyHost: ctx.cfg().walletNftAnyHost === true, info: st === 'unlocked' && w.exists() ? w.info() : null };
       }
       case 'wallet:create': return { ok: true, phrase: w.create() };

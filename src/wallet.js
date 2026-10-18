@@ -115,7 +115,25 @@ class Wallet {
 
   get vault() { return this.ctx.vault; }
   exists() { return !!this.ctx.cfg().walletEnabled; }
-  injectEnabled() { return this.exists() && this.ctx.cfg().walletInject !== false; }
+  // «Прихований» гаманець: дані лишаються у сховищі, але гаманця немає ні в меню, ні на стартовій сторінці й панелі, сайти його не бачать,
+  // а сторінка гаманця показує лише кнопку «Показати» (потрібен майстер-пароль)
+  hidden() { return this.ctx.cfg().walletHidden === true; }
+  injectEnabled() { return this.exists() && !this.hidden() && this.ctx.cfg().walletInject !== false; }
+  setHidden(on) {
+    const cfg = this.ctx.cfg();
+    if (!!on === (cfg.walletHidden === true)) return false;
+    cfg.walletHidden = !!on;
+    this.ctx.settingsStore.save();
+    // сайти одразу перестають бачити рахунки (як при блокуванні сховища); при показі підключення повертаються
+    try {
+      if (on) {
+        for (const origin of Object.keys(this._lastConns || {})) this.emit(origin, 'accountsChanged', []);
+        for (const origin of Object.keys(this._lastSolConns || {})) this.emit(origin, 'sol:disconnect', null);
+      } else this.onVaultChange();
+    } catch { /* ignore */ }
+    this.ctx.pushAll();
+    return true;
+  }
   unlocked() { return this.vault.status() === 'unlocked'; }
 
   section() {

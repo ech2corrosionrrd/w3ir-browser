@@ -20,7 +20,7 @@ body.newtab { --nt-card: rgba(255, 255, 255, .06); --nt-line: rgba(255, 255, 255
 .hints { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 18px; color: var(--nt-dim); font-size: 12px; }
 
 /* стан браузера */
-.status { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
+.status { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 22px; }
 .pill { display: flex; align-items: center; gap: 10px; padding: 11px 13px; border-radius: 16px; border: 1px solid var(--nt-line); background: var(--nt-card); backdrop-filter: blur(12px); color: #fff; min-width: 0; transition: background .15s, transform .15s, border-color .15s; }
 .pill:hover { background: rgba(255, 255, 255, .12); transform: translateY(-2px); border-color: rgba(167, 139, 250, .6); text-decoration: none; }
 .pill.hot { border-color: var(--nt-hot); box-shadow: 0 0 0 1px rgba(0, 242, 254, .35), 0 8px 24px -10px rgba(0, 242, 254, .6); }
