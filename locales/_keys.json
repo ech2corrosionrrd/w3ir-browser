@@ -29,9 +29,6 @@
  "· призупинено": [
   "pages/downloads.js:16"
  ],
- "· Ctrl+K — палітра команд": [
-  "pages/newtab.js:26"
- ],
  "«Додати адресу для перегляду…» додає адресу EVM чи Solana без ключа: гаманець показує баланси, токени, NFT та історію, але не може нічого надіслати чи підписати, а цей рахунок не підключається до сайтів. Корисно для стеження за чужими або холодними гаманцями.": [
   "pages/help-data.js:216"
  ],
@@ -61,7 +58,7 @@
   "src/app-window.js:247"
  ],
  "(керування)": [
-  "pages/dashboard.js:239"
+  "pages/dashboard.js:243"
  ],
  "(Керує ШІ)": [
   "src/app-window.js:247"
@@ -73,7 +70,7 @@
   "pages/profiles.js:15"
  ],
  "(читання)": [
-  "pages/dashboard.js:239"
+  "pages/dashboard.js:243"
  ],
  "(F1). Наведіть курсор на параметр, щоб побачити пояснення.": [
   "pages/settings.js:234"
@@ -117,6 +114,9 @@
  "{0} · контракт {1}": [
   "src/wallet-evm-nft.js:251"
  ],
+ "{0} · сплять: {1}": [
+  "pages/newtab.js:95"
+ ],
  "{0} (ваш рахунок)": [
   "src/solana.js:360"
  ],
@@ -139,9 +139,15 @@
  "{0} {1} Клік — відкрити у новій вкладці": [
   "ui/overlay.js:190"
  ],
+ "{0} активних": [
+  "pages/newtab.js:91"
+ ],
+ "{0} активних · {1} %": [
+  "pages/newtab.js:91"
+ ],
  "{0} ГБ": [
   "pages/dashboard.js:22",
-  "pages/dashboard.js:114"
+  "pages/dashboard.js:118"
  ],
  "{0} год": [
   "ui/overlay.js:173"
@@ -162,7 +168,10 @@
   "pages/dashboard.js:18"
  ],
  "{0} доменів · оновлено {1}": [
-  "pages/dashboard.js:180"
+  "pages/dashboard.js:184"
+ ],
+ "{0} заблоковано · {1}": [
+  "pages/newtab.js:93"
  ],
  "{0} запитує доступ до {1}": [
   "src/context.js:512"
@@ -181,7 +190,7 @@
   "src/wallet-solana.js:365"
  ],
  "{0} мс": [
-  "pages/dashboard.js:222"
+  "pages/dashboard.js:226"
  ],
  "{0} Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам.": [
   "src/downloads.js:84"
@@ -467,10 +476,10 @@
   "pages/wallet.js:915"
  ],
  "Активних: {0}, сплячих: {1}": [
-  "pages/dashboard.js:121"
+  "pages/dashboard.js:125"
  ],
  "Активні": [
-  "pages/dashboard.js:122"
+  "pages/dashboard.js:126"
  ],
  "Активні дозволи": [
   "pages/wallet.js:806"
@@ -479,7 +488,10 @@
   "pages/settings.js:270"
  ],
  "актуальна версія": [
-  "pages/dashboard.js:170"
+  "pages/dashboard.js:174"
+ ],
+ "Актуальна версія {0}": [
+  "pages/newtab.js:94"
  ],
  "Б": [
   "pages/common.js:18",
@@ -520,6 +532,9 @@
  "Безпека й ліміти PDF-інструментів": [
   "pages/help-data.js:283"
  ],
+ "Безпека та Web3": [
+  "pages/newtab.js:48"
+ ],
  "Бета": [
   "pages/settings.js:325"
  ],
@@ -540,7 +555,7 @@
   "pages/help-data.js:52"
  ],
  "Блокувальник реклами": [
-  "pages/dashboard.js:179"
+  "pages/dashboard.js:183"
  ],
  "Блокувальник реклами й трекерів": [
   "pages/settings.js:311"
@@ -555,7 +570,7 @@
   "pages/settings.js:57"
  ],
  "Блокування реклами вимкнено.": [
-  "pages/dashboard.js:188"
+  "pages/dashboard.js:192"
  ],
  "Блокування реклами вимкнено. Клік — увімкнути": [
   "ui/renderer.js:211"
@@ -694,7 +709,7 @@
   "pages/help-data.js:378"
  ],
  "Версія": [
-  "pages/dashboard.js:174"
+  "pages/dashboard.js:178"
  ],
  "Версія {0}": [
   "pages/settings.js:95"
@@ -854,7 +869,7 @@
   "src/tips.js:36"
  ],
  "Вимкнено": [
-  "pages/dashboard.js:233"
+  "pages/dashboard.js:237"
  ],
  "Вимкнено за замовчуванням.": [
   "pages/settings.js:321"
@@ -869,7 +884,7 @@
   "ui/overlay.js:89"
  ],
  "Вимкнути": [
-  "pages/dashboard.js:243",
+  "pages/dashboard.js:247",
   "pages/settings.js:211"
  ],
  "Вимкнути блокування реклами": [
@@ -900,6 +915,9 @@
  ],
  "Від чого браузер захистити не може": [
   "pages/help-data.js:232"
+ ],
+ "Відвідані сторінки за днями": [
+  "pages/newtab.js:44"
  ],
  "Віддаєте (позицій)": [
   "src/wallet-signguard.js:178"
@@ -961,7 +979,7 @@
   "pages/help-data.js:362"
  ],
  "відкрите": [
-  "pages/dashboard.js:236"
+  "pages/dashboard.js:240"
  ],
  "Відкрити": [
   "src/app-window.js:446",
@@ -973,6 +991,9 @@
  ],
  "Відкрити в торент-клієнті": [
   "src/downloads.js:83"
+ ],
+ "Відкрити закладки": [
+  "pages/newtab.js:169"
  ],
  "Відкрити закриту вкладку": [
   "pages/help-data.js:385"
@@ -1011,7 +1032,7 @@
   "src/app-window.js:426"
  ],
  "Відкритих вкладок звичайних вікон немає.": [
-  "pages/dashboard.js:157"
+  "pages/dashboard.js:161"
  ],
  "Відкриття й закриття": [
   "pages/help-data.js:41"
@@ -1065,10 +1086,10 @@
   "pages/help-data.js:53"
  ],
  "Вікно ШІ": [
-  "pages/dashboard.js:236"
+  "pages/dashboard.js:240"
  ],
  "вікон: {0} · закріплено: {1} · зі звуком: {2}": [
-  "pages/dashboard.js:118"
+  "pages/dashboard.js:122"
  ],
  "Він не врятує, якщо ви самі ввели фразу на чужому сайті, повідомили її комусь, підтвердили шкідливий підпис, не прочитавши, чи встановили на комп’ютер вірус, який стежить за екраном і клавіатурою. Попередження браузера — підказка, остаточне рішення завжди за вами.": [
   "pages/help-data.js:232"
@@ -1104,11 +1125,12 @@
   "pages/pdftools.js:122"
  ],
  "Вкладки": [
-  "pages/dashboard.js:91",
-  "pages/dashboard.js:100"
+  "pages/dashboard.js:95",
+  "pages/dashboard.js:104",
+  "pages/newtab.js:95"
  ],
  "Вкладки за пам’яттю": [
-  "pages/dashboard.js:283"
+  "pages/dashboard.js:287"
  ],
  "Вкладки та вікна": [
   "pages/help-data.js:39",
@@ -1219,8 +1241,8 @@
  ],
  "Гаманець": [
   "src/dashboard.js:119",
-  "pages/dashboard.js:253",
-  "pages/wallet.html:5"
+  "pages/dashboard.js:257",
+  "pages/newtab.js:50"
  ],
  "Гаманець — це програма, яка зберігає ваші «ключі» від криптовалюти. Самі монети лежать не в гаманці, а в блокчейні — спільній книзі записів, яку ведуть тисячі комп’ютерів. Гаманець лише доводить, що саме ви власник адреси, і підписує ваші операції. У W3IR Browser гаманець уже вбудований, окреме розширення не потрібне.": [
   "pages/help-data.js:182"
@@ -1278,17 +1300,18 @@
   "pages/help-data.js:194"
  ],
  "Гаманець Web3 ще не створено.": [
-  "pages/dashboard.js:205"
+  "pages/dashboard.js:209"
  ],
  "Гаманець Web3: рахунки, мережі, підключені сайти, журнал дій.": [
   "src/tips.js:45"
  ],
  "Гарячі клавіші": [
-  "pages/help.js:44"
+  "pages/help.js:44",
+  "pages/newtab.js:171"
  ],
  "ГБ": [
   "pages/common.js:19",
-  "pages/dashboard.js:113"
+  "pages/dashboard.js:117"
  ],
  "Генератор": [
   "pages/passwords.js:95"
@@ -1306,14 +1329,17 @@
   "pages/help-data.js:127"
  ],
  "Головний процес": [
-  "pages/dashboard.js:100"
+  "pages/dashboard.js:104"
  ],
  "Горизонтальні вкладки": [
   "src/app-window.js:902",
   "src/app-window.js:945"
  ],
  "готова {0}: натисніть ⬆ у верхній панелі": [
-  "pages/dashboard.js:170"
+  "pages/dashboard.js:174"
+ ],
+ "Готовий": [
+  "pages/newtab.js:90"
  ],
  "Готово —": [
   "pages/import.js:25"
@@ -1333,7 +1359,7 @@
   "pages/settings.js:27"
  ],
  "Графіка (GPU)": [
-  "pages/dashboard.js:100"
+  "pages/dashboard.js:104"
  ],
  "Група{0}": [
   "ui/renderer.js:105"
@@ -1343,6 +1369,9 @@
  ],
  "Групи вкладок": [
   "pages/help-data.js:47"
+ ],
+ "Групи вкладок із кольорами допомагають тримати пов’язані сторінки разом і згортати їх одним кліком.": [
+  "pages/newtab.js:67"
  ],
  "Групи зберігаються між запусками (разом із назвами, кольорами й станом згортання). Закріплені вкладки в групи не входять.": [
   "pages/help-data.js:49"
@@ -1478,10 +1507,22 @@
  "до {0}": [
   "pages/wallet.js:489"
  ],
+ "Доброго вечора": [
+  "pages/newtab.js:80"
+ ],
+ "Доброго дня": [
+  "pages/newtab.js:80"
+ ],
+ "Доброго ранку": [
+  "pages/newtab.js:80"
+ ],
+ "Доброї ночі": [
+  "pages/newtab.js:80"
+ ],
  "Довідка": [
   "src/app-window.js:926",
   "src/app-window.js:966",
-  "pages/newtab.js:23"
+  "pages/newtab.js:57"
  ],
  "Довідка розділена на теми: приватність, гаманець, PDF, ШІ, відновлення після збоїв. Також дивіться розділи «Поради та хитрощі» й «Усунення проблем: з чого почати».": [
   "pages/help-data.js:21"
@@ -1666,6 +1707,9 @@
  "доступ до публічної адреси Solana та право пропонувати підписи": [
   "src/wallet-solana.js:459"
  ],
+ "Доступне {0}: натисніть ⬆": [
+  "pages/newtab.js:94"
+ ],
  "Доступне оновлення {0}. Клік — відкрити налаштування оновлень": [
   "ui/renderer.js:184"
  ],
@@ -1702,7 +1746,7 @@
   "src/assistant.js:32"
  ],
  "Є зауваження": [
-  "pages/dashboard.js:192"
+  "pages/dashboard.js:196"
  ],
  "Єдиний пошук по відкритих вкладках, командах, закладках та історії.": [
   "src/tips.js:18"
@@ -1714,7 +1758,7 @@
   "pages/wallet.js:526"
  ],
  "Журнал": [
-  "pages/dashboard.js:254"
+  "pages/dashboard.js:258"
  ],
  "Журнал дій": [
   "pages/wallet.js:800"
@@ -1735,7 +1779,7 @@
   "src/wallet-simulate.js:112"
  ],
  "з початку сеансу ({0})": [
-  "pages/dashboard.js:131"
+  "pages/dashboard.js:135"
  ],
  "З результату прибираються дії, які можуть виконати код чи надіслати дані (`/JavaScript`, `/Launch`, `/SubmitForm`, `/ImportData`, `/AA`); звичайні посилання лишаються.": [
   "pages/help-data.js:284"
@@ -1789,8 +1833,11 @@
  "заблоковано": [
   "pages/settings.js:53"
  ],
+ "Заблоковано": [
+  "pages/newtab.js:90"
+ ],
  "заблоковано: {0}": [
-  "pages/dashboard.js:163"
+  "pages/dashboard.js:167"
  ],
  "Заблокувати": [
   "src/context.js:509",
@@ -1803,14 +1850,14 @@
  "Завантаження": [
   "src/app-window.js:908",
   "src/app-window.js:949",
-  "pages/dashboard.js:181"
+  "pages/dashboard.js:185"
  ],
  "Завантаження (Ctrl+J): прогрес, пауза, відкриття файлів": [
   "ui/renderer.js:225",
   "ui/index.html:32"
  ],
  "завантаження {0} %": [
-  "pages/dashboard.js:170"
+  "pages/dashboard.js:174"
  ],
  "Завантаження з Arweave шлюзів…": [
   "pages/wallet.js:948"
@@ -1870,6 +1917,7 @@
   "pages/help-data.js:372"
  ],
  "Закладка": [
+  "pages/newtab.js:74",
   "pages/help-data.js:390"
  ],
  "Закладка для цієї сторінки": [
@@ -1886,6 +1934,9 @@
  "Закладки з усіх пристроїв об’єднуються, для кожної перемагає найновіша зміна, видалення поширюється. Синхронізація йде при змінах, при запуску та кожні 3 хвилини; кнопка «Синхронізувати зараз» запускає її одразу. Якщо файл змінено стороннім, браузер це виявить і нічого не зіпсує.": [
   "pages/help-data.js:152"
  ],
+ "Закладки й паролі з іншого браузера": [
+  "pages/newtab.js:46"
+ ],
  "Закладки та історія": [
   "pages/import.js:35",
   "pages/help-data.js:166"
@@ -1898,6 +1949,9 @@
  ],
  "Закладки, налаштування та інші дані записуються атомарно (через тимчасовий файл із примусовим записом на диск), а попередня версія зберігається у файлі `.bak` (не частіше ніж раз на 10 хвилин). Сховище паролів і гаманця (`vault.bin`) теж має резервну копію `vault.bin.bak`.": [
   "pages/help-data.js:349"
+ ],
+ "Закладок поки немає: натисніть Ctrl+D на потрібній сторінці або імпортуйте їх з іншого браузера.": [
+  "pages/newtab.js:161"
  ],
  "Закладок поки немає. Натисніть ☆ в адресному рядку.": [
   "pages/bookmarks.js:11"
@@ -1924,7 +1978,7 @@
   "pages/help.js:74"
  ],
  "закрите": [
-  "pages/dashboard.js:236"
+  "pages/dashboard.js:240"
  ],
  "Закрити": [
   "src/app-window.js:1002",
@@ -1983,8 +2037,11 @@
  "Закріпити/відкріпити, вимкнути звук, дублювати, приспати, закрити, закрити інші, закрити праворуч.": [
   "pages/help-data.js:44"
  ],
+ "Закріпіть улюблену вкладку: вона стане вужчою, лишиться зліва й повернеться після перезапуску.": [
+  "pages/newtab.js:64"
+ ],
  "закріплена": [
-  "pages/dashboard.js:163"
+  "pages/dashboard.js:167"
  ],
  "Закріплені вкладки": [
   "pages/help-data.js:45"
@@ -2042,7 +2099,7 @@
   "src/assistant.js:79"
  ],
  "Запит eth_chainId лише до RPC ваших мереж, за натисканням": [
-  "pages/dashboard.js:225"
+  "pages/dashboard.js:229"
  ],
  "Запитати": [
   "pages/assistant.js:7"
@@ -2089,6 +2146,9 @@
  "Запустити": [
   "src/downloads.js:114"
  ],
+ "Захист": [
+  "pages/newtab.js:93"
+ ],
  "Захист буфера обміну": [
   "pages/help-data.js:215"
  ],
@@ -2103,10 +2163,10 @@
   "pages/help-data.js:104"
  ],
  "Захист від шахрайських сайтів вимкнено.": [
-  "pages/dashboard.js:187"
+  "pages/dashboard.js:191"
  ],
  "Захист за сеанс": [
-  "pages/dashboard.js:92"
+  "pages/dashboard.js:96"
  ],
  "Захист самого браузера": [
   "pages/help-data.js:121"
@@ -2128,6 +2188,9 @@
  ],
  "Зашифрована резервна копія": [
   "src/ipc.js:73"
+ ],
+ "Зашифроване сховище й автозаповнення": [
+  "pages/newtab.js:49"
  ],
  "Заява": [
   "src/wallet-signguard.js:72"
@@ -2191,6 +2254,9 @@
  "Збережених паролів поки немає. Увійдіть на сайт — браузер запропонує зберегти пароль.": [
   "pages/passwords.js:146"
  ],
+ "Збережені сторінки з пошуком": [
+  "pages/newtab.js:43"
+ ],
  "Збережені NFT цієї мережі не належать вибраному рахунку.": [
   "pages/wallet.js:437"
  ],
@@ -2219,7 +2285,7 @@
   "src/tips.js:23"
  ],
  "Збій": [
-  "pages/dashboard.js:244"
+  "pages/dashboard.js:248"
  ],
  "Збій вкладки чи інтерфейсу": [
   "pages/help-data.js:343"
@@ -2243,7 +2309,7 @@
   "pages/help-data.js:128"
  ],
  "звук": [
-  "pages/dashboard.js:163"
+  "pages/dashboard.js:167"
  ],
  "Звук": [
   "pages/help-data.js:46"
@@ -2271,6 +2337,9 @@
  ],
  "Злиття змін": [
   "pages/help-data.js:152"
+ ],
+ "Злиття, розділення, підпис": [
+  "pages/newtab.js:56"
  ],
  "Злиття, розділення, підпис: перевіряйте результат.": [
   "pages/settings.js:318"
@@ -2396,7 +2465,7 @@
   "src/wallet-solana.js:252"
  ],
  "Імпорт даних": [
-  "pages/newtab.js:26",
+  "pages/newtab.js:46",
   "pages/import.html:5"
  ],
  "Імпорт даних з інших браузерів": [
@@ -2470,6 +2539,9 @@
  "Інструкція передає власність над ВАШИМ акаунтом іншій програмі — типовий прийом шахраїв для крадіжки коштів.": [
   "src/solana.js:380"
  ],
+ "Інструменти": [
+  "pages/newtab.js:54"
+ ],
  "Інструменти розробника": [
   "src/app-window.js:925",
   "src/app-window.js:962",
@@ -2491,7 +2563,7 @@
   "ui/index.html:23"
  ],
  "Інше": [
-  "pages/dashboard.js:100"
+  "pages/dashboard.js:104"
  ],
  "інший chainId": [
   "src/dashboard.js:31"
@@ -2543,7 +2615,7 @@
   "src/assistant.js:83"
  ],
  "Керування браузером ШІ": [
-  "pages/dashboard.js:231"
+  "pages/dashboard.js:235"
  ],
  "Керування браузером ШІ (MCP)": [
   "pages/settings.js:295",
@@ -2586,7 +2658,7 @@
   "src/wallet-history-evm.js:22"
  ],
  "Клієнт": [
-  "pages/dashboard.js:238"
+  "pages/dashboard.js:242"
  ],
  "Клієнт підключався: {0}.": [
   "pages/settings.js:158"
@@ -2721,7 +2793,7 @@
  "Копіювати": [
   "src/app-window.js:1032",
   "src/app-window.js:1035",
-  "pages/dashboard.js:216"
+  "pages/dashboard.js:220"
  ],
  "Копіювати адресу зображення": [
   "src/app-window.js:1027"
@@ -2783,6 +2855,9 @@
  "Ліміти: до 20 файлів у списку, до 200 МБ кожен і до 400 МБ разом, до 5000 сторінок; зображення підпису — до 5 МБ. Файл має мати розширення `.pdf` і сигнатуру `%PDF-`; зашифровані й пошкоджені PDF відхиляються.": [
   "pages/help-data.js:284"
  ],
+ "Локальна модель Ollama": [
+  "pages/newtab.js:55"
+ ],
  "Локальний сервер MCP на 127.0.0.1 (ззовні недоступний). ШІ працює в окремому тимчасовому вікні без ваших входів, паролів і гаманця; кожен новий сайт ви підтверджуєте самі.": [
   "pages/settings.js:146"
  ],
@@ -2820,7 +2895,8 @@
   "src/wallet-signguard.js:168"
  ],
  "Максимальний": [
-  "pages/dashboard.js:108",
+  "pages/dashboard.js:112",
+  "pages/newtab.js:75",
   "pages/settings.js:264"
  ],
  "Максимум 10 рахунків.": [
@@ -2834,7 +2910,7 @@
  ],
  "МБ": [
   "pages/common.js:19",
-  "pages/dashboard.js:113"
+  "pages/dashboard.js:117"
  ],
  "Менеджер паролів": [
   "src/app-window.js:910",
@@ -2883,7 +2959,7 @@
   "pages/wallet.js:481"
  ],
  "Мережа не вибрана": [
-  "pages/dashboard.js:209"
+  "pages/dashboard.js:213"
  ],
  "мережа не відповідає": [
   "src/wallet-portfolio.js:43"
@@ -2892,7 +2968,7 @@
   "src/wallet.js:447"
  ],
  "Мережа та служби": [
-  "pages/dashboard.js:100"
+  "pages/dashboard.js:104"
  ],
  "Мережа токена": [
   "src/wallet-evm-tokens.js:137"
@@ -2904,7 +2980,7 @@
   "pages/wallet.js:169"
  ],
  "Мережі та гаманець": [
-  "pages/dashboard.js:203"
+  "pages/dashboard.js:207"
  ],
  "Мережі та RPC": [
   "pages/wallet.js:802",
@@ -2973,6 +3049,9 @@
  "Можна також **поділитися власною вкладкою**: правий клік по вкладці → «ШІ: дозволити читати» (лише читання) або «дозволити керувати» (кліки й ввід тексту, але не паролі). Доступ тимчасовий (30 хв), лише для цього сайту; на вкладці видно значок «ШІ». Припинити: меню вкладки або Ctrl+K. Докладно: docs/AI-MCP.md.": [
   "pages/help-data.js:101"
  ],
+ "Мої сайти": [
+  "pages/newtab.js:155"
+ ],
  "На [сторінці гаманця](w3ir://wallet) оберіть активну мережу й за потреби вкажіть власний RPC-вузол (https або localhost). Через RPC проходять запити про баланси та транзакції, тому для приватності краще власний вузол. Сайти можуть запропонувати додати мережу — ви побачите деталі й підтверджуєте.": [
   "pages/help-data.js:201"
  ],
@@ -3000,6 +3079,9 @@
  ],
  "На сайті натисніть «Connect wallet» → «W3IR Wallet». З’явиться вікно підтвердження браузера. Сайт отримає лише адресу рахунку.": [
   "pages/help-data.js:198"
+ ],
+ "На сторінці «Панель» видно, які вкладки найбільше навантажують пам’ять.": [
+  "pages/newtab.js:71"
  ],
  "На сторінці гаманця видно баланси токенів: ERC-20 (USDC показується завжди; свій токен додайте за адресою контракту) і SPL на Solana. NFT: ERC-721 та ERC-1155 на EVM (додайте за адресою контракту та id або знайдіть серед недавніх переказів) і NFT Solana. Назви токенів і NFT задають їхні творці й можуть вводити в оману: звіряйте адресу контракту. NFT показуються сторінками, назви й зображення підвантажуються для видимих карток. Зображення завантажуються лише з IPFS, Arweave/Irys або з блокчейну; метадані на довільних сайтах за замовчуванням не відкриваються (такі сайти бачили б ваш IP): дозволити їх можна в розділі «Безпека». Купівля й продаж NFT працюють на маркетплейсах через підключення гаманця.": [
   "pages/help-data.js:202"
@@ -3101,7 +3183,7 @@
   "pages/wallet.js:324"
  ],
  "Найважчі вкладки звичайних вікон": [
-  "pages/dashboard.js:283"
+  "pages/dashboard.js:287"
  ],
  "Найнадійніше — з фрази відновлення: на новому комп’ютері створіть сховище й на сторінці гаманця виберіть «Імпортувати фразу», введіть 12 слів (і фразу-пароль та шлях деривації, якщо ви їх задавали). Або збережіть зашифровану резервну копію (розділ «Безпека») й відновіть її на екрані створення гаманця. Імпортовані за приватним ключем рахунки з фрази не відновлюються — вони є лише в резервній копії.": [
   "pages/help-data.js:413"
@@ -3112,7 +3194,7 @@
  "Налаштування": [
   "src/app-window.js:918",
   "src/app-window.js:965",
-  "pages/dashboard.js:181"
+  "pages/dashboard.js:185"
  ],
  "Налаштування (очищення даних)": [
   "pages/help-data.js:392"
@@ -3121,7 +3203,10 @@
   "ui/overlay.js:107"
  ],
  "Налаштувати гаманець": [
-  "pages/dashboard.js:205"
+  "pages/dashboard.js:209"
+ ],
+ "Напишіть «gh власник/репозиторій» в адресному рядку, щоб одразу відкрити репозиторій на GitHub.": [
+  "pages/newtab.js:70"
  ],
  "Напишіть, що потрібно зробити.": [
   "src/assistant.js:78"
@@ -3255,7 +3340,7 @@
   "src/wallet-evm-nft.js:236"
  ],
  "Не вдалося перевірити оновлення.": [
-  "pages/dashboard.js:186"
+  "pages/dashboard.js:190"
  ],
  "Не вдалося перевірити отримувача": [
   "src/wallet-solana.js:334"
@@ -3340,7 +3425,7 @@
   "pages/import.js:45"
  ],
  "Не запущений": [
-  "pages/dashboard.js:233"
+  "pages/dashboard.js:237"
  ],
  "Не можна видалити профіль із його власного вікна. Відкрийте цю сторінку з іншого профілю.": [
   "src/ipc.js:131"
@@ -3371,8 +3456,14 @@
  "Не поспішайте й нічого не надсилайте повторно. Адреси EVM однакові в усіх мережах EVM, тож кошти зазвичай лежать на вашій адресі в тій мережі, куди пішли: перемкніть мережу на сторінці гаманця й подивіться баланс. Якщо ви надіслали на біржу чи іншу людину, зверніться до отримувача або підтримки біржі. Між EVM і Solana кошти надіслати неможливо: адреси різні.": [
   "pages/help-data.js:409"
  ],
+ "Не створено": [
+  "pages/newtab.js:90"
+ ],
  "Не Mainnet Beta: ціни й підсумок не рахуються": [
   "pages/wallet.js:693"
+ ],
+ "Неактивні вкладки засинають і звільняють пам’ять; час сну змінюється в налаштуваннях.": [
+  "pages/newtab.js:69"
  ],
  "Неактивні вкладки звільняють оперативну пам’ять і оновлюються при поверненні": [
   "pages/settings.js:260"
@@ -3391,7 +3482,7 @@
   "pages/help-data.js:114"
  ],
  "Небезпечні сайти": [
-  "pages/dashboard.js:133"
+  "pages/dashboard.js:137"
  ],
  "Невідома дія.": [
   "src/wallet-extras.js:90"
@@ -3480,7 +3571,7 @@
   "src/wallet-simulate.js:98"
  ],
  "недоступно": [
-  "pages/dashboard.js:170"
+  "pages/dashboard.js:174"
  ],
  "Недоступно": [
   "src/ipc.js:514"
@@ -3665,10 +3756,13 @@
   "src/solana.js:204"
  ],
  "немає": [
-  "pages/dashboard.js:239"
+  "pages/dashboard.js:243"
  ],
  "Немає адреси": [
   "ui/overlay.js:60"
+ ],
+ "Немає активних": [
+  "pages/newtab.js:91"
  ],
  "немає відповіді": [
   "src/dashboard.js:19",
@@ -3862,6 +3956,9 @@
  "Окремі закладки, історія, паролі, cookie й налаштування": [
   "pages/profiles.js:16"
  ],
+ "Окремі cookie, закладки й паролі": [
+  "pages/newtab.js:52"
+ ],
  "Оновити": [
   "src/app-window.js:1045",
   "pages/wallet.js:695",
@@ -3892,10 +3989,11 @@
   "src/app-window.js:1207"
  ],
  "Оновлення": [
-  "pages/dashboard.js:175"
+  "pages/dashboard.js:179",
+  "pages/newtab.js:94"
  ],
  "Оновлення {0} готове до встановлення.": [
-  "pages/dashboard.js:185"
+  "pages/dashboard.js:189"
  ],
  "Оновлення {0} готове й перевірене — натисніть ⬆ у панелі, щоб встановити": [
   "main.js:100"
@@ -3916,7 +4014,7 @@
   "pages/wallet.js:679"
  ],
  "Оновлено до HTTPS": [
-  "pages/dashboard.js:133"
+  "pages/dashboard.js:137"
  ],
  "Оновлено: {0}. Джерела: {1}. Оновлення раз на добу.": [
   "pages/settings.js:73"
@@ -3938,9 +4036,6 @@
  ],
  "Операція з nonce-акаунтом (System {0})": [
   "src/solana.js:387"
- ],
- "Опис усіх функцій і гарячих клавіш (F1)": [
-  "pages/newtab.js:23"
  ],
  "Ордер віддає ваші активи, а вам нічого не дає: це типова крадіжка. Не підписуйте.": [
   "src/wallet-signguard.js:179"
@@ -3974,7 +4069,7 @@
   "pages/settings.js:189"
  ],
  "Остання дія": [
-  "pages/dashboard.js:240"
+  "pages/dashboard.js:244"
  ],
  "Остання синхронізація: {0}": [
   "pages/settings.js:207"
@@ -4040,20 +4135,24 @@
   "src/wallet-signguard.js:187"
  ],
  "Палітра команд": [
+  "pages/newtab.js:74",
   "pages/help-data.js:388"
  ],
  "Палітра команд (Ctrl+K)": [
   "pages/help-data.js:57"
  ],
  "Пам’ять": [
-  "pages/dashboard.js:146"
+  "pages/dashboard.js:150"
  ],
  "Пам’ять браузера": [
-  "pages/dashboard.js:89"
+  "pages/dashboard.js:93"
+ ],
+ "Пам’ять, вкладки й захист наживо": [
+  "pages/newtab.js:51"
  ],
  "Панель": [
-  "pages/dashboard.js:279",
-  "pages/newtab.js:24",
+  "pages/dashboard.js:283",
+  "pages/newtab.js:51",
   "pages/dashboard.html:5"
  ],
  "Панель (стан браузера)": [
@@ -4099,8 +4198,8 @@
  ],
  "Паролі": [
   "pages/import.js:52",
-  "pages/settings.js:284",
-  "pages/help-data.js:167"
+  "pages/newtab.js:49",
+  "pages/settings.js:284"
  ],
  "Паролі не збігаються.": [
   "pages/passwords.js:33"
@@ -4161,14 +4260,14 @@
   "src/github.js:130"
  ],
  "Перевірити": [
-  "pages/dashboard.js:244",
+  "pages/dashboard.js:248",
   "pages/wallet.js:104"
  ],
  "Перевірити зараз": [
   "pages/wallet.js:773"
  ],
  "Перевірити мережі": [
-  "pages/dashboard.js:224"
+  "pages/dashboard.js:228"
  ],
  "Перевірити оновлення": [
   "pages/settings.js:101"
@@ -4195,15 +4294,15 @@
   "pages/help-data.js:106"
  ],
  "перевірка…": [
-  "pages/dashboard.js:170"
+  "pages/dashboard.js:174"
  ],
  "Перевірка…": [
-  "pages/dashboard.js:224",
-  "pages/dashboard.js:244",
+  "pages/dashboard.js:228",
+  "pages/dashboard.js:248",
   "pages/settings.js:156"
  ],
  "Перевірку пройдено ✓": [
-  "pages/dashboard.js:244"
+  "pages/dashboard.js:248"
  ],
  "Перевірте в налаштуваннях «Джерело оновлень» (потрібна https-адреса або github:власник/репозиторій) і з’єднання з інтернетом. Оновлення працюють лише у встановленій версії, не в режимі розробки.": [
   "pages/help-data.js:406"
@@ -4235,6 +4334,9 @@
  "перегляд": [
   "pages/wallet.js:134",
   "pages/wallet.js:505"
+ ],
+ "Перегляд": [
+  "pages/newtab.js:42"
  ],
  "Перегляд і копіювання": [
   "pages/help-data.js:140"
@@ -4281,6 +4383,7 @@
   "pages/profiles.js:19"
  ],
  "Перейти до адресного рядка": [
+  "pages/newtab.js:74",
   "pages/help-data.js:388"
  ],
  "Перейти до вкладки: {0}{1}": [
@@ -4358,9 +4461,6 @@
  "Перенесення закладок, історії та паролів з Chrome, Edge, Brave, Vivaldi та Firefox.": [
   "src/tips.js:46"
  ],
- "Перенесіть закладки, історію й паролі з Chrome чи Firefox": [
-  "pages/newtab.js:26"
- ],
  "Перепишіть слова **на папір** у правильному порядку й сховайте в надійне місце окремо від комп’ютера. Не фотографуйте, не зберігайте в хмарі й нотатках. Далі браузер попросить ввести три випадкові слова — так перевіряється, що ви записали все правильно. Нагадування лишається на сторінці, доки перевірку не пройдено.": [
   "pages/help-data.js:185"
  ],
@@ -4424,7 +4524,7 @@
   "src/wallet-solana.js:468"
  ],
  "Підключення…": [
-  "pages/dashboard.js:246"
+  "pages/dashboard.js:250"
  ],
  "Підключити": [
   "pages/settings.js:133"
@@ -4619,7 +4719,7 @@
   "pages/wallet.js:719"
  ],
  "Подій поки немає: тут з’являться дії ШІ та операції гаманця.": [
-  "pages/dashboard.js:252"
+  "pages/dashboard.js:256"
  ],
  "Подій поки немає.": [
   "pages/wallet.js:539"
@@ -4637,7 +4737,7 @@
   "pages/wallet.js:324"
  ],
  "Показано виділену приватну пам’ять процесів (Private Bytes): вона не збігається зі стовпцем «Пам’ять» у Диспетчері завдань, але зручна для порівняння між запусками.": [
-  "pages/dashboard.js:152"
+  "pages/dashboard.js:156"
  ],
  "Показати": [
   "pages/passwords.js:153",
@@ -4705,7 +4805,7 @@
   "pages/settings.js:84"
  ],
  "помилка перевірки": [
-  "pages/dashboard.js:170"
+  "pages/dashboard.js:174"
  ],
  "Помилка протоколу SSL": [
   "pages/error.js:16"
@@ -4728,6 +4828,9 @@
  "Попередній збіг (Shift+Enter)": [
   "ui/index.html:44"
  ],
+ "Порада": [
+  "pages/newtab.js:170"
+ ],
  "Поради та хитрощі": [
   "pages/help-data.js:318"
  ],
@@ -4748,7 +4851,7 @@
   "pages/settings.js:280"
  ],
  "Порт": [
-  "pages/dashboard.js:235"
+  "pages/dashboard.js:239"
  ],
  "Портфель": [
   "pages/wallet.js:775",
@@ -4800,7 +4903,8 @@
   "src/sync.js:93"
  ],
  "Пошук або адреса": [
-  "pages/newtab.js:6"
+  "pages/newtab.js:115",
+  "pages/newtab.js:115"
  ],
  "пошук або перехід (Shift+Enter — у новій вкладці)": [
   "ui/overlay.js:305"
@@ -4818,6 +4922,7 @@
   "pages/help-data.js:61"
  ],
  "Пошук на сторінці": [
+  "pages/newtab.js:74",
   "pages/help-data.js:67",
   "pages/help-data.js:390"
  ],
@@ -4845,6 +4950,9 @@
  "Пошук, домашня сторінка, запуск": [
   "pages/help-data.js:310"
  ],
+ "Пошук: {0}": [
+  "pages/newtab.js:141"
+ ],
  "Пошукова система": [
   "pages/settings.js:249"
  ],
@@ -4870,10 +4978,10 @@
   "src/solana.js:351"
  ],
  "Працює": [
-  "pages/dashboard.js:176"
+  "pages/dashboard.js:180"
  ],
  "Працює {0}": [
-  "pages/dashboard.js:194"
+  "pages/dashboard.js:198"
  ],
  "Працює на вашому комп’ютері через Ollama: запити й вміст сторінок не залишають ПК. Нові сайти він відкриває лише з вашого дозволу у тимчасовому вікні без ваших входів; паролі й картки не вводить.": [
   "pages/assistant.js:17"
@@ -4907,7 +5015,7 @@
   "pages/pdftools.js:148"
  ],
  "Приватна пам’ять за типами процесів": [
-  "pages/dashboard.js:282"
+  "pages/dashboard.js:286"
  ],
  "Приватне вікно": [
   "pages/help-data.js:386"
@@ -4972,7 +5080,7 @@
   "pages/settings.js:186"
  ],
  "Припинити спільні вкладки": [
-  "pages/dashboard.js:245"
+  "pages/dashboard.js:249"
  ],
  "Прискорення транзакції": [
   "src/wallet-extras.js:116",
@@ -5013,6 +5121,9 @@
  "Програма токена": [
   "src/wallet-solana.js:366"
  ],
+ "Прогрес, пауза, відкриття файлів": [
+  "pages/newtab.js:45"
+ ],
  "Продовжити": [
   "pages/downloads.js:26"
  ],
@@ -5023,9 +5134,9 @@
   "pages/wallet.js:120"
  ],
  "Профілі": [
+  "pages/newtab.js:52",
   "pages/profiles.js:49",
-  "pages/profiles.html:5",
-  "pages/help-data.js:156"
+  "pages/profiles.html:5"
  ],
  "Профілі з окремими закладками, історією, паролями та cookie.": [
   "src/tips.js:47"
@@ -5054,16 +5165,16 @@
   "src/ipc.js:128"
  ],
  "Процеси браузера": [
-  "pages/dashboard.js:282"
+  "pages/dashboard.js:286"
  ],
  "Процесів": [
-  "pages/dashboard.js:146"
+  "pages/dashboard.js:150"
  ],
  "процесів: {0}": [
-  "pages/dashboard.js:115"
+  "pages/dashboard.js:119"
  ],
  "Процесор": [
-  "pages/dashboard.js:90"
+  "pages/dashboard.js:94"
  ],
  "Прочитайте вікно підтвердження. Вхід на сайт («Sign-In with Ethereum») зрозумілий і безпечний, якщо домен у тексті збігається з адресою сайту. Якщо сказано про дозвіл, ордер чи «передачу» токенів, а ви нічого не продаєте, — відхиліть. У разі сумніву натисніть «Відхилити»: нічого не станеться.": [
   "pages/help-data.js:412"
@@ -5131,13 +5242,16 @@
  "Режим": [
   "pages/pdftools.js:151"
  ],
+ "Режим «Суворий» у налаштуваннях приватності блокує сторонні cookie й приховує локальні адреси в WebRTC.": [
+  "pages/newtab.js:65"
+ ],
  "Режим захисту": [
-  "pages/dashboard.js:178",
+  "pages/dashboard.js:182",
   "pages/settings.js:267",
   "pages/settings.js:267"
  ],
  "Режим захисту: {0}": [
-  "pages/dashboard.js:193"
+  "pages/dashboard.js:197"
  ],
  "Режим розробки: оновлення працюють лише в встановленій версії.": [
   "pages/settings.js:105"
@@ -5149,6 +5263,9 @@
  ],
  "Режим читання (Ctrl+Shift+R) — лише текст статті, зі зміною шрифту й теми": [
   "ui/index.html:25"
+ ],
+ "Режим читання (Ctrl+Shift+R) показує лише текст статті без реклами й відволікань.": [
+  "pages/newtab.js:68"
  ],
  "Режими захисту": [
   "pages/settings.js:315"
@@ -5181,7 +5298,7 @@
   "pages/help-data.js:282"
  ],
  "Реклама й трекери": [
-  "pages/dashboard.js:133"
+  "pages/dashboard.js:137"
  ],
  "Ресурси": [
   "src/wallet-signguard.js:76"
@@ -5190,7 +5307,7 @@
   "pages/help-data.js:65"
  ],
  "робочий набір {0} · на ПК {1}": [
-  "pages/dashboard.js:114"
+  "pages/dashboard.js:118"
  ],
  "рожевий": [
   "src/tab-groups.js:14"
@@ -5264,7 +5381,7 @@
   "pages/pdftools.js:111"
  ],
  "Розподіл приватної пам’яті за типами процесів": [
-  "pages/dashboard.js:140"
+  "pages/dashboard.js:144"
  ],
  "Розташування": [
   "pages/pdftools.js:146"
@@ -5280,16 +5397,16 @@
   "src/wallet-simulate.js:114"
  ],
  "Рушій": [
-  "pages/dashboard.js:177"
+  "pages/dashboard.js:181"
  ],
  "Рушій блокувальника ще завантажується.": [
-  "pages/dashboard.js:189"
+  "pages/dashboard.js:193"
  ],
  "рушій завантажено": [
-  "pages/dashboard.js:179"
+  "pages/dashboard.js:183"
  ],
  "рушій завантажується або вимкнений": [
-  "pages/dashboard.js:179"
+  "pages/dashboard.js:183"
  ],
  "Сайт використовує непідтримуваний протокол безпеки.": [
   "pages/error.js:16"
@@ -5361,7 +5478,7 @@
   "pages/wallet.js:186"
  ],
  "Сайтів дозволено": [
-  "pages/dashboard.js:237"
+  "pages/dashboard.js:241"
  ],
  "Сама модель працює без інтернету, але щоб помічник відкривав сайти, з’єднання потрібне.": [
   "pages/help-data.js:297"
@@ -5388,7 +5505,7 @@
   "pages/error.js:10"
  ],
  "Сервер працює": [
-  "pages/dashboard.js:233"
+  "pages/dashboard.js:237"
  ],
  "Сервер працює: {0}": [
   "pages/settings.js:164"
@@ -5452,7 +5569,7 @@
   "pages/settings.js:210"
  ],
  "Система та оновлення": [
-  "pages/dashboard.js:284"
+  "pages/dashboard.js:288"
  ],
  "сірий": [
   "src/tab-groups.js:15"
@@ -5551,7 +5668,7 @@
   "pages/passwords.js:156"
  ],
  "Скопійовано (буфер очиститься за {0} с)": [
-  "pages/dashboard.js:215"
+  "pages/dashboard.js:219"
  ],
  "Скопіюйте його вручну": [
   "pages/passwords.js:94"
@@ -5598,7 +5715,7 @@
   "pages/help-data.js:107"
  ],
  "Списки загроз": [
-  "pages/dashboard.js:180"
+  "pages/dashboard.js:184"
  ],
  "Списки загроз: шкідливих хостів {0}, фішингових доменів {1}": [
   "pages/settings.js:72"
@@ -5613,17 +5730,17 @@
   "src/tips.js:38"
  ],
  "спить": [
-  "pages/dashboard.js:163"
+  "pages/dashboard.js:167"
  ],
  "Спишеться з ваших рахунків": [
   "src/solana.js:429"
  ],
  "Спільні вкладки": [
-  "pages/dashboard.js:239",
+  "pages/dashboard.js:243",
   "pages/settings.js:185"
  ],
  "Сплячі": [
-  "pages/dashboard.js:122"
+  "pages/dashboard.js:126"
  ],
  "Сплячі вкладки": [
   "pages/help-data.js:51"
@@ -5676,10 +5793,7 @@
   "pages/settings.js:164"
  ],
  "Стан браузера в реальному часі: ресурси, вкладки, захист і оновлення.": [
-  "pages/dashboard.js:279"
- ],
- "Стан мереж, керування ШІ, захист і журнал подій": [
-  "pages/newtab.js:24"
+  "pages/dashboard.js:283"
  ],
  "Стан функцій": [
   "pages/settings.js:307"
@@ -5689,7 +5803,8 @@
   "pages/wallet.js:848"
  ],
  "Стандартний": [
-  "pages/dashboard.js:108",
+  "pages/dashboard.js:112",
+  "pages/newtab.js:75",
   "pages/settings.js:264"
  ],
  "Стандартний — звичайна робота. Суворий — додатково блокує сторонні cookie й приховує локальні адреси в WebRTC. Максимальний — ще й WebRTC лише через проксі та без Referer для сторонніх сайтів. Деякі сайти (входи через сторонні сервіси, оплата) можуть працювати гірше: для такого сайту вимкніть блокувальник у панелі інформації про сайт.": [
@@ -5790,10 +5905,11 @@
   "src/app-window.js:1329"
  ],
  "Сторонні cookie": [
-  "pages/dashboard.js:133"
+  "pages/dashboard.js:137"
  ],
  "Суворий": [
-  "pages/dashboard.js:108",
+  "pages/dashboard.js:112",
+  "pages/newtab.js:75",
   "pages/settings.js:264"
  ],
  "Сума": [
@@ -5831,7 +5947,7 @@
   "pages/passwords.js:60"
  ],
  "Сховище заблоковано: розблокуйте його на сторінці паролів чи гаманця, щоб побачити адресу.": [
-  "pages/dashboard.js:207"
+  "pages/dashboard.js:211"
  ],
  "Сховище заблоковано.": [
   "src/ipc.js:40"
@@ -5894,8 +6010,8 @@
  "Тема оформлення": [
   "pages/settings.js:241"
  ],
- "Тема, пошук, приватність, синхронізація": [
-  "pages/newtab.js:25"
+ "Тема, пошук, приватність, оновлення": [
+  "pages/newtab.js:58"
  ],
  "Темна": [
   "pages/settings.js:240"
@@ -5929,7 +6045,7 @@
   "pages/settings.js:169"
  ],
  "Токен і команда підключення Claude Code — у налаштуваннях": [
-  "pages/dashboard.js:246"
+  "pages/dashboard.js:250"
  ],
  "Токен має розширення ({0}), які змінюють перекази: гаманець їх не підтримує.": [
   "src/wallet-solana.js:316"
@@ -6007,6 +6123,9 @@
  ],
  "Тут видно, які адреси зараз можуть витрачати ваші токени ERC-20 чи всі NFT колекції. Небезпечні (необмежені чи для звичайного рахунку) угорі. Список складається з недавніх подій блокчейну й перевіряється за поточним станом контрактів.": [
   "pages/wallet.js:769"
+ ],
+ "Тут з’являться сайти, які ви відвідуєте найчастіше.": [
+  "pages/newtab.js:151"
  ],
  "Тут описано всі функції браузера. Використовуйте пошук ліворуч або натискайте розділи. Наведіть курсор на кнопки в інтерфейсі — підказки з’являться одразу.": [
   "pages/help.js:60"
@@ -6105,7 +6224,7 @@
   "src/wallet-safety.js:62"
  ],
  "Увімкнути": [
-  "pages/dashboard.js:243"
+  "pages/dashboard.js:247"
  ],
  "Увімкнути блокування": [
   "pages/settings.js:58"
@@ -6138,13 +6257,19 @@
   "pages/warning.js:43"
  ],
  "Усе працює": [
-  "pages/dashboard.js:192"
+  "pages/dashboard.js:196"
+ ],
+ "усе працює локально, без телеметрії": [
+  "pages/newtab.js:174"
  ],
  "Усе прочитано": [
   "ui/overlay.js:198"
  ],
  "Усі дозволи й винятки…": [
   "ui/overlay.js:105"
+ ],
+ "Усі закладки ({0})": [
+  "pages/newtab.js:169"
  ],
  "Усі налаштування браузера: тема, пошук, приватність, синхронізація, GitHub.": [
   "src/tips.js:48"
@@ -6249,6 +6374,9 @@
  ],
  "Фразу-пароль неможливо відновити: без неї кошти недоступні. Запишіть її окремо від фрази відновлення.": [
   "pages/help-data.js:210"
+ ],
+ "Функції та гарячі клавіші": [
+  "pages/newtab.js:57"
  ],
  "Хибний майстер-пароль (або файл змінено).": [
   "src/vault.js:157"
@@ -6417,7 +6545,7 @@
   "pages/help.js:45"
  ],
  "Частка": [
-  "pages/dashboard.js:146"
+  "pages/dashboard.js:150"
  ],
  "Чекати": [
   "src/app-window.js:462"
@@ -6474,6 +6602,9 @@
  "Швидка (вища комісія)": [
   "pages/wallet.js:848"
  ],
+ "Швидкий доступ": [
+  "pages/newtab.js:154"
+ ],
  "Швидкий старт": [
   "pages/help-data.js:22"
  ],
@@ -6526,6 +6657,7 @@
  ],
  "ШІ-помічник": [
   "pages/assistant.js:16",
+  "pages/newtab.js:55",
   "pages/assistant.html:5"
  ],
  "ШІ-помічник (локальна модель)": [
@@ -6594,10 +6726,13 @@
   "pages/settings.js:69"
  ],
  "ще не підключався": [
-  "pages/dashboard.js:238"
+  "pages/dashboard.js:242"
  ],
  "Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.": [
   "pages/settings.js:166"
+ ],
+ "Ще порада": [
+  "pages/newtab.js:165"
  ],
  "Що браузер надсилає в інтернет": [
   "pages/help-data.js:125"
@@ -6756,6 +6891,18 @@
  "CSV-файл містить паролі у відкритому вигляді": [
   "src/ipc.js:90"
  ],
+ "Ctrl+D додає сторінку в закладки, а Ctrl+F шукає текст на сторінці.": [
+  "pages/newtab.js:72"
+ ],
+ "Ctrl+K — палітра команд": [
+  "pages/newtab.js:142"
+ ],
+ "Ctrl+K відкриває палітру команд: єдиний пошук по вкладках, закладках, історії та всіх діях браузера.": [
+  "pages/newtab.js:63"
+ ],
+ "Ctrl+Shift+T повертає востаннє закриту вкладку.": [
+  "pages/newtab.js:66"
+ ],
  "ENS і .sol": [
   "pages/help-data.js:250"
  ],
@@ -6765,8 +6912,14 @@
  "eth_sign вимкнено з міркувань безпеки (дозволяє підписати довільні дані)": [
   "src/wallet.js:393"
  ],
+ "EVM і Solana, токени, NFT": [
+  "pages/newtab.js:50"
+ ],
  "EVM-мережа": [
   "pages/wallet.js:167"
+ ],
+ "gh власник/репозиторій — GitHub": [
+  "pages/newtab.js:143"
  ],
  "GitHub відхилив токен (недійсний або прострочений).": [
   "src/github.js:85"
@@ -6880,7 +7033,7 @@
  "PDF-інструменти": [
   "src/app-window.js:909",
   "src/app-window.js:950",
-  "pages/pdftools.js:127"
+  "pages/newtab.js:56"
  ],
  "PDF-інструменти (w3ir://pdftools)": [
   "pages/help-data.js:271"

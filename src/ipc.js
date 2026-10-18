@@ -176,7 +176,7 @@ const POLICY = {
 const PAGE_ONLY = {
   'settings:get': ['settings', 'help'], 'settings:set': ['settings'], defaultbrowser: ['settings'],
   'ext:add': ['settings'], 'ext:remove': ['settings'], clear: ['settings'],
-  'reader:get': ['reader'], resolve: ['newtab'], topsites: ['newtab'],
+  'reader:get': ['reader'], resolve: ['newtab'], topsites: ['newtab'], startinfo: ['newtab'],
   'history:get': ['history'], 'history:remove': ['history'], 'history:clear': ['history'],
   'bookmarks:get': ['bookmarks'], 'bookmarks:remove': ['bookmarks'],
   'downloads:get': ['downloads'], 'downloads:action': ['downloads'],
@@ -665,6 +665,7 @@ function registerIpc(resolve) {
       }
       case 'resolve': return ctx.resolveInput(arg.text);
       case 'topsites': return ctx.topSites(8);
+      case 'startinfo': return require('./startpage').info(ctx);
       case 'history:get': return ctx.places.visits({ query: arg && arg.query, limit: 500 });
       case 'history:remove': ctx.places.removeVisit(arg && arg.id); return true;
       case 'history:clear': ctx.places.clear(); return true;

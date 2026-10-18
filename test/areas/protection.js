@@ -137,4 +137,47 @@ async function sleepTests(ctx) {
   }
 }
 
-module.exports = { protectionTests: async (ctx) => { await protectionTests(ctx); await sleepTests(ctx); } };
+// Стартова сторінка: швидкий доступ до всіх розділів, стан, закладки; доступ до її даних лише з неї
+async function startPageTests(ctx) {
+  const fs = require('fs');
+  const path = require('path');
+  const w = [...ctx.windows].find(x => !x.incognito && !x.agent);
+  const before = ctx.bookmarksStore.data.slice();
+  ctx.bookmarksStore.data.push({ url: 'https://start-test-a.example/', title: 'Тестова закладка А', added: Date.now() - 1000, mod: 0 }, { url: 'https://start-test-b.example/', title: 'Тестова закладка Б', added: Date.now(), mod: 0 });
+  try {
+    const t = w.createTab('w3ir://newtab', { activate: true });
+    await sleep(2200);
+    const wc = t.view.webContents;
+    const dom = await wc.executeJavaScript(`({
+      hrefs: [...document.querySelectorAll('.lc')].map(a => a.getAttribute('href')),
+      pills: document.querySelectorAll('.status .pill').length,
+      bms: [...document.querySelectorAll('.bm .bn')].map(e => e.textContent),
+      tip: document.querySelector('.tip-t').textContent.length > 10,
+      keys: document.querySelectorAll('.key').length,
+      clock: document.querySelector('.clock').textContent.length >= 4,
+      search: !!document.querySelector('form.search input'),
+    })`);
+    const pagesDir = path.join(__dirname, '..', '..', 'pages');
+    const names = dom.hrefs.map(h => h.replace('w3ir://', ''));
+    ok(dom.hrefs.length === 12 && new Set(dom.hrefs).size === 12, `start: 12 різних швидких запусків (${dom.hrefs.length})`);
+    ok(names.every(n => fs.existsSync(path.join(pagesDir, n + '.html'))), `start: кожен запуск веде на наявну сторінку (${names.filter(n => !fs.existsSync(path.join(pagesDir, n + '.html'))).join() || 'усі є'})`);
+    ok(dom.pills === 5 && dom.keys === 6 && dom.tip && dom.clock && dom.search, `start: стан, поради, клавіші, годинник і пошук присутні (${JSON.stringify({ p: dom.pills, k: dom.keys, tip: dom.tip, clock: dom.clock, search: dom.search })})`);
+    ok(dom.bms[0] === 'Тестова закладка Б' && dom.bms.includes('Тестова закладка А'), `start: останні закладки показані, найновіша першою (${dom.bms.slice(0, 2).join(' | ')})`);
+    // дані стартової сторінки віддаються лише їй
+    const probe = async (page, expr) => {
+      const tt = w.createTab('w3ir://' + page, { activate: false });
+      await sleep(1400);
+      const r = await tt.view.webContents.executeJavaScript(`(${expr}).then(() => 'ok', () => 'denied')`);
+      w.closeTab(tt.id);
+      return r;
+    };
+    ok(await probe('newtab', `w3ir.invoke('startinfo', {})`) === 'ok' && await probe('settings', `w3ir.invoke('startinfo', {})`) === 'denied' && await probe('history', `w3ir.invoke('startinfo', {})`) === 'denied', 'start: startinfo доступний лише стартовій сторінці');
+    const info = await wc.executeJavaScript(`w3ir.invoke('startinfo', {})`);
+    ok(!/mnemonic|phrase|privateKey|token/i.test(JSON.stringify(info)), 'start: у даних стартової сторінки немає секретів');
+  } finally {
+    ctx.bookmarksStore.data.length = 0;
+    ctx.bookmarksStore.data.push(...before);
+  }
+}
+
+module.exports = { protectionTests: async (ctx) => { await protectionTests(ctx); await sleepTests(ctx); await startPageTests(ctx); } };
