@@ -1,0 +1,53 @@
+/* ===== Тема «Pure Obsidian»: глибокий графіт, блакитний акцент, смарагдові статуси ===== */
+/* Підключається після style.css / overlay.css і лише перекриває змінні та оформлення оболонки. */
+:root {
+  color-scheme: dark;
+  --bg0: #0a0e14; --bg1: #10141a; --bg2: #181c22; --bg3: #222730; --bg4: #1c2026;
+  --fg: #f1f5f9; --fg2: #dfe2eb; --dim: #94a3b8; --accent: #38bdf8; --pill: #8ed5ff; --warn: #f87171; --shadow: rgba(0,0,0,.55);
+  --cyan: #38bdf8; --grid: transparent;
+  --emerald: #2dd4bf; --line-soft: rgba(255,255,255,.08);
+  --panel: #181c22; --line: #222730; --hover: #222730; --input: #10141a; --btn: #1c2026; --link: #8ed5ff; --danger: #f87171;
+  --font-ui: Inter, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+}
+html, body { font-family: var(--font-ui); }
+
+/* вкладки: темніша смуга, активна вкладка зливається з панеллю інструментів */
+#tabbar { background: var(--bg0); }
+.tab { border-radius: 8px 8px 0 0; color: var(--dim); }
+.tab.active { background: var(--bg2); color: var(--fg); }
+.tab.active::before { height: 2px; background: var(--accent); }
+.tab:hover:not(.active) { background: var(--bg4); color: var(--fg2); }
+.tab .spin { border-color: var(--accent); border-top-color: transparent; }
+.tab .ai { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.tab.sleeping .title { color: var(--emerald); }
+.tab.pinned::after { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.tab .pinletter { background: linear-gradient(135deg, #0ea5e9, #2dd4bf); color: #04141c; }
+
+/* панель інструментів без сітки, з тонкою межею */
+#toolbar, #bookmarks, #findbar { background-image: none; background-color: var(--bg2); border-bottom: 1px solid var(--line-soft); }
+#bookmarks, #findbar { border-top: 0; }
+button:hover:not(:disabled) { background: rgba(255,255,255,.07); }
+
+/* омнібокс: темна «таблетка» з блакитним фокусом і моноширинною адресою */
+#omni { background: var(--bg0); border: 1px solid var(--line-soft); border-radius: 10px; }
+#omni:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,.25); }
+#url { font-family: var(--font-mono); font-size: 12.5px; }
+#sec { color: var(--emerald); }
+#sec.warn { color: var(--warn); }
+#find { background: var(--bg0); border-color: var(--line-soft); }
+#find:focus { border-color: var(--accent); }
+
+/* значки, сповіщення, головні кнопки */
+#shield .badge, #dl .badge, #vault .badge { background: var(--accent); color: #04141c; font-weight: 700; }
+#savebar { background: var(--bg4); border-top-color: var(--line-soft); }
+#savebar button { border-color: var(--line-soft); }
+#savebar button.primary { background: var(--accent); border-color: var(--accent); color: #04141c; font-weight: 600; }
+#upd.ready { color: var(--emerald); }
+#toast { background: var(--bg3); border: 1px solid var(--line-soft); }
+#splitbar { background: var(--accent); }
+.bm:hover { background: rgba(255,255,255,.07); }
+
+/* меню (overlay) */
+.menu { border-radius: 12px; border-color: var(--line-soft); }
+.menu button:hover { background: var(--hover); }
