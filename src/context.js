@@ -183,7 +183,10 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   ctx.pushAll = () => { for (const w of ctx.windows) w.push(); };
   ctx.flushPending = () => { for (const w of ctx.windows) w.flushPending(); };
   ctx.relayoutAll = () => { for (const w of ctx.windows) { w.layout(); w.push(); } };
+  // лічильники захисту за сеанс (лише в пам'яті, на диск не пишуться): показуються на сторінці «Панель»
+  ctx.stats = { since: Date.now(), blocked: 0, cookies: 0, https: 0, threats: 0 };
   ctx.onBlocked = (wcId) => {
+    ctx.stats.blocked++;
     const e = ctx.registry.get(wcId);
     if (e && e.tab) { e.tab.blocked++; e.win.push(); }
   };
@@ -413,13 +416,14 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
             const up = upgradeHttps(target, ctx.httpsBypass);
             if (up) {
               ctx.upgraded.set(up, target);
+              ctx.stats.https++;
               if (ctx.upgraded.size > 200) ctx.upgraded.delete(ctx.upgraded.keys().next().value);
               target = up;
             }
           }
           if (cfg.safeBrowsing !== false) {
             const th = ctx.threats.check(target);
-            if (th) return cb({ redirectURL: ctx.threats.warningUrl(th, target) });
+            if (th) { ctx.stats.threats++; return cb({ redirectURL: ctx.threats.warningUrl(th, target) }); }
           }
           if (target !== url) return cb({ redirectURL: target });
         }
@@ -462,6 +466,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     };
     ses.webRequest.onHeadersReceived((details, cb) => {
       if (thirdParty(details) && prot.stripSetCookie(details.responseHeaders)) {
+        ctx.stats.cookies++;
         const done = cb;
         cb = (resp) => done(resp && resp.responseHeaders ? resp : { ...(resp || {}), responseHeaders: details.responseHeaders });
       }
@@ -470,7 +475,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     });
     ses.webRequest.onBeforeSendHeaders((details, cb) => {
       if (thirdParty(details)) {
-        prot.stripCookieRequest(details.requestHeaders);
+        if (prot.stripCookieRequest(details.requestHeaders)) ctx.stats.cookies++;
         if (ctx.protection() === 'maximum') prot.dropReferrer(details.requestHeaders);
       }
       if (ctx.cfg().sendGpc) { details.requestHeaders['Sec-GPC'] = '1'; details.requestHeaders['DNT'] = '1'; }

@@ -272,7 +272,8 @@ async function dashboardTests(ctx) {
   const st = await wc.executeJavaScript(`w3ir.invoke('dashboard:state')`);
   ok(st && st.ok && st.protection && st.wallet && Array.isArray(st.networks) && Array.isArray(st.events) && st.agent, 'dashboard: стан відображається зі сторінки панелі');
   ok(!/mnemonic|phrase|token|privateKey/i.test(JSON.stringify(st)), 'dashboard: у відповіді немає токенів і секретів гаманця');
-  ok(await wc.executeJavaScript(`document.querySelectorAll('.bento .bcard').length`) === 4, 'dashboard: сторінка малює чотири картки');
+  const shape = await wc.executeJavaScript(`({ kpi: document.querySelectorAll('.kpis .kpi').length, cards: document.querySelectorAll('.bento .bcard').length, rows: document.querySelectorAll('.ptable tbody tr').length })`);
+  ok(shape.kpi === 4 && shape.cards === 6, `dashboard: сторінка малює 4 показники й 6 карток (${JSON.stringify(shape)})`);
   const cp = await wc.executeJavaScript(`w3ir.invoke('dashboard:copy', { address: '0x0000000000000000000000000000000000000001' })`);
   ok(cp && cp.ok === false, 'dashboard: копіюються лише адреси власних рахунків');
   tab.view.webContents.loadURL('w3ir://history').catch(() => {});
@@ -280,6 +281,23 @@ async function dashboardTests(ctx) {
   const denied = await wc.executeJavaScript(`w3ir.invoke('dashboard:state').then(() => 'allowed', () => 'denied')`);
   ok(denied === 'denied', 'dashboard: з інших внутрішніх сторінок доступ заборонено');
   w.closeTab(tab.id);
+
+  // --- метрики роботи браузера (жива частина панелі) ---
+  const api = require('../../src/dashboard').createApi(ctx);
+  const inc = ctx.openWindow({ incognito: true });
+  await sleep(2200);
+  inc.exec('newTab'); inc.exec('go', 'https://private-window-secret.example/path?token=zzz'); await sleep(800);
+  const m = await api('dashboard:metrics');
+  ok(m.ok && m.memory.privMb > 0 && m.cpu >= 0 && m.cpu <= 100 && m.uptimeSec >= 0, `dashboard: метрики містять пам'ять, процесор і час роботи (${m.memory && m.memory.privMb} МБ)`);
+  ok(Array.isArray(m.groups) && m.groups.some(g => g.key === 'main' && g.privMb > 0) && m.groups.some(g => g.key === 'tabs'), `dashboard: процеси згруповано за типами (${m.groups && m.groups.map(g => g.key).join()})`);
+  ok(m.tabs.total >= 1 && m.tabs.windows >= 1 && Array.isArray(m.tabs.rows), 'dashboard: є підсумок вкладок');
+  ok(!JSON.stringify(m).includes('private-window-secret') && !JSON.stringify(m).includes('token=zzz'), 'dashboard: хости вкладок інкогніто й параметри адрес не потрапляють у метрики');
+  ok(['blocked', 'cookies', 'https', 'threats', 'since'].every(k => typeof m.stats[k] === 'number'), 'dashboard: є лічильники захисту за сеанс');
+  ok(typeof m.versions.chrome === 'string' && typeof m.versions.app === 'string' && ['standard', 'strict', 'maximum'].includes(m.protection.mode), 'dashboard: версії й режим захисту присутні');
+  const before = ctx.stats.blocked;
+  ctx.onBlocked(0);
+  ok(ctx.stats.blocked === before + 1, 'dashboard: лічильник заблокованого збільшується');
+  inc.win.close();
 }
 
 // Провайдер із запасними вузлами: мертвий вузол, повільний, помилка виконання (не повторюється), «вже відома» транзакція

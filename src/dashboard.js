@@ -35,6 +35,77 @@ async function pingNetworks(networks, { timeout = PING_TIMEOUT, fetchFn = fetch 
   }));
 }
 
+// ---------- метрики роботи браузера ----------
+const KB = 1024;
+const GROUPS = { Browser: 'main', Tab: 'tabs', GPU: 'gpu', Utility: 'utility' };
+const round1 = (x) => Math.round(x * 10) / 10;
+
+// app.getAppMetrics() → суми за групами процесів. Пам'ять у КБ (privateBytes — приватна частина, ближча до правди, ніж робочий набір).
+function aggregateProcesses(metrics, cores = 1) {
+  const groups = {};
+  let priv = 0, ws = 0, cpu = 0;
+  for (const m of Array.isArray(metrics) ? metrics : []) {
+    const key = GROUPS[m && m.type] || 'other';
+    const mem = (m && m.memory) || {};
+    const p = Number(mem.privateBytes) || 0, w = Number(mem.workingSetSize) || 0, c = Number(m && m.cpu && m.cpu.percentCPUUsage) || 0;
+    const g = groups[key] || (groups[key] = { key, n: 0, privMb: 0, wsMb: 0, cpu: 0 });
+    g.n++; g.privMb += p / KB; g.wsMb += w / KB; g.cpu += c;
+    priv += p; ws += w; cpu += c;
+  }
+  const list = Object.values(groups).map(g => ({ key: g.key, n: g.n, privMb: Math.round(g.privMb), wsMb: Math.round(g.wsMb), cpu: round1(g.cpu) })).sort((a, b) => b.privMb - a.privMb);
+  return { privMb: Math.round(priv / KB), wsMb: Math.round(ws / KB), cpu: Math.min(100, round1(cpu / Math.max(1, cores))), groups: list };
+}
+
+// Вкладки звичайних вікон (інкогніто й вікна ШІ не показуються): тільки хост, без шляху й параметрів адреси
+function tabRows(ctx, privByPid = new Map()) {
+  const rows = [];
+  let total = 0, sleeping = 0, pinned = 0, playing = 0, windows = 0;
+  for (const w of ctx.windows) {
+    if (w.incognito) { total += w.tabs.length; windows++; continue; }
+    windows++;
+    for (const t of w.tabs) {
+      total++;
+      if (t.sleep) sleeping++;
+      if (t.pinned) pinned++;
+      if (t.playing) playing++;
+      let host = '';
+      try {
+        const u = new URL(w.tabUrl(t));
+        host = u.protocol === 'w3ir:' ? 'w3ir://' + u.hostname : u.hostname;
+      } catch { host = ''; }
+      let pid = 0;
+      try { pid = t.sleep ? 0 : t.view.webContents.getOSProcessId(); } catch { pid = 0; }
+      rows.push({ host: clean(host || '—', 80), pid, mb: privByPid.get(pid) || 0, sleeping: !!t.sleep, pinned: !!t.pinned, playing: !!t.playing, blocked: t.blocked || 0 });
+    }
+  }
+  rows.sort((a, b) => b.mb - a.mb);
+  return { total, sleeping, pinned, playing, windows, rows: rows.slice(0, 8) };
+}
+
+function metrics(ctx, deps = {}) {
+  const os = require('os');
+  const appMetrics = deps.appMetrics || (() => require('electron').app.getAppMetrics());
+  const raw = appMetrics();
+  const proc = aggregateProcesses(raw, os.cpus().length);
+  const privByPid = new Map((raw || []).map(m => [m.pid, Math.round((Number(m.memory && m.memory.privateBytes) || 0) / KB)]));
+  const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
+  const up = ctx.manager && ctx.manager.updater ? ctx.manager.updater.brief() : null;
+  const cfg = ctx.cfg();
+  const th = ctx.threats ? ctx.threats.status() : null;
+  return {
+    now: Date.now(),
+    uptimeSec: Math.round(process.uptime()),
+    versions: { app: deps.version || require('electron').app.getVersion(), chrome: process.versions.chrome, electron: process.versions.electron },
+    memory: { privMb: proc.privMb, wsMb: proc.wsMb, totalGb: Math.round(os.totalmem() / 2 ** 30) },
+    cpu: proc.cpu,
+    groups: proc.groups,
+    tabs: tabRows(base, privByPid),
+    stats: { ...ctx.stats },
+    update: up,
+    protection: { mode: cfg.protection || 'standard', engine: !!ctx.blocker, lists: th ? th.counts : { malware: 0, phishing: 0 }, listsUpdated: th ? th.updated : 0 },
+  };
+}
+
 function state(ctx) {
   const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
   const a = base.agent ? base.agent.status() : null;
@@ -65,6 +136,7 @@ function createApi(ctx, { fetchFn } = {}) {
     try {
       switch (name) {
         case 'dashboard:state': return { ok: true, ...state(ctx) };
+        case 'dashboard:metrics': return { ok: true, ...metrics(ctx) };
         case 'dashboard:ping': {
           if (lastPing.data && Date.now() - lastPing.t < PING_MIN_INTERVAL) return { ok: true, results: lastPing.data, cached: true };
           const results = await pingNetworks(ctx.wallet ? ctx.wallet.networks() : [], { fetchFn });
@@ -102,4 +174,4 @@ function createApi(ctx, { fetchFn } = {}) {
   };
 }
 
-module.exports = { pingNetworks, state, createApi, CLIP_CLEAR_MS };
+module.exports = { pingNetworks, state, metrics, aggregateProcesses, tabRows, createApi, CLIP_CLEAR_MS };
