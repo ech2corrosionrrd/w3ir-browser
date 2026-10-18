@@ -199,3 +199,9 @@ body.wallet .warnbox { border-radius: 14px; }
 .spam-box { border-top: 1px solid var(--line); background: color-mix(in srgb, var(--danger) 6%, var(--card)); }
 .spam-box > summary { cursor: pointer; padding: 12px 16px; color: var(--danger); font-size: 13px; }
 .spam-box .item { opacity: .85; }
+
+body.pdftools main { max-width: 760px; }
+.mfield input[type=checkbox], .item input[type=checkbox] { width: auto; margin: 0 8px 0 0; accent-color: var(--accent); }
+body.pdftools .mfield { max-width: 520px; }
+body.pdftools .bar { align-items: center; flex-wrap: wrap; }
+body.pdftools .note[role=status] { margin: 0; flex: 1; }

@@ -161,6 +161,7 @@ async function githubApi(ctx, name, arg) {
 const PAGE_RE = /^w3ir:\/\/([a-z]+)\/?(\?[^#]*)?(#.*)?$/;
 const POLICY = {
   'wallet:': { wallet: '*' },
+  'pdf:': { pdftools: '*' },
   'arweave:': { wallet: '*', dashboard: '*' },
   'assistant:': { assistant: '*' },
   'import:': { import: '*' },
@@ -581,6 +582,7 @@ function registerIpc(resolve) {
     // Єдина таблиця прав (POLICY / PAGE_ONLY): яка внутрішня сторінка може викликати яку команду
     if (!permitted(name, frame.url)) throw new Error('forbidden');
     if (name.startsWith('wallet:')) return walletApi(ctx, entry, name, arg);
+    if (name.startsWith('pdf:')) return require('./pdf-tools').api(ctx, entry, name, arg);
     if (name.startsWith('assistant:')) return assistantApi(ctx, entry, name, arg || {});
     if (name.startsWith('arweave:')) return arweaveApi(ctx, name, arg);
     if (name.startsWith('sites:')) return sitesApi(ctx, name, arg);
@@ -662,7 +664,7 @@ function registerIpc(resolve) {
         return true;
       }
       case 'downloads:get': return ctx.downloads.list();
-      case 'downloads:action': ctx.downloads.action(arg.id, arg.action); return true;
+      case 'downloads:action': ctx.downloads.action(arg.id, arg.action, entry.win); return true;
       case 'clear': {
         const ses = entry.win.ses;
         if (arg.history) ctx.places.clear();

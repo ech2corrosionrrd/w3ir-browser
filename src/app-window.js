@@ -24,8 +24,14 @@ const isBlankUrl = (u) => !u || u === 'about:blank' || /^w3ir:\/\/newtab\/?$/.te
 // Лише безпечні символи URL: без лапок, пробілів, <>, `, ^, |, \ та ' — щоб не «вийти» за межі аргументу зовнішньої програми
 const SAFE_EXTERNAL = /^[A-Za-z0-9\-._~:\/?#\[\]@!$&()*+,;=%]+$/;
 const EXTERNAL_SCHEME = /^(mailto|tel|magnet|x-github-client|vscode|vscode-insiders):/i;
+// web content must not navigate to internal w3ir:// pages (except the error/warning pages); internal -> internal is allowed
+const INTERNAL_PUBLIC = /^w3ir:\/\/(error|warning)(\/|\?|#|$)/i;
+const webToInternal = (from, to) => /^w3ir:/i.test(String(to)) && !/^w3ir:/i.test(String(from || '')) && !INTERNAL_PUBLIC.test(String(to));
+const GESTURE_MS = 2000; // external schemes only open shortly after a real click/key in that tab
+const INPUT_GESTURE = /^(mouseDown|mouseUp|rawKeyDown|keyDown|touchStart|touchEnd|gestureTap)$/;
 const ANCHORED_OVERLAYS = new Set(['menu', 'vault', 'github', 'site']); // панелі під панеллю інструментів
 const { isWebUrl } = require('./util');
+const pdf = require('./pdf');
 
 class AppWindow {
   constructor(ctx, opts = {}) {
@@ -68,6 +74,7 @@ class AppWindow {
     this.chrome.setWindowOpenHandler(() => ({ action: 'deny' }));
     this.chrome.on('will-navigate', (e) => e.preventDefault());
     this.chrome.on('before-input-event', (e, input) => this.onKey(e, input));
+    this.chrome.on('render-process-gone', (e, d) => this.recoverUi(this.chrome, d, 'chrome'));
     ctx.register(this.chrome, this);
 
     this.overlay = new WebContentsView({
@@ -76,6 +83,7 @@ class AppWindow {
     this.overlay.setBackgroundColor('#00000000');
     this.overlay.webContents.on('before-input-event', (e, input) => this.onKey(e, input));
     this.overlay.webContents.on('will-navigate', (e) => e.preventDefault());
+    this.overlay.webContents.on('render-process-gone', (e, d) => this.recoverUi(this.overlay.webContents, d, 'overlay'));
     ctx.register(this.overlay.webContents, this);
     this.overlay.webContents.loadURL('w3ir://ui/overlay.html');
 
@@ -269,6 +277,17 @@ class AppWindow {
     tab.view.webContents.loadURL(url).catch(() => { /* помилки показує did-fail-load */ });
   }
 
+  // UI renderers (browser chrome, overlay): reload after a crash, at most 3 times a minute
+  recoverUi(wc, d, which) {
+    try { require('./crash-log'); } catch { /* ignore */ }
+    if (this.closing || this.win.isDestroyed() || wc.isDestroyed() || !d || d.reason === 'clean-exit') return;
+    const now = Date.now();
+    const arr = (this['_uiCrash_' + which] = (this['_uiCrash_' + which] || []).filter(t => now - t < 60000));
+    arr.push(now);
+    if (arr.length > 3) return;
+    setTimeout(() => { try { if (!wc.isDestroyed() && !this.closing) { wc.reload(); setTimeout(() => this.push(), 500); } } catch { /* ignore */ } }, 300);
+  }
+
   showError(tab, code, desc, url) {
     tab.errorUrl = url;
     const q = `code=${encodeURIComponent(code)}&desc=${encodeURIComponent(desc)}&url=${encodeURIComponent(url)}`;
@@ -311,9 +330,24 @@ class AppWindow {
       }
       this.showError(tab, code, desc, url);
     });
+    tab.lastInput = 0;
+    wc.on('input-event', (e, ev) => { if (ev && INPUT_GESTURE.test(ev.type)) tab.lastInput = Date.now(); });
     wc.on('render-process-gone', (e, details) => {
-      this.showError(tab, -1, 'RENDERER_CRASHED (' + details.reason + ')', this.tabUrl(tab));
+      if (details.reason === 'clean-exit') return;
+      const url = this.tabUrl(tab);
+      const now = Date.now();
+      tab.crashes = (tab.crashes || []).filter(t => now - t < 60000);
+      tab.crashes.push(now);
+      // the first crash within a minute: reload the page automatically; repeated crashes: show the error page (no reload loop)
+      if (tab.crashes.length === 1 && /^(https?|file|ar):/i.test(url) && !tab.sleep) {
+        setTimeout(() => { try { if (!wc.isDestroyed() && this.tabs.includes(tab)) wc.reload(); } catch { /* ignore */ } }, 300);
+        return;
+      }
+      this.showError(tab, -1, 'RENDERER_CRASHED (' + details.reason + ')', url);
     });
+    wc.on('unresponsive', () => this.onUnresponsive(tab));
+    wc.on('responsive', () => { clearTimeout(tab.hangTimer); tab.hangTimer = null; });
+    wc.once('destroyed', () => { clearTimeout(tab.hangTimer); tab.hangTimer = null; });
     wc.on('before-input-event', (e, input) => this.onKey(e, input));
     wc.on('focus', () => { if (this.split && this.activeId !== tab.id && (tab.id === this.split.a || tab.id === this.split.b)) this.switchTab(tab.id); });
 
@@ -324,12 +358,15 @@ class AppWindow {
       wc.on('will-redirect', gate);
     }
     wc.on('will-navigate', (e, url) => {
-      if (EXTERNAL_SCHEME.test(url)) { e.preventDefault(); this.openExternal(url); }
+      if (EXTERNAL_SCHEME.test(url)) { e.preventDefault(); this.openExternal(url, { tab }); }
       else if (!/^(https?|w3ir|file|about|blob|data|view-source|ar):/i.test(url)) e.preventDefault();
+      else if (webToInternal(wc.getURL(), url)) e.preventDefault();
     });
+    wc.on('will-redirect', (e, url) => { if (webToInternal(wc.getURL(), url)) e.preventDefault(); });
     wc.setWindowOpenHandler((d) => {
       if (this.agent) { this.ctx.agent.pageNavigation(this, tab, d.url, 'popup'); return { action: 'deny' }; }
-      if (EXTERNAL_SCHEME.test(d.url)) { this.openExternal(d.url); return { action: 'deny' }; }
+      if (EXTERNAL_SCHEME.test(d.url)) { this.openExternal(d.url, { tab }); return { action: 'deny' }; }
+      if (webToInternal(wc.getURL(), d.url)) return { action: 'deny' };
       if (d.disposition === 'new-window') {
         return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true, icon: ICON, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } } };
       }
@@ -392,7 +429,11 @@ class AppWindow {
     shell.openExternal(url).catch(() => this.toast('Не вдалося відкрити торент-клієнт'));
   }
 
-  openExternal(url) {
+  // opts.tab: the request comes from page content - then a recent real user gesture in that tab is required, and declined
+  // prompts pause further prompts for a while (a page cannot spam dialogs)
+  openExternal(url, opts) {
+    if (opts && opts.tab && Date.now() - (opts.tab.lastInput || 0) > GESTURE_MS) return;
+    if (opts && opts.tab && Date.now() < (this._extCool || 0)) return;
     if (/^magnet:/i.test(url)) { this.openMagnet(url); return; }
     if (!SAFE_EXTERNAL.test(url)) return; // символи на кшталт " або пробілів можуть зламати командний рядок обробника
     if (this._extAsk) return; // одне вікно підтвердження за раз: сторінка не може засипати діалогами
@@ -400,7 +441,28 @@ class AppWindow {
     dialog.showMessageBox(this.win, {
       type: 'question', buttons: [tr('Відкрити'), tr('Скасувати')], defaultId: 1, cancelId: 1,
       message: tr('Відкрити зовнішню програму?'), detail: url.slice(0, 200),
-    }).then(r => { if (r.response === 0) shell.openExternal(url); }).catch(() => {}).finally(() => { this._extAsk = false; });
+    }).then(r => { if (r.response === 0) shell.openExternal(url); else this._extCool = Date.now() + 5000; }).catch(() => {}).finally(() => { this._extAsk = false; });
+  }
+
+  // a page that stopped responding: after 15 s offer to wait, reload or close (one dialog at a time)
+  onUnresponsive(tab) {
+    if (tab.hangTimer || this.closing) return;
+    tab.hangTimer = setTimeout(() => {
+      tab.hangTimer = null;
+      const wc = tab.view.webContents;
+      if (wc.isDestroyed() || !this.tabs.includes(tab) || this._hangAsk || this.win.isDestroyed()) return;
+      this._hangAsk = true;
+      let host = '';
+      try { host = new URL(wc.getURL()).host; } catch { /* ignore */ }
+      dialog.showMessageBox(this.win, {
+        type: 'warning', buttons: [tr('Чекати'), tr('Перезавантажити сторінку'), tr('Закрити вкладку')], defaultId: 0, cancelId: 0,
+        message: tr('Сторінка не відповідає'), detail: host.slice(0, 120),
+      }).then((r) => {
+        if (wc.isDestroyed() || !this.tabs.includes(tab)) return;
+        if (r.response === 1) { try { wc.forcefullyCrashRenderer(); } catch { /* ignore */ } }
+        else if (r.response === 2) this.closeTab(tab.id);
+      }).catch(() => {}).finally(() => { this._hangAsk = false; });
+    }, this.hangMs || 15000);
   }
 
   switchTab(id) {
@@ -815,6 +877,7 @@ class AppWindow {
       { label: tr('Закладки'), hint: 'Ctrl+Shift+O', cmd: 'openPage', arg: 'bookmarks' },
       { label: tr('Історія'), hint: 'Ctrl+H', cmd: 'openPage', arg: 'history' },
       { label: tr('Завантаження'), hint: 'Ctrl+J', cmd: 'openPage', arg: 'downloads' },
+      { label: tr('PDF-інструменти'), cmd: 'openPage', arg: 'pdftools' },
       { label: tr('Менеджер паролів'), cmd: 'openPage', arg: 'passwords' },
       { label: tr('Панель (стан браузера)'), cmd: 'openPage', arg: 'dashboard' },
       { label: tr('ШІ-помічник (локальна модель)'), cmd: 'openPage', arg: 'assistant' },
@@ -828,6 +891,7 @@ class AppWindow {
       { label: tr('Зменшити масштаб'), hint: 'Ctrl+−', cmd: 'zoomOut' },
       { label: tr('Скинути масштаб'), hint: 'Ctrl+0', cmd: 'zoomReset' },
       { label: tr('Друк…'), hint: 'Ctrl+P', cmd: 'print' },
+      { label: tr('Зберегти сторінку як PDF…'), cmd: 'savePdf' },
       { label: tr('На весь екран'), hint: 'F11', cmd: 'fullscreen' },
       { label: tr('Інструменти розробника'), hint: 'F12', cmd: 'devtools' },
       { label: tr('Довідка'), hint: 'F1', cmd: 'openPage', arg: 'help' },
@@ -854,6 +918,7 @@ class AppWindow {
       { label: tr('Закладки'), hint: 'Ctrl+Shift+O', cmd: 'openPage', arg: 'bookmarks' },
       { label: tr('Історія'), hint: 'Ctrl+H', cmd: 'openPage', arg: 'history' },
       { label: tr('Завантаження'), hint: 'Ctrl+J', cmd: 'openPage', arg: 'downloads' },
+      { label: tr('PDF-інструменти'), cmd: 'openPage', arg: 'pdftools' },
       { label: tr('Менеджер паролів'), cmd: 'openPage', arg: 'passwords' },
       { label: tr('Панель (стан браузера)'), cmd: 'openPage', arg: 'dashboard' },
       { label: tr('Гаманець (Web3)'), cmd: 'openPage', arg: 'wallet' },
@@ -863,6 +928,7 @@ class AppWindow {
       { label: tr('Скинути масштаб ({0}%)', zoom), hint: 'Ctrl+0', cmd: 'zoomReset' },
       { label: tr('Знайти на сторінці'), hint: 'Ctrl+F', cmd: 'find' },
       { label: tr('Друк…'), hint: 'Ctrl+P', cmd: 'print' },
+      { label: tr('Зберегти сторінку як PDF…'), cmd: 'savePdf' },
       { label: tr('На весь екран'), hint: 'F11', cmd: 'fullscreen' },
       { label: tr('Інструменти розробника'), hint: 'F12', cmd: 'devtools' },
       { sep: true },
@@ -952,6 +1018,7 @@ class AppWindow {
       t.push({ label: tr('Зберегти як закладку'), click: () => this.exec('bookmark') });
       t.push({ label: tr('Режим читання'), enabled: isWebUrl(this.tabUrl(tab)), click: () => this.openReader() });
       t.push({ label: tr('Друк…'), click: () => wc.print() });
+      t.push({ label: tr('Зберегти сторінку як PDF…'), click: () => this.exec('savePdf') });
       const url = this.tabUrl(tab);
       if (isWebUrl(url)) t.push({ label: tr('Переглянути код сторінки'), click: () => this.createTab('view-source:' + url) });
     }
@@ -1154,6 +1221,7 @@ class AppWindow {
       case 'openPage': {
         const url = 'w3ir://' + String(arg).replace(/[^a-z]/g, '');
         if (arg === 'assistant') this.assistantFrom = this.active(); // вкладка, яку помічник зможе прочитати за згодою
+        if (arg === 'pdftools' && !String(this.tabUrl(this.active()) || '').startsWith('w3ir://')) this.pdfFrom = this.active(); // вкладка, яку можна зберегти в PDF із діапазоном
         const existing = this.tabs.find(x => !x.sleep && x.view.webContents.getURL().startsWith(url));
         if (existing) this.switchTab(existing.id); else this.createTab(url);
         break;
@@ -1226,6 +1294,16 @@ class AppWindow {
       case 'zoomOut': if (wc) wc.setZoomLevel(Math.max(-4, wc.getZoomLevel() - 0.5)); break;
       case 'zoomReset': if (wc) wc.setZoomLevel(0); break;
       case 'print': if (wc) wc.print(); break;
+      case 'savePdf': {
+        if (!wc) break;
+        pdf.savePageAsPdf(this, wc, { pageRanges: arg && arg.pageRanges }).then((r) => {
+          if (r.ok) this.toast('Сторінку збережено в PDF');
+          else if (r.error === 'already-pdf') this.toast('Це вже PDF: збережіть або надрукуйте його кнопками переглядача вгорі');
+          else if (r.error === 'ranges') this.toast('Некоректний діапазон сторінок');
+          else if (r.error !== 'canceled') this.toast('Не вдалося зберегти сторінку в PDF');
+        }).catch(() => this.toast('Не вдалося зберегти сторінку в PDF'));
+        break;
+      }
       case 'devtools':
         if (wc) {
           if (wc.debugger && wc.debugger.isAttached()) { try { wc.debugger.detach(); } catch { /* ignore */ } }
