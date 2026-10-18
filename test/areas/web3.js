@@ -596,6 +596,7 @@ async function walletTests(ctx) {
   const pickPr = call(wcA, 'eth_requestAccounts');
   const apPick = await waitApproval();
   ok(apPick && apPick.spec.choice && apPick.spec.choice.options.length >= 2 && apPick.spec.choice.value === '0' && !apPick.spec.lines.some(l => l[0] === 'Рахунок'), 'dapp: у запиті підключення є вибір рахунку, коли їх кілька');
+  ok(apPick && apPick.spec.choice2 && apPick.spec.choice2.options.length >= 2 && apPick.spec.choice2.options.some(o => o.value === '1' && /ETH/.test(o.label)), 'auth: у запиті підключення є вибір мережі й валюти');
   const badPick = await w.decide(apPick.id, true, MASTER, '777');
   ok(badPick.ok === false && /вибір/i.test(badPick.error) && w.approval && w.approval.id === apPick.id, 'dapp: рахунок, якого не пропонували, відхиляється, запит лишається відкритим');
   const goodPick = await w.decide(apPick.id, true, MASTER, '1');

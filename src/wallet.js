@@ -457,17 +457,23 @@ class Wallet {
 
   async _askConnect(win, origin, sameTab, have) {
     // користувач вибирає серед усіх доступних рахунків, яким авторизуватись (докладно: pickDappAccount у wallet-import.js)
-    const picked = await this.pickDappAccount(win, origin, sameTab, {
+    const curChain = have.length ? this.chainOf(origin) : this.activeChain();
+    const popts = {
       chain: 'evm', have, accountLabel: 'Рахунок', intro: 'доступ до адреси вашого рахунку та право пропонувати транзакції',
-      network: () => (this.network(this.activeChain()) || {}).name || String(this.activeChain()),
-    });
+      network: () => (this.network(curChain) || {}).name || String(curChain),
+      chains: { options: this.networks().map(n => ({ value: String(n.chainId), label: `${n.name} · ${n.symbol || ''}`.trim() })), value: String(curChain) },
+    };
+    const picked = await this.pickDappAccount(win, origin, sameTab, popts);
     const s = this.section();
-    if (have.length && have[0] === picked) { this.log({ origin, action: 'Авторизація' }); return have; } // той самий рахунок: підключення не змінюється
-    s.connections[origin] = { accounts: [picked], chainId: have.length ? (s.connections[origin] || {}).chainId || s.activeChain : s.activeChain, since: Date.now() };
+    const pickedChain = this.network(popts.pickedChain) ? popts.pickedChain : curChain;
+    if (have.length && have[0] === picked && pickedChain === curChain) { this.log({ origin, action: 'Авторизація' }); return have; } // той самий рахунок і мережа: підключення не змінюється
+    const prevChain = have.length ? (s.connections[origin] || {}).chainId : null;
+    s.connections[origin] = { accounts: [picked], chainId: pickedChain, since: Date.now() };
     this.vault.persist();
     this.log({ origin, action: have.length ? 'Авторизація іншим рахунком' : 'Підключення' });
     this.snapConns();
     this.emit(origin, 'accountsChanged', s.connections[origin].accounts);
+    if (pickedChain !== prevChain) this.emit(origin, 'chainChanged', hexChain(pickedChain));
     return s.connections[origin].accounts.slice();
   }
 

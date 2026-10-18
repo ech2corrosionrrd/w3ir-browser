@@ -2339,5 +2339,6 @@
  "verifyingContract ({0}) не є офіційним Permit2 ({1}).": "verifyingContract ({0}) is not the official Permit2 ({1}).",
  "W3IR Browser — браузер на рушії Chromium з упором на приватність і зручність. У ньому вже вбудовано: блокування реклами та трекерів, менеджер паролів, гаманець Web3, профілі, синхронізація закладок, інтеграція з GitHub, режим читання й палітра команд.": "W3IR Browser is a Chromium-based browser focused on privacy and convenience. It already has built in: ad and tracker blocking, a password manager, a Web3 wallet, profiles, bookmark sync, GitHub integration, reader mode and a command palette.",
  "W3IR Browser {0} · на основі Chromium/Electron": "W3IR Browser {0} · based on Chromium/Electron",
- "Windows попереджає (SmartScreen) під час встановлення": "Windows warns (SmartScreen) during installation"
+ "Windows попереджає (SmartScreen) під час встановлення": "Windows warns (SmartScreen) during installation",
+ "Мережа і валюта": "Network and currency"
 }

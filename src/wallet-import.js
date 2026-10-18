@@ -196,7 +196,8 @@ function install(Wallet, { RpcError, unauthorized }) {
   // Авторизація сайту: показує вікно з вибором серед УСІХ доступних рахунків цієї мережі (власні, похідні від фрази й імпортовані; рахунки лише для
   // перегляду не пропонуються, бо підписати ними неможливо). Якщо сховище заблоковано, список рахунків ще недоступний: спершу окреме вікно з
   // розблокуванням, потім, коли рахунків кілька, вікно з вибором. Повертає адресу вибраного рахунку; користувач може відхилити (4001).
-  // opts: { chain: 'evm'|'sol', have: [адреса поточного підключення], intro, network, accountLabel }
+  // opts: { chain: 'evm'|'sol', have: [адреса поточного підключення], intro, network, accountLabel, chains?: { options, value } }
+  // Якщо передано opts.chains (EVM), у вікні є другий вибір — мережа (валюта); вибір повертається в opts.pickedChain.
   proto.pickDappAccount = async function (win, origin, sameTab, opts) {
     const { chain, have } = opts;
     const accountOf = (i) => (chain === 'sol' ? this.solAccount(i) : this.evmAccount(i));
@@ -213,27 +214,32 @@ function install(Wallet, { RpcError, unauthorized }) {
     const warnings = ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'];
     const ask = (def, options) => {
       const choose = options.length > 1;
+      const cc = opts.chains && opts.chains.options.length > 1 ? opts.chains : null;
       return this.approve(win, origin, sameTab, {
         kind: 'connect', title,
-        lines: [['Сайт отримає', opts.intro], ...(choose ? [] : [[opts.accountLabel, accountOf(def)]]), ['Мережа', opts.network()]],
+        lines: [['Сайт отримає', opts.intro], ...(choose ? [] : [[opts.accountLabel, accountOf(def)]]), ...(cc ? [] : [['Мережа', opts.network()]])],
         ...(choose ? { choice: { label: 'Рахунок для сайту', options, value: String(def) } } : {}),
+        ...(cc ? { choice2: { label: 'Мережа і валюта', options: cc.options, value: cc.value } } : {}),
         warnings,
       });
     };
-    let def, options, ap = null;
+    let def, options, ap = null, ap0 = null;
     if (this.unlocked()) {
       ({ def, options } = plan());
       ap = await ask(def, options);
     } else {
-      await this.approve(win, origin, sameTab, {
+      const cc0 = opts.chains && opts.chains.options.length > 1 ? opts.chains : null; // вибір мережі доступний і до розблокування
+      ap0 = await this.approve(win, origin, sameTab, {
         kind: 'connect', title,
-        lines: [['Сайт отримає', opts.intro], [opts.accountLabel, 'буде показано після розблокування'], ['Мережа', opts.network()]],
+        lines: [['Сайт отримає', opts.intro], [opts.accountLabel, 'буде показано після розблокування'], ...(cc0 ? [] : [['Мережа', opts.network()]])],
+        ...(cc0 ? { choice2: { label: 'Мережа і валюта', options: cc0.options, value: cc0.value } } : {}),
         warnings,
       });
       if (!this.unlocked()) throw unauthorized('Гаманець заблоковано — розблокуйте сховище паролів');
       ({ def, options } = plan());
       if (options.length > 1) ap = await ask(def, options); // сховище розблоковано: тепер видно рахунки, питаємо, яким увійти
     }
+    if (opts.chains) opts.pickedChain = ap && opts.chains.options.length > 1 && typeof ap.choice2 === 'string' && opts.chains.options.some(o => o.value === ap.choice2) ? Number(ap.choice2) : ap0 && typeof ap0.choice2 === 'string' && opts.chains.options.some(o => o.value === ap0.choice2) ? Number(ap0.choice2) : Number(opts.chains.value);
     return accountOf(options.length > 1 && ap ? this.pickChoice(ap, options, def) : def);
   };
   // Індекс рахунку з відповіді підтвердження: лише з тих, що були запропоновані, інакше — типовий
