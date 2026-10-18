@@ -176,7 +176,7 @@ const POLICY = {
 const PAGE_ONLY = {
   'settings:get': ['settings', 'help'], 'settings:set': ['settings'], defaultbrowser: ['settings'],
   'ext:add': ['settings'], 'ext:remove': ['settings'], clear: ['settings'],
-  'reader:get': ['reader'], resolve: ['newtab'], topsites: ['newtab'], startinfo: ['newtab'],
+  'reader:get': ['reader'], 'doc:get': ['doc'], 'doc:print': ['doc'], 'doc:savePdf': ['doc'], resolve: ['newtab'], topsites: ['newtab'], startinfo: ['newtab'],
   'history:get': ['history'], 'history:remove': ['history'], 'history:clear': ['history'],
   'bookmarks:get': ['bookmarks'], 'bookmarks:remove': ['bookmarks'],
   'downloads:get': ['downloads'], 'downloads:action': ['downloads'],
@@ -659,6 +659,12 @@ function registerIpc(resolve) {
         return cfg;
       }
       case 'reader:get': return entry.tab.reader || null;
+      case 'doc:get': return entry.tab.doc || null;
+      case 'doc:print': entry.tab.view.webContents.print(); return true;
+      case 'doc:savePdf': {
+        const r = await require('./pdf').savePageAsPdf(entry.win, entry.tab.view.webContents, {});
+        return { ok: r.ok, error: r.error };
+      }
       case 'defaultbrowser': shell.openExternal('ms-settings:defaultapps'); return true;
       case 'ext:add': {
         const r = await dialog.showOpenDialog(entry.win.win, { title: tr('Папка розпакованого розширення'), properties: ['openDirectory'] });

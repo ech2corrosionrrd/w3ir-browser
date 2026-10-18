@@ -89,6 +89,22 @@ async function auditTests(ctx) {
   ok(dom.bad === 0 && !dom.on && !dom.js && dom.text && dom.ok && !dom.badSrc && dom.good, 'audit: режим читання — білий список (скрипти, форми, svg, iframe, обробники, javascript: прибрано; текст і безпечні посилання/зображення збережено)', dom);
   w.closeTab(tr.id);
 
+  // --- перегляд документів: Markdown у вкладці (w3ir://doc) ---
+  const mdDir = tmp('mdview');
+  const mdFile = path.join(mdDir, 'Нотатка.md');
+  fs.writeFileSync(mdFile, ['# Тестовий документ', '', 'Текст із **жирним** і <script>window.__x=1</script>.', '', '[зле](javascript:alert(1)) [добре](https://ok.example/)', '', '| А | Б |', '|---|---|', '| 1 | 2 |', ''].join('\n'));
+  const td = w.createTab(require('url').pathToFileURL(mdFile).href, { activate: false });
+  await sleep(2000);
+  const mdUrl = td.view.webContents.getURL();
+  const md = await td.view.webContents.executeJavaScript(`(() => { const a = document.getElementById('app'); return { title: document.title, h1: !!a.querySelector('h1'), strong: !!a.querySelector('strong'), table: a.querySelectorAll('td').length, script: a.querySelectorAll('script').length, js: [...a.querySelectorAll('a')].some(x => /^javascript:/i.test(x.getAttribute('href') || '')), good: !!a.querySelector('a[href="https://ok.example/"]'), text: a.innerText.includes('<script>'), x: window.__x === 1 }; })()`);
+  ok(/^w3ir:[/][/]doc[/]?$/.test(mdUrl) && md.title === 'Тестовий документ' && md.h1 && md.strong && md.table === 2 && md.script === 0 && !md.js && md.good && md.text && !md.x, 'doc: .md відкривається у вкладці переглядача (заголовок, таблиця, виділення); скрипт показується текстом, javascript: прибрано', md);
+  w.closeTab(td.id);
+  const bigMd = path.join(mdDir, 'big.md');
+  fs.writeFileSync(bigMd, Buffer.alloc(5 * 1024 * 1024 + 1, 97));
+  const tb = w.createTab('about:blank', { activate: false });
+  w.openDoc(tb, bigMd);
+  ok(tb.doc === null, 'doc: файл понад 5 МБ у переглядачі не відкривається');
+  w.closeTab(tb.id);
   // --- ШІ: DNS-перевірка ---
   ok(['127.0.0.1', '10.1.2.3', '192.168.0.9', '169.254.169.254', '0.0.0.0', '::1', 'fd00::1', 'fe80::1', '::ffff:127.0.0.1', '::ffff:7f00:1', '100.64.0.1'].every(isPrivateAddress) && !['8.8.8.8', '93.184.216.34', '2606:4700::1111', '::ffff:8.8.8.8'].some(isPrivateAddress), 'audit: розпізнавання локальних і приватних IP-адрес (IPv4, IPv6, відображені)');
   const ag = new Agent({ ctx, dir: tmp('auditdns'), port: 47999 });
@@ -184,7 +200,7 @@ async function ipcPolicyTests() {
     ['sync:enable', 'w3ir://settings', true], ['github:connect', 'w3ir://history', false], ['update:install', 'w3ir://settings', true], ['sites:list', 'w3ir://settings', true], ['sites:list', 'w3ir://help', false],
     ['profiles:create', 'w3ir://profiles', true], ['profiles:remove', 'w3ir://settings', false], ['import:run', 'w3ir://import', true], ['import:run', 'w3ir://newtab', false],
     ['settings:set', 'w3ir://settings', true], ['settings:set', 'w3ir://history', false], ['settings:set', 'w3ir://error?code=1', false], ['settings:get', 'w3ir://help', true], ['settings:get', 'w3ir://help#faq', true],
-    ['clear', 'w3ir://settings', true], ['clear', 'w3ir://reader', false], ['ext:add', 'w3ir://bookmarks', false], ['reader:get', 'w3ir://reader', true], ['reader:get', 'w3ir://newtab', false],
+    ['clear', 'w3ir://settings', true], ['clear', 'w3ir://reader', false], ['ext:add', 'w3ir://bookmarks', false], ['reader:get', 'w3ir://reader', true], ['reader:get', 'w3ir://newtab', false], ['doc:get', 'w3ir://doc', true], ['doc:print', 'w3ir://doc', true], ['doc:savePdf', 'w3ir://doc', true], ['doc:get', 'w3ir://reader', false], ['doc:print', 'w3ir://newtab', false], ['doc:get', 'w3ir://doc?x=1', false],
     ['wallet:importKey', 'w3ir://wallet', true], ['wallet:importKey', 'w3ir://settings', false], ['wallet:revealKey', 'w3ir://newtab', false], ['wallet:removeImported', 'w3ir://history', false], ['wallet:qr', 'w3ir://wallet', true], ['wallet:qr', 'w3ir://newtab', false],
     ['wallet:replace', 'w3ir://wallet', true], ['wallet:replace', 'w3ir://history', false], ['wallet:revoke', 'w3ir://newtab', false], ['wallet:addContact', 'w3ir://settings', false], ['wallet:resolveName', 'w3ir://wallet', true],
     ['vault:lock', 'w3ir://wallet', true], ['vault:lock', 'w3ir://history', false], ['wallet:send', 'w3ir://wallet', true], ['wallet:send', 'w3ir://newtab', false], ['wallet:rename', 'w3ir://wallet', true],

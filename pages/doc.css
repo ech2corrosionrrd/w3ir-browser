@@ -1,0 +1,33 @@
+body.doc { --size: 17px; background: #1e1f22; }
+body.doc.light { background: #fff; color: #1f2328; --fg: #1f2328; }
+body.doc.light a { color: #0a58ca; }
+body.doc #tools { position: sticky; top: 0; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 8px; background: rgba(30,31,34,.94); z-index: 2; }
+body.doc.light #tools { background: rgba(255,255,255,.95); }
+body.doc #tools button { padding: 4px 12px; color: inherit; }
+body.doc #tools .name { margin-right: 12px; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dim); font-size: 13px; }
+body.doc main { max-width: 860px; margin: 0 auto; padding: 16px 20px 64px; font-size: var(--size); line-height: 1.65; font-family: "Segoe UI", system-ui, sans-serif; }
+body.doc .md h1, body.doc .md h2 { border-bottom: 1px solid rgba(127,127,127,.3); padding-bottom: .25em; }
+body.doc .md img { max-width: 100%; height: auto; }
+body.doc .md pre, body.doc .md code { background: rgba(127,127,127,.15); border-radius: 4px; font-family: Consolas, "Cascadia Mono", monospace; font-size: .88em; }
+body.doc .md code { padding: 2px 5px; }
+body.doc .md pre { padding: 12px 14px; overflow-x: auto; }
+body.doc .md pre code { background: none; padding: 0; }
+body.doc .md pre.src { white-space: pre-wrap; word-break: break-word; }
+body.doc .md blockquote { margin: 1em 0; padding-left: 1em; border-left: 3px solid var(--dim); color: var(--dim); }
+body.doc .md table { border-collapse: collapse; display: block; overflow-x: auto; }
+body.doc .md td, body.doc .md th { border: 1px solid rgba(127,127,127,.4); padding: 5px 10px; }
+body.doc .md hr { border: 0; border-top: 1px solid rgba(127,127,127,.4); }
+body.doc .md input[type=checkbox] { margin-right: 6px; }
+
+@media print {
+  body.doc, body.doc.light { background: #fff; color: #000; }
+  body.doc #tools { display: none; }
+  body.doc main { max-width: none; padding: 0; font-size: 11pt; }
+  body.doc a { color: #000; text-decoration: underline; }
+  body.doc .md pre, body.doc .md code { background: #f2f2f2; }
+  body.doc .md pre { white-space: pre-wrap; word-break: break-word; }
+  body.doc .md h1, body.doc .md h2, body.doc .md h3, body.doc .md img, body.doc .md tr { break-inside: avoid; break-after: avoid; }
+}
+body.doc .md h1, body.doc .md h2, body.doc .md h3, body.doc .md h4, body.doc .md h5, body.doc .md h6 { color: inherit; text-transform: none; letter-spacing: 0; font-weight: 600; line-height: 1.3; margin: 1.4em 0 .6em; }
+body.doc .md h1 { font-size: 2em; } body.doc .md h2 { font-size: 1.5em; } body.doc .md h3 { font-size: 1.25em; }
+body.doc .md h4, body.doc .md h5, body.doc .md h6 { font-size: 1em; }

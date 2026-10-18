@@ -33,6 +33,7 @@ const INPUT_GESTURE = /^(mouseDown|mouseUp|rawKeyDown|keyDown|touchStart|touchEn
 const ANCHORED_OVERLAYS = new Set(['menu', 'vault', 'github', 'site']); // панелі під панеллю інструментів
 const { isWebUrl } = require('./util');
 const pdf = require('./pdf');
+const docview = require('./docview');
 
 class AppWindow {
   constructor(ctx, opts = {}) {
@@ -255,7 +256,7 @@ class AppWindow {
         preload: path.join(ROOT, 'page-preload.js'), spellcheck: true,
       },
     });
-    const tab = { id: this.nextTabId++, view, favicon: '', blocked: 0, errorUrl: '', pinned, sleep: null, lastActive: Date.now(), reader: null, group: pinned ? null : group };
+    const tab = { id: this.nextTabId++, view, favicon: '', blocked: 0, errorUrl: '', pinned, sleep: null, lastActive: Date.now(), reader: null, doc: null, group: pinned ? null : group };
     if (pinned) this.tabs.splice(this.tabs.filter(t => t.pinned).length, 0, tab);
     else if (opener && opener.group && this.groups.has(opener.group) && this.tabs.includes(opener)) {
       // нова вкладка з посилання відкривається в групі відкривача, одразу після нього
@@ -275,6 +276,8 @@ class AppWindow {
     const url = this.ctx.resolveInput(input);
     if (!url) return;
     if (tab.sleep) tab.sleep = null;
+    const md = docview.markdownPathFromUrl(url);
+    if (md) { this.openDoc(tab, md); return; }
     tab.view.webContents.loadURL(url).catch(() => { /* помилки показує did-fail-load */ });
   }
 
@@ -362,6 +365,8 @@ class AppWindow {
       wc.on('will-redirect', gate);
     }
     wc.on('will-navigate', (e, url) => {
+      const md = docview.markdownPathFromUrl(url);
+      if (md && !/^https?:/i.test(wc.getURL())) { e.preventDefault(); this.openDoc(tab, md); return; }
       if (EXTERNAL_SCHEME.test(url)) { e.preventDefault(); this.openExternal(url, { tab }); }
       else if (!/^(https?|w3ir|file|about|blob|data|view-source|ar):/i.test(url)) e.preventDefault();
       else if (webToInternal(wc.getURL(), url)) e.preventDefault();
@@ -505,7 +510,7 @@ class AppWindow {
     if (i < 0) return;
     const tab = this.tabs[i];
     const url = this.tabUrl(tab);
-    if (url && !/^w3ir:\/\/(newtab|error|reader)/.test(url) && url !== 'about:blank') {
+    if (url && !/^w3ir:\/\/(newtab|error|reader|doc)/.test(url) && url !== 'about:blank') {
       this.closedStack.push(url);
       if (this.closedStack.length > 25) this.closedStack.shift();
     }
@@ -798,6 +803,18 @@ class AppWindow {
       t.reader = { ...article, url };
       t.view.webContents.loadURL('w3ir://reader').catch(() => {});
     } catch { this.toast('Не вдалося увімкнути режим читання'); }
+  }
+
+  // ---------- перегляд документів (Markdown) ----------
+  openDoc(tab, file) {
+    const d = docview.loadDoc(file);
+    if (!d.ok) {
+      this.toast(d.error === 'size' ? 'Файл завеликий для перегляду (понад 5 МБ)' : d.error === 'binary' ? 'Це не текстовий файл' : 'Не вдалося відкрити документ');
+      return;
+    }
+    if (tab.sleep) tab.sleep = null;
+    tab.doc = { name: d.name, file: d.file, size: d.size, text: d.text };
+    tab.view.webContents.loadURL('w3ir://doc').catch(() => {});
   }
 
   // ---------- оверлей (меню, підказки, палітра) ----------

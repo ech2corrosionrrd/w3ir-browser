@@ -12,13 +12,14 @@ const rules = {
 
 // Загальні імена внутрішніх сторінок (pages/common.js, help-data.js, preload через contextBridge)
 const pageShared = { app: 'writable', h: 'readonly', fmtBytes: 'readonly', fmtTime: 'readonly', fmtDay: 'readonly', debounce: 'readonly', ask: 'readonly', railNav: 'readonly',
-  HELP: 'readonly', SHORTCUTS: 'readonly', FAQ: 'readonly', w3ir: 'readonly', t: 'readonly', LOCALE: 'readonly' };
+  HELP: 'readonly', Markdown: 'readonly', SHORTCUTS: 'readonly', FAQ: 'readonly', w3ir: 'readonly', t: 'readonly', LOCALE: 'readonly' };
 
 module.exports = [
   { ignores: ['dist/**', 'node_modules/**', 'build/keys/**', 'docs/**'] },
   { files: ['**/*.js'], ignores: ['pages/**', 'ui/**', 'page-preload.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: { ...globals.node } }, rules },
   { files: ['page-preload.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser } }, rules },
-  { files: ['pages/**/*.js'], ignores: ['pages/common.js', 'pages/help-data.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, ...pageShared } }, rules },
+  { files: ['pages/**/*.js'], ignores: ['pages/common.js', 'pages/help-data.js', 'pages/markdown.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, ...pageShared } }, rules },
+  { files: ['pages/markdown.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, ...globals.node } }, rules },
   { files: ['pages/common.js', 'pages/help-data.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, t: 'readonly', LOCALE: 'readonly' } }, rules: { ...rules, 'no-unused-vars': 'off' } },
   { files: ['ui/**/*.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, api: 'readonly', t: 'readonly', LOCALE: 'readonly' } }, rules },
 ];
