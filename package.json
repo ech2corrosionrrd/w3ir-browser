@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "test": "node build/run-tests.js",
     "test:unit": "node build/run-unit.js",
+    "ci": "node build/ci-local.js",
     "smoke": "electron .",
     "icon": "python build/make-brand.py",
     "pack": "electron-builder --win --dir",

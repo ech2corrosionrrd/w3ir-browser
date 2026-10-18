@@ -1,7 +1,7 @@
 name: CI
+# Основний CI виконується локально: npm run ci (build/ci-local.js). Тут лише ручний запуск: хвилини GitHub Actions обмежені.
 on:
-  push: { branches: [main] }
-  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
