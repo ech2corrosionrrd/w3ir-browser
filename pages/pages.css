@@ -224,3 +224,8 @@ body.pdftools .note[role=status] { margin: 0; flex: 1; }
 html, body { font-family: Inter, "Segoe UI", system-ui, sans-serif; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #04141c; font-weight: 600; }
 button.primary:hover { background: #7dd3fc; }
+html.newtab {
+  --fg: #f1f5f9; --dim: #94a3b8; --card: #10141a; --line: rgba(255,255,255,.08); --link: #8ed5ff;
+  background: radial-gradient(900px 520px at 90% -10%, rgba(56,189,248,.10), transparent 62%),
+    radial-gradient(800px 560px at 0% 110%, rgba(45,212,191,.07), transparent 62%), #0a0e14 fixed;
+}
