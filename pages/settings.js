@@ -254,6 +254,13 @@ async function main() {
       toggle('sleepTabs', 'Приспляти неактивні вкладки', 'Вкладки, які не використовуються 15 хвилин, звільняють оперативну пам’ять і оновлюються при поверненні')),
     h('h2', null, 'Приватність'),
     h('div', { class: 'list' },
+      (() => {
+        const modes = { standard: 'Стандартний', strict: 'Суворий', maximum: 'Максимальний' };
+        const sel = h('select', { onchange: async () => { await save({ protection: sel.value }); location.reload(); } },
+          Object.entries(modes).map(([v, l]) => h('option', { value: v, selected: (settings.protection || 'standard') === v }, l)));
+        return h('div', { class: 'row', title: 'Режим захисту' }, h('div', null, h('div', null, 'Режим захисту'),
+          h('div', { class: 'd' }, 'Стандартний — звичайна робота. Суворий — додатково блокує сторонні cookie й приховує локальні адреси в WebRTC. Максимальний — ще й WebRTC лише через проксі та без Referer для сторонніх сайтів. Деякі сайти (входи через сторонні сервіси, оплата) можуть працювати гірше: для такого сайту вимкніть блокувальник у панелі інформації про сайт.')), sel);
+      })(),
       toggle('adblock', 'Блокувати рекламу та трекери', adblockEngine ? 'Активні фільтри EasyList / EasyPrivacy / uBlock + приховування рекламних блоків' : 'Завантаження фільтрів… тимчасово діє базовий список доменів'),
       toggle('httpsFirst', 'Спершу HTTPS', 'Автоматично відкривати http-сайти через https, якщо це можливо'),
       toggle('stripTracking', 'Прибирати трекінгові параметри з адрес', 'utm_*, fbclid, gclid та подібні'),

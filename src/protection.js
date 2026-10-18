@@ -1,0 +1,50 @@
+'use strict';
+// Режими захисту приватності: «Стандартний», «Суворий», «Максимальний». Чисті функції без Electron (тести: test/unit/protection.test.js).
+//   standard: поточна поведінка (нічого додаткового).
+//   strict:   сторонні cookie блокуються (запит без Cookie, відповідь без Set-Cookie), WebRTC не розкриває локальні адреси.
+//   maximum:  те саме + WebRTC лише через проксі (прямого UDP немає) + Referer до сторонніх сайтів не надсилається.
+// Сайти, для яких блокувальник вимкнено («щити»), і вхід Google виключені з обмежень: інакше ламаються входи й оплата.
+
+const LEVELS = ['standard', 'strict', 'maximum'];
+
+// Перемикачі приватності, які вмикає режим (користувач потім може вимкнути окремі в налаштуваннях)
+const PRESETS = {
+  standard: {},
+  strict: { adblock: true, sendGpc: true, httpsFirst: true, stripTracking: true, safeBrowsing: true },
+  maximum: { adblock: true, sendGpc: true, httpsFirst: true, stripTracking: true, safeBrowsing: true },
+};
+
+const level = (v) => (LEVELS.includes(v) ? v : 'standard');
+const isStrict = (v) => level(v) !== 'standard';
+
+function webrtcPolicy(v) {
+  return { standard: 'default', strict: 'default_public_interface_only', maximum: 'disable_non_proxied_udp' }[level(v)];
+}
+
+const GOOGLE_ACCOUNTS = /^accounts\.(google|youtube)\./i;
+
+// Чи є запит сторонім відносно верхньої сторінки (різні сайти за реєстрованим доменом). siteKey(host) → реєстрований домен.
+function isThirdParty(requestUrl, topHost, siteKey) {
+  let host;
+  try { host = new URL(requestUrl).hostname.toLowerCase(); } catch { return false; }
+  if (!host || !topHost) return false;
+  if (GOOGLE_ACCOUNTS.test(host) || GOOGLE_ACCOUNTS.test(topHost)) return false;
+  return siteKey(host) !== siteKey(topHost);
+}
+
+const dropHeader = (headers, name) => {
+  let hit = false;
+  if (!headers) return hit;
+  for (const k of Object.keys(headers)) if (k.toLowerCase() === name) { delete headers[k]; hit = true; }
+  return hit;
+};
+
+// Прибирає Cookie із запиту; повертає true, якщо щось змінено
+const stripCookieRequest = (headers) => dropHeader(headers, 'cookie');
+// Прибирає Set-Cookie з відповіді; повертає true, якщо щось змінено
+const stripSetCookie = (headers) => dropHeader(headers, 'set-cookie');
+
+// Referer до сторонніх сайтів прибирається повністю (Chromium і так скорочує його до адреси сайту); true, якщо щось змінено
+const dropReferrer = (headers) => dropHeader(headers, 'referer');
+
+module.exports = { LEVELS, PRESETS, level, isStrict, webrtcPolicy, isThirdParty, stripCookieRequest, stripSetCookie, dropReferrer };

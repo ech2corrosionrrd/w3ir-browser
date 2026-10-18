@@ -4,6 +4,7 @@ const { t: tr } = require('./i18n');
 const { normOrigin } = require('./vault');
 const { hexChain } = require('./wallet');
 const { i18n, LANGS } = require('./i18n');
+const protection = require('./protection');
 
 // Після зміни мови: перезавантажити інтерфейс вікон і відкриті внутрішні сторінки всіх профілів
 function reloadUi(ctx) {
@@ -566,7 +567,7 @@ function registerIpc(resolve) {
   const SETTING_TYPES = {
     homepage: 'string', searchEngine: 'string', startup: 'string', adblock: 'boolean',
     sendGpc: 'boolean', showBookmarksBar: 'boolean', askDownload: 'boolean', downloadDir: 'string',
-    httpsFirst: 'boolean', stripTracking: 'boolean', sleepTabs: 'boolean', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean',
+    httpsFirst: 'boolean', stripTracking: 'boolean', protection: 'string', sleepTabs: 'boolean', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean',
   };
 
   ipcMain.handle('internal', async (e, name, arg) => {
@@ -607,6 +608,14 @@ function registerIpc(resolve) {
           if (!(k in SETTING_TYPES) || typeof v !== SETTING_TYPES[k]) continue;
           if (k === 'searchEngine' && !ctx.ENGINES[v]) continue;
           if (k === 'startup' && !['newtab', 'restore'].includes(v)) continue;
+          if (k === 'protection') {
+            if (!protection.LEVELS.includes(v)) continue;
+            // режим вмикає потрібні перемикачі приватності; окремі з них можна потім вимкнути вручну
+            Object.assign(cfg, protection.PRESETS[v]);
+            cfg.protection = v;
+            ctx.applyProtection();
+            continue;
+          }
           if (k === 'theme') {
             if (!['system', 'light', 'dark'].includes(v)) continue;
             // тема спільна для всіх профілів: зберігаємо в основному й застосовуємо до всього застосунку

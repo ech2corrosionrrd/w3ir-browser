@@ -23,6 +23,7 @@ const { attachCosmetic } = require('./adblock');
 const { stripTracking, upgradeHttps } = require('./urlrules');
 const { queryMatcher } = require('./util');
 const { i18n } = require('./i18n');
+const prot = require('./protection');
 
 const PAGES = path.join(__dirname, '..', 'pages');
 const UI = path.join(__dirname, '..', 'ui');
@@ -58,6 +59,7 @@ const DEFAULT_SETTINGS = {
   walletChain: 1,
   torrentConfirm: true,
   autolockMinutes: 15,
+  protection: 'standard', // standard | strict | maximum (src/protection.js)
 };
 
 const ENGINES = {
@@ -169,7 +171,11 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   };
 
   // ---------- реєстр вікон / вкладок ----------
-  ctx.register = (wc, win, tab) => ctx.registry.set(wc.id, { win, tab });
+  ctx.register = (wc, win, tab) => { ctx.registry.set(wc.id, { win, tab }); ctx.applyWebrtc(wc); };
+  // режим захисту: політика WebRTC для вкладки (решта правил діє у webRequest нижче)
+  ctx.protection = () => prot.level(ctx.cfg().protection);
+  ctx.applyWebrtc = (wc) => { try { wc.setWebRTCIPHandlingPolicy(prot.webrtcPolicy(ctx.protection())); } catch { /* вкладку закрито */ } };
+  ctx.applyProtection = () => { for (const e of ctx.registry.values()) { if (e.tab && e.tab.view) ctx.applyWebrtc(e.tab.view.webContents); } };
   ctx.unregister = (wc) => ctx.registry.delete(wc.id);
   ctx.entryFor = (wc) => ctx.registry.get(wc.id);
   ctx.winFor = (wc) => (ctx.registry.get(wc.id) || {}).win;
@@ -447,11 +453,25 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
         if (a && details.ip && (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame') && a.guardsContents(details.webContentsId)) a.lateIpCheck(details);
       } catch { /* ignore */ }
     });
+    // сторонній запит у суворому режимі, якщо для верхнього сайту не вимкнено «щити»
+    const thirdParty = (details) => {
+      if (!prot.isStrict(ctx.cfg().protection) || details.resourceType === 'mainFrame' || !/^https?:/i.test(details.url)) return false;
+      const top = ctx.topHost(details.webContentsId);
+      return !!top && !ctx.adblockAllowed(top) && prot.isThirdParty(details.url, top, ctx.siteKey);
+    };
     ses.webRequest.onHeadersReceived((details, cb) => {
+      if (thirdParty(details) && prot.stripSetCookie(details.responseHeaders)) {
+        const done = cb;
+        cb = (resp) => done(resp && resp.responseHeaders ? resp : { ...(resp || {}), responseHeaders: details.responseHeaders });
+      }
       if (ctx.blocker && ctx.cfg().adblock && /^https?:/i.test(details.url) && !ctx.adblockAllowed(ctx.topHost(details.webContentsId))) return ctx.blocker.onHeadersReceived(details, cb);
       cb({});
     });
     ses.webRequest.onBeforeSendHeaders((details, cb) => {
+      if (thirdParty(details)) {
+        prot.stripCookieRequest(details.requestHeaders);
+        if (ctx.protection() === 'maximum') prot.dropReferrer(details.requestHeaders);
+      }
       if (ctx.cfg().sendGpc) { details.requestHeaders['Sec-GPC'] = '1'; details.requestHeaders['DNT'] = '1'; }
       // Вхід Google відхиляє клієнтів без бренду «Google Chrome» (узгоджено з navigator.userAgentData, див. app-window.js)
       if (isGoogleUrl(details.url)) {
