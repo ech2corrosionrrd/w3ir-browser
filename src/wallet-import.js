@@ -193,6 +193,49 @@ function install(Wallet, { RpcError, unauthorized }) {
     this._imported().forEach((a, i) => { if (a.chain === chain) out.push({ value: String(IMP_BASE + i), label: `${a.name || tr('Імпортований рахунок')} \u00B7 ${sh(a.address)}` }); });
     return out;
   };
+  // Авторизація сайту: показує вікно з вибором серед УСІХ доступних рахунків цієї мережі (власні, похідні від фрази й імпортовані; рахунки лише для
+  // перегляду не пропонуються, бо підписати ними неможливо). Якщо сховище заблоковано, список рахунків ще недоступний: спершу окреме вікно з
+  // розблокуванням, потім, коли рахунків кілька, вікно з вибором. Повертає адресу вибраного рахунку; користувач може відхилити (4001).
+  // opts: { chain: 'evm'|'sol', have: [адреса поточного підключення], intro, network, accountLabel }
+  proto.pickDappAccount = async function (win, origin, sameTab, opts) {
+    const { chain, have } = opts;
+    const accountOf = (i) => (chain === 'sol' ? this.solAccount(i) : this.evmAccount(i));
+    const plan = () => {
+      let def = this.dappIndex(chain);
+      const options = this.dappChoices(chain);
+      if (have.length) { // повторна авторизація: за замовчуванням — рахунок, яким сайт підключено зараз
+        const cur = options.find(o => { try { return accountOf(Number(o.value)) === have[0]; } catch { return false; } });
+        if (cur) def = Number(cur.value);
+      }
+      return { def, options };
+    };
+    const title = have.length ? tr('Авторизація на сайті') : tr('Підключення до сайту');
+    const warnings = ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'];
+    const ask = (def, options) => {
+      const choose = options.length > 1;
+      return this.approve(win, origin, sameTab, {
+        kind: 'connect', title,
+        lines: [['Сайт отримає', opts.intro], ...(choose ? [] : [[opts.accountLabel, accountOf(def)]]), ['Мережа', opts.network()]],
+        ...(choose ? { choice: { label: 'Рахунок для сайту', options, value: String(def) } } : {}),
+        warnings,
+      });
+    };
+    let def, options, ap = null;
+    if (this.unlocked()) {
+      ({ def, options } = plan());
+      ap = await ask(def, options);
+    } else {
+      await this.approve(win, origin, sameTab, {
+        kind: 'connect', title,
+        lines: [['Сайт отримає', opts.intro], [opts.accountLabel, 'буде показано після розблокування'], ['Мережа', opts.network()]],
+        warnings,
+      });
+      if (!this.unlocked()) throw unauthorized('Гаманець заблоковано — розблокуйте сховище паролів');
+      ({ def, options } = plan());
+      if (options.length > 1) ap = await ask(def, options); // сховище розблоковано: тепер видно рахунки, питаємо, яким увійти
+    }
+    return accountOf(options.length > 1 && ap ? this.pickChoice(ap, options, def) : def);
+  };
   // Індекс рахунку з відповіді підтвердження: лише з тих, що були запропоновані, інакше — типовий
   proto.pickChoice = function (approval, options, fallback) {
     const v = approval && approval.choice;

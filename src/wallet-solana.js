@@ -460,20 +460,10 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   };
 
   proto._solAskConnect = async function (win, origin, sameTab, have, pack) {
-    let def = this.dappIndex('sol');
-    const options = this.dappChoices('sol');
-    if (have.length) {
-      const cur = options.find(o => { try { return this.solAccount(Number(o.value)) === have[0]; } catch { return false; } });
-      if (cur) def = Number(cur.value);
-    }
-    const choose = options.length > 1;
-    const ap = await this.approve(win, origin, sameTab, {
-      kind: 'connect', title: have.length ? tr('Авторизація на сайті') : tr('Підключення до сайту'),
-      lines: [['Сайт отримає', 'доступ до публічної адреси Solana та право пропонувати підписи'], ...(choose ? [] : [['Рахунок Solana', this.solAccount(def)]]), ['Мережа', CLUSTERS[this.solCluster()].name]],
-      ...(choose ? { choice: { label: 'Рахунок для сайту', options, value: String(def) } } : {}),
-      warnings: ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'],
+    const address = await this.pickDappAccount(win, origin, sameTab, {
+      chain: 'sol', have, accountLabel: 'Рахунок Solana', intro: 'доступ до публічної адреси Solana та право пропонувати підписи',
+      network: () => CLUSTERS[this.solCluster()].name,
     });
-    const address = this.solAccount(choose ? this.pickChoice(ap, options, def) : def);
     if (have.length && have[0] === address) { this.log({ origin, action: 'Авторизація Solana' }); return pack(address); } // той самий рахунок
     const s = this.section();
     s.solConnections = s.solConnections || {};

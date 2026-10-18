@@ -635,6 +635,20 @@ async function walletTests(ctx) {
   const quiet = await call(wcA, 'eth_requestAccounts');
   ok(quiet.ok && quiet.ok[0] === addr1 && !w.approval, 'auth: з вимкненим налаштуванням підключений сайт отримує рахунок без вікна');
   ctx.cfg().walletAskAccount = true;
+  // сховище заблоковано: спершу розблокування, потім вибір рахунку серед усіх доступних (а не мовчазний рахунок за замовчуванням)
+  ctx.vault.lock();
+  ok(!wal.unlocked(), 'auth: сховище заблоковано для перевірки');
+  const lockedReq = call(wcA, 'eth_requestAccounts');
+  const apLock1 = await waitApproval();
+  ok(apLock1 && !apLock1.spec.choice && apLock1.spec.lines.some(l => /розблокування/.test(String(l[1]))), 'auth: заблоковане сховище — спершу вікно розблокування без списку рахунків');
+  await w.decide(apLock1.id, true, MASTER);
+  const apLock2 = await waitApproval();
+  ok(wal.unlocked() && apLock2 && apLock2.id !== apLock1.id && apLock2.spec.choice && apLock2.spec.choice.options.length >= 2, `auth: після розблокування показано вибір серед усіх рахунків (${apLock2 && apLock2.spec.choice ? apLock2.spec.choice.options.length : 0})`);
+  await w.decide(apLock2.id, true, MASTER, '1');
+  const lockedRes = await lockedReq;
+  ok(lockedRes.ok && lockedRes.ok[0] === addr1, 'auth: вибраний після розблокування рахунок отримує сайт');
+  const allEvm = wal.dappChoices('evm');
+  ok(allEvm.length === wal.info().accounts.length + wal.info().imported.filter(x => x.chain === 'evm').length && !allEvm.some(o => Number(o.value) >= 5000), 'auth: у виборі всі власні рахунки мережі (похідні й імпортовані), без рахунків лише для перегляду');
   // --- розбір підписів і захист: SIWE, permit, EIP-7702, буфер обміну (у підключеного сайту) ---
   const acc1 = wal.section().addresses[1];
   const siweMsg = `evil.example wants you to sign in with your Ethereum account:\n${acc1}\n\nSign in.\n\nURI: https://evil.example/\nVersion: 1\nChain ID: 31337\nNonce: abcdef123456\nIssued At: ${new Date().toISOString()}`;

@@ -434,23 +434,12 @@ class Wallet {
   }
 
   async _askConnect(win, origin, sameTab, have) {
-    // Рахунків кілька — користувач вибирає, яким підключитися (за замовчуванням — типовий для сайтів)
-    let def = this.unlocked() ? this.dappIndex('evm') : 0;
-    const options = this.unlocked() ? this.dappChoices('evm') : [];
-    // повторна авторизація: за замовчуванням пропонується рахунок, яким сайт підключено зараз
-    if (have.length) {
-      const cur = options.find(o => { try { return this.evmAccount(Number(o.value)) === have[0]; } catch { return false; } });
-      if (cur) def = Number(cur.value);
-    }
-    const choose = options.length > 1;
-    const ap = await this.approve(win, origin, sameTab, {
-      kind: 'connect', title: have.length ? tr('Авторизація на сайті') : tr('Підключення до сайту'),
-      lines: [['Сайт отримає', 'доступ до адреси вашого рахунку та право пропонувати транзакції'], ...(choose ? [] : [['Рахунок', this.unlocked() ? this.evmAccount(def) : 'буде показано після розблокування']]), ['Мережа', (this.network(this.activeChain()) || {}).name || String(this.activeChain())]],
-      ...(choose ? { choice: { label: 'Рахунок для сайту', options, value: String(def) } } : {}),
-      warnings: ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'],
+    // користувач вибирає серед усіх доступних рахунків, яким авторизуватись (докладно: pickDappAccount у wallet-import.js)
+    const picked = await this.pickDappAccount(win, origin, sameTab, {
+      chain: 'evm', have, accountLabel: 'Рахунок', intro: 'доступ до адреси вашого рахунку та право пропонувати транзакції',
+      network: () => (this.network(this.activeChain()) || {}).name || String(this.activeChain()),
     });
     const s = this.section();
-    const picked = this.evmAccount(choose ? this.pickChoice(ap, options, def) : def);
     if (have.length && have[0] === picked) { this.log({ origin, action: 'Авторизація' }); return have; } // той самий рахунок: підключення не змінюється
     s.connections[origin] = { accounts: [picked], chainId: have.length ? (s.connections[origin] || {}).chainId || s.activeChain : s.activeChain, since: Date.now() };
     this.vault.persist();
