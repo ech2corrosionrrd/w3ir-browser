@@ -296,6 +296,8 @@ $('star').onclick = () => api.cmd('bookmark');
 $('reader').onclick = () => api.cmd('reader');
 $('upd').onclick = () => api.cmd((window.__updState === 'ready') ? 'updateInstall' : 'openPage', (window.__updState === 'ready') ? undefined : 'settings');
 $('gh').onclick = () => api.cmd('githubMenu', Math.round($('toolbar').getBoundingClientRect().bottom));
+$('copilot').onclick = () => api.cmd('openPage', 'assistant');
+$('sleepall').onclick = () => api.cmd('sleepInactive');
 $('vault').onclick = () => api.cmd('vaultMenu', Math.round($('toolbar').getBoundingClientRect().bottom));
 $('shield').onclick = () => api.cmd('toggleAdblock');
 $('dl').onclick = () => api.cmd('openPage', 'downloads');

@@ -787,6 +787,22 @@ class AppWindow {
     } finally { this.sleepBusy = false; }
   }
 
+  // Приспати всі неактивні вкладки одразу (кнопка на панелі вкладок): ті самі запобіжники, що й в автоматичного сну, але без очікування
+  async sleepNow() {
+    if (this.agent || this.sleepBusy) return 0;
+    this.sleepBusy = true;
+    let n = 0;
+    try {
+      for (const t of this.tabs.slice()) {
+        if (this.split && (t.id === this.split.a || t.id === this.split.b)) continue;
+        if (t.sleep || t.pinned || t.playing || t.id === this.activeId) continue;
+        if (await this.hasUnsavedInput(t)) continue;
+        if (this.tabs.includes(t) && t.id !== this.activeId && this.sleepTab(t)) n++;
+      }
+    } finally { this.sleepBusy = false; }
+    return n;
+  }
+
   // ---------- режим читання ----------
   async openReader() {
     const t = this.active();
@@ -1275,6 +1291,7 @@ class AppWindow {
         if (existing) this.switchTab(existing.id); else this.createTab(url);
         break;
       }
+      case 'sleepInactive': this.sleepNow().then((n) => this.toast(n ? tr('Приспано вкладок: {0}', n) : 'Немає неактивних вкладок, які можна приспати')); break;
       case 'newWindow': ctx.openWindow({}); break;
       case 'openProfile': if (ctx.manager && ctx.manager.has(arg)) ctx.manager.open(arg); break;
       case 'newIncognito': ctx.openWindow({ incognito: true }); break;
