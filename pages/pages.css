@@ -205,3 +205,7 @@ body.pdftools main { max-width: 760px; }
 body.pdftools .mfield { max-width: 520px; }
 body.pdftools .bar { align-items: center; flex-wrap: wrap; }
 body.pdftools .note[role=status] { margin: 0; flex: 1; }
+.maturity { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; flex: none; white-space: nowrap; background: color-mix(in srgb, var(--dim) 20%, transparent); color: var(--fg); }
+.maturity.stable { background: color-mix(in srgb, #2ecc71 24%, transparent); }
+.maturity.beta { background: color-mix(in srgb, #f1c40f 26%, transparent); }
+.maturity.experimental { background: color-mix(in srgb, #e67e22 28%, transparent); }

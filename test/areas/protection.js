@@ -58,6 +58,12 @@ async function protectionTests(ctx) {
     ok(wc.getWebRTCIPHandlingPolicy() === 'disable_non_proxied_udp', `protection: максимальний режим вмикає політику WebRTC (${wc.getWebRTCIPHandlingPolicy()})`);
     ctx.cfg().protection = 'standard'; ctx.applyProtection();
     ok(wc.getWebRTCIPHandlingPolicy() === 'default', 'protection: стандартний режим повертає типову політику WebRTC');
+    // сторінка налаштувань показує перемикач режимів і розділ «Стан функцій»
+    w.exec('newTab'); w.exec('go', 'w3ir://settings'); await sleep(2500);
+    const sw = w.active().view.webContents;
+    const ui = await sw.executeJavaScript(`({ marks: document.querySelectorAll('.maturity').length, labels: [...new Set([...document.querySelectorAll('.maturity')].map(e => e.className.replace('maturity ', '')))].sort().join(), modes: [...document.querySelectorAll('select option')].map(o => o.value).filter(v => ['standard', 'strict', 'maximum'].includes(v)).join() })`);
+    ok(ui.marks >= 10 && ui.labels === 'beta,experimental,stable', `protection: у налаштуваннях є розділ «Стан функцій» (${JSON.stringify(ui)})`);
+    ok(ui.modes === 'standard,strict,maximum', `protection: у налаштуваннях є вибір режиму захисту (${ui.modes})`);
   } finally {
     ctx.cfg().protection = prev || 'standard';
     ctx.cfg().adblock = prevAdblock;
