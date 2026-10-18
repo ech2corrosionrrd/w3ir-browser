@@ -99,6 +99,24 @@ async function auditTests(ctx) {
   const md = await td.view.webContents.executeJavaScript(`(() => { const a = document.getElementById('app'); return { title: document.title, h1: !!a.querySelector('h1'), strong: !!a.querySelector('strong'), table: a.querySelectorAll('td').length, script: a.querySelectorAll('script').length, js: [...a.querySelectorAll('a')].some(x => /^javascript:/i.test(x.getAttribute('href') || '')), good: !!a.querySelector('a[href="https://ok.example/"]'), text: a.innerText.includes('<script>'), x: window.__x === 1 }; })()`);
   ok(/^w3ir:[/][/]doc[/]?$/.test(mdUrl) && md.title === 'Тестовий документ' && md.h1 && md.strong && md.table === 2 && md.script === 0 && !md.js && md.good && md.text && !md.x, 'doc: .md відкривається у вкладці переглядача (заголовок, таблиця, виділення); скрипт показується текстом, javascript: прибрано', md);
   w.closeTab(td.id);
+  // CSV, JSON і текст у тому ж переглядачі
+  const docProbe = async (name, content, expr) => {
+    const f = path.join(mdDir, name);
+    fs.writeFileSync(f, content);
+    const tab = w.createTab(require('url').pathToFileURL(f).href, { activate: false });
+    await sleep(1800);
+    const r = await tab.view.webContents.executeJavaScript(expr).catch((e) => { return {}; });
+    w.closeTab(tab.id);
+    return r;
+  };
+  const csvR = await docProbe('таблиця.csv', ['імя;сума', 'Б;10', 'А;2', '"<b>x</b>";3', ''].join('\n'), `(() => { const th = document.querySelector('th.sort'); th.click(); const rows = [...document.querySelectorAll('tbody tr')].map(r => r.children[1].textContent); return { rows, b: document.querySelectorAll('table.grid b').length, cols: document.querySelectorAll('thead th').length }; })()`);
+  ok(csvR.rows.length === 3 && csvR.rows[0] === '<b>x</b>' && csvR.b === 0 && csvR.cols === 3, 'doc: CSV — таблиця з роздільником «;», сортування за заголовком, HTML у клітинках не виконується');
+  const jsonR = await docProbe('дані.json', JSON.stringify({ a: [1, 2, { b: '<i>x</i>' }], ok: true, n: null }), `(() => ({ top: document.querySelectorAll('.tree > details').length, i: document.querySelectorAll('.tree i').length, text: document.querySelector('.tree').innerText.includes('"ok"') }))()`);
+  ok(jsonR.top === 1 && jsonR.i === 0 && jsonR.text, 'doc: JSON — дерево, ключі видно, HTML у рядках не виконується');
+  const badJson = await docProbe('зламаний.json', '{"a": ', `document.querySelector('.warn') ? document.querySelector('.warn').textContent : ''`);
+  ok(/JSON/.test(badJson), 'doc: некоректний JSON — повідомлення й вихідний текст');
+  const txtR = await docProbe('журнал.log', ['перший', 'другий <script>1</script>', ''].join('\n'), `(() => ({ n: document.querySelectorAll('.ln').length, s: document.querySelectorAll('pre.code script').length, no: document.querySelector('.ln').dataset.n }))()`);
+  ok(txtR.n === 2 && txtR.s === 0 && txtR.no === '1', 'doc: текстовий файл — нумеровані рядки, розмітка не виконується');
   const bigMd = path.join(mdDir, 'big.md');
   fs.writeFileSync(bigMd, Buffer.alloc(5 * 1024 * 1024 + 1, 97));
   const tb = w.createTab('about:blank', { activate: false });

@@ -276,7 +276,7 @@ class AppWindow {
     const url = this.ctx.resolveInput(input);
     if (!url) return;
     if (tab.sleep) tab.sleep = null;
-    const md = docview.markdownPathFromUrl(url);
+    const md = docview.docPathFromUrl(url);
     if (md) { this.openDoc(tab, md); return; }
     tab.view.webContents.loadURL(url).catch(() => { /* помилки показує did-fail-load */ });
   }
@@ -365,7 +365,7 @@ class AppWindow {
       wc.on('will-redirect', gate);
     }
     wc.on('will-navigate', (e, url) => {
-      const md = docview.markdownPathFromUrl(url);
+      const md = docview.docPathFromUrl(url);
       if (md && !/^https?:/i.test(wc.getURL())) { e.preventDefault(); this.openDoc(tab, md); return; }
       if (EXTERNAL_SCHEME.test(url)) { e.preventDefault(); this.openExternal(url, { tab }); }
       else if (!/^(https?|w3ir|file|about|blob|data|view-source|ar):/i.test(url)) e.preventDefault();
@@ -813,7 +813,7 @@ class AppWindow {
       return;
     }
     if (tab.sleep) tab.sleep = null;
-    tab.doc = { name: d.name, file: d.file, size: d.size, text: d.text };
+    tab.doc = { name: d.name, file: d.file, kind: d.kind, size: d.size, text: d.text };
     tab.view.webContents.loadURL('w3ir://doc').catch(() => {});
   }
 

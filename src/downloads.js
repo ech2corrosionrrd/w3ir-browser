@@ -132,7 +132,7 @@ class Downloads {
   // Markdown відкривається у вкладці переглядача документів (w3ir://doc)
   openDocInTab(rec, win) {
     const w = win && !win.win.isDestroyed() ? win : [...this.ctx.windows].pop();
-    if (!w || !docview.isMarkdownName(rec.path)) return false;
+    if (!w || !docview.isDownloadDoc(rec.path)) return false;
     const tab = w.createTab('about:blank');
     w.openDoc(tab, rec.path);
     return true;
@@ -145,7 +145,7 @@ class Downloads {
     else if (action === 'pause' && live) live.item.pause();
     else if (action === 'resume' && live && live.item.canResume()) live.item.resume();
     else if (rec && action === 'open' && rec.path && rec.state === 'completed' && pdf.isPdfName(rec.path) && this.openInTab(rec, win)) { /* відкрито у вкладці */ }
-    else if (rec && action === 'open' && rec.path && rec.state === 'completed' && docview.isMarkdownName(rec.path) && this.openDocInTab(rec, win)) { /* відкрито у вкладці */ }
+    else if (rec && action === 'open' && rec.path && rec.state === 'completed' && docview.isDownloadDoc(rec.path) && this.openDocInTab(rec, win)) { /* відкрито у вкладці */ }
     else if (rec && action === 'open' && rec.path && rec.state === 'completed') this.confirmOpen(rec).then((yes) => { if (yes) shell.openPath(rec.path); }).catch(() => {});
     else if (rec && action === 'show' && rec.path) shell.showItemInFolder(rec.path);
     else if (rec && action === 'remove' && !live) this.store.data.splice(this.store.data.indexOf(rec), 1);

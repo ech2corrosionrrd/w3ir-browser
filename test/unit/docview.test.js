@@ -54,10 +54,10 @@ test('markdown: порожній вхід, CRLF, BOM, глибока вклад�
 
 test('docview: розпізнавання Markdown та file:-адрес', () => {
   assert.ok(docview.isMarkdownName('a.MD') && docview.isMarkdownName('a.markdown') && !docview.isMarkdownName('a.md.exe') && !docview.isMarkdownName('md'));
-  assert.equal(docview.markdownPathFromUrl('https://e.example/a.md'), null);
-  assert.equal(docview.markdownPathFromUrl('file://server/share/a.md'), null);
-  assert.equal(docview.markdownPathFromUrl('file:///C:/x/a.txt'), null);
-  const p = docview.markdownPathFromUrl('file:///C:/My%20Docs/a.md?x=1#h');
+  assert.equal(docview.docPathFromUrl('https://e.example/a.md'), null);
+  assert.equal(docview.docPathFromUrl('file://server/share/a.md'), null);
+  assert.equal(docview.docPathFromUrl('file:///C:/x/a.exe'), null);
+  const p = docview.docPathFromUrl('file:///C:/My%20Docs/a.md?x=1#h');
   if (process.platform === 'win32') assert.equal(p, ['C:', 'My Docs', 'a.md'].join(path.sep));
 });
 
@@ -76,6 +76,34 @@ test('docview: loadDoc — лише текстові файли Markdown до 5 
     assert.equal(docview.loadDoc(path.join(dir, 'd.md')).error, 'type');
     assert.equal(docview.loadDoc(path.join(dir, 'none.md')).error, 'missing');
     assert.equal(docview.loadDoc('rel.md').error, 'type');
-    assert.equal(docview.loadDoc(path.join(dir, 'x.txt')).error, 'type');
+    assert.equal(docview.loadDoc(path.join(dir, 'x.exe')).error, 'type');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('docview: типи файлів — Markdown, CSV, JSON, текст; виконувані й HTML не входять', () => {
+  assert.equal(docview.docKind('a.CSV'), 'csv');
+  assert.equal(docview.docKind('a.tsv'), 'csv');
+  assert.equal(docview.docKind('a.json'), 'json');
+  assert.equal(docview.docKind('a.yaml'), 'text');
+  assert.equal(docview.docKind('a.md'), 'md');
+  for (const n of ['a.js', 'a.ps1', 'a.bat', 'a.exe', 'a.html', 'a.svg', 'a.txt', 'a.pdf', 'json']) assert.equal(docview.docKind(n), null, n);
+  assert.ok(docview.isDownloadDoc('x.csv') && docview.isDownloadDoc('x.json') && docview.isDownloadDoc('x.md') && !docview.isDownloadDoc('x.py') && !docview.isDownloadDoc('x.log'));
+});
+
+test('csv: лапки, переноси в полях, роздільники, обмеження рядків', () => {
+  const { parse, detectDelimiter, compare } = require('../../pages/csv.js');
+  const r = parse('a,b,c\n1,"x, y","рядок1\nрядок2"\n"ц""итата",,3\n', ',');
+  assert.deepEqual(r.rows, [['a', 'b', 'c'], ['1', 'x, y', 'рядок1\nрядок2'], ['ц"итата', '', '3']]);
+  assert.deepEqual(parse('\uFEFFa;b\r\n1;2\r\n\r\n3;4', ';').rows, [['a', 'b'], ['1', '2'], ['3', '4']]);
+  assert.equal(detectDelimiter('a;b;c\n1;2;3', 'x.csv'), ';');
+  assert.equal(detectDelimiter('a,b\n1,2', 'x.csv'), ',');
+  assert.equal(detectDelimiter('a\tb', 'x.tsv'), '\t');
+  assert.equal(detectDelimiter('одне слово', 'x.csv'), ',');
+  const t = parse('h\n1\n2\n3\n4\n', ',', 3);
+  assert.equal(t.rows.length, 3);
+  assert.equal(t.truncated, true);
+  assert.deepEqual(['10', '9', '2'].sort(compare), ['2', '9', '10']);
+  assert.deepEqual(['b', 'a10', 'a2'].sort(compare), ['a2', 'a10', 'b']);
+  assert.equal(parse('', ',').rows.length, 0);
+  assert.doesNotThrow(() => parse('"незакрита,лапка\nабв', ','));
 });
