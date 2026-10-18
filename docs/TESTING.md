@@ -2,6 +2,8 @@
 
 Статичний аналіз: `npm run lint` (запускати перед випуском).
 
+Швидкі unit-тести без Electron: `npm run test:unit` (`node --test test/unit`, секунди, без вікна; працюють у CI до повного прогону). Покривають чисті модулі: `util`, `urlrules`, `safe-fetch`, `qr`, `crypto-util`, `update-verify`, `injection-guard`, CSV історії EVM, `ftsQuery`. Тест `places` потребує `node:sqlite` (Node 22.5+) і на старішому Node пропускається. Нові чисті функції додавайте сюди, а не в тести вікна.
+
 Автоматичний набір (1086 перевірок; усі проходять; для швидкої перевірки областей: `W3IR_ONLY=agentTests,updateTests`, назви — імена функцій у `test/security.js`) — `test/security.js` (запускач) і області в `test/areas/*.js` (storage, web3, solana, fuzz, qr, places, injection, assistant, arweave, updates-threats, tabs, ai, i18n, misc; спільні помічники — `test/lib.js`) (**490 перевірок**, повний прогін ≈ 3–5 хв). Запускається всередині Electron, тому використовує справжні вікна, вкладки, сеанси й IPC.
 
 ```

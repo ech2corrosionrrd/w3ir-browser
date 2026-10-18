@@ -14,6 +14,7 @@ jobs:
         with: { node-version: 24, cache: npm }
       - run: npm ci --ignore-scripts
       - run: npm run lint
+      - run: npm run test:unit
       - run: npm audit --omit=dev
       - name: Секрети не повинні потрапляти в репозиторій
         shell: bash

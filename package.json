@@ -10,6 +10,7 @@
     "start": "electron .",
     "lint": "eslint .",
     "test": "node build/run-tests.js",
+    "test:unit": "node --test test/unit",
     "smoke": "electron .",
     "icon": "python build/make-brand.py",
     "pack": "electron-builder --win --dir",
