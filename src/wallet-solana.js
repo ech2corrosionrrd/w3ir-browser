@@ -449,23 +449,37 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   proto._solConnect = async function (win, origin, p, sameTab) {
     const have = this.solAccountsFor(origin);
     const pack = (address) => ({ address, publicKey: S.b58decode(address).toString('base64') });
-    if (have.length) return pack(have[0]);
-    if (p.onlyIfTrusted) throw unauthorized('Сайт ще не підключено до гаманця');
-    const def = this.dappIndex('sol');
+    // тихе перепідключення (onlyIfTrusted) вікна не показує; звичайний connect щоразу питає рахунок (налаштування walletAskAccount)
+    if (p.onlyIfTrusted) { if (have.length) return pack(have[0]); throw unauthorized('Сайт ще не підключено до гаманця'); }
+    if (have.length && this.ctx.cfg().walletAskAccount === false) return pack(have[0]);
+    this._solConnectPending = this._solConnectPending || new Map();
+    if (this._solConnectPending.has(origin)) return this._solConnectPending.get(origin);
+    const run = this._solAskConnect(win, origin, sameTab, have, pack).finally(() => this._solConnectPending.delete(origin));
+    this._solConnectPending.set(origin, run);
+    return run;
+  };
+
+  proto._solAskConnect = async function (win, origin, sameTab, have, pack) {
+    let def = this.dappIndex('sol');
     const options = this.dappChoices('sol');
+    if (have.length) {
+      const cur = options.find(o => { try { return this.solAccount(Number(o.value)) === have[0]; } catch { return false; } });
+      if (cur) def = Number(cur.value);
+    }
     const choose = options.length > 1;
     const ap = await this.approve(win, origin, sameTab, {
-      kind: 'connect', title: tr('Підключення до сайту'),
+      kind: 'connect', title: have.length ? tr('Авторизація на сайті') : tr('Підключення до сайту'),
       lines: [['Сайт отримає', 'доступ до публічної адреси Solana та право пропонувати підписи'], ...(choose ? [] : [['Рахунок Solana', this.solAccount(def)]]), ['Мережа', CLUSTERS[this.solCluster()].name]],
       ...(choose ? { choice: { label: 'Рахунок для сайту', options, value: String(def) } } : {}),
       warnings: ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'],
     });
     const address = this.solAccount(choose ? this.pickChoice(ap, options, def) : def);
+    if (have.length && have[0] === address) { this.log({ origin, action: 'Авторизація Solana' }); return pack(address); } // той самий рахунок
     const s = this.section();
     s.solConnections = s.solConnections || {};
     s.solConnections[origin] = { address, since: Date.now() };
     this.vault.persist();
-    this.log({ origin, action: 'Підключення Solana' });
+    this.log({ origin, action: have.length ? 'Авторизація Solana іншим рахунком' : 'Підключення Solana' });
     this.snapConns();
     this.emit(origin, 'sol:connect', pack(address));
     return pack(address);

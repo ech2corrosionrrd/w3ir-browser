@@ -601,6 +601,40 @@ async function walletTests(ctx) {
   const pickRes = await pickPr;
   ok(goodPick.ok && pickRes.ok && pickRes.ok[0] === wal.section().addresses[1] && pickRes.ok[0] !== addr0, 'dapp: сайт підключено саме до вибраного рахунку');
   ok(wal.info().connections.find(c => c.origin === A.origin).accounts[0] === wal.section().addresses[1], 'dapp: вибраний рахунок збережено для сайту');
+
+  // --- повторна авторизація: рахунок питається щоразу (walletAskAccount), навіть для вже підключеного сайту ---
+  const addr1 = wal.section().addresses[1];
+  const askCount = () => (w.approval ? 1 : 0);
+  ok((await call(wcA, 'eth_accounts')).ok[0] === addr1 && !w.approval, 'auth: eth_accounts (тихий запит) вікна не показує');
+  let re = call(wcA, 'eth_requestAccounts');
+  const apRe = await waitApproval();
+  ok(apRe && apRe.spec.kind === 'connect' && apRe.spec.choice && apRe.spec.choice.options.length >= 2 && apRe.spec.choice.value === '1', 'auth: підключений сайт при повторній авторизації знову бачить вибір рахунку, поточний обрано');
+  ok(/Авторизація/.test(apRe.spec.title), `auth: у вікні сказано «Авторизація» (${apRe.spec.title})`);
+  const reRes = await w.decide(apRe.id, true, MASTER, '0').then(() => re);
+  ok(reRes.ok && reRes.ok[0] === addr0 && wal.info().connections.find(c => c.origin === A.origin).accounts[0] === addr0, 'auth: авторизація іншим рахунком змінює підключення сайту');
+  re = call(wcA, 'eth_requestAccounts');
+  const apSame = await waitApproval();
+  ok(apSame.spec.choice.value === '0', 'auth: наступного разу за замовчуванням пропонується рахунок, яким сайт підключено зараз');
+  const sameRes = await w.decide(apSame.id, true, MASTER, '0').then(() => re);
+  ok(sameRes.ok && sameRes.ok[0] === addr0, 'auth: той самий рахунок залишає підключення без змін');
+  // два одночасні виклики дають одне вікно, обидва отримують одну відповідь
+  const dupA = call(wcA, 'eth_requestAccounts'), dupB = call(wcA, 'wallet_requestPermissions', [{ eth_accounts: {} }]);
+  const apDup = await waitApproval();
+  await sleep(500);
+  ok(askCount() === 1 && w.approval.id === apDup.id, 'auth: одночасні запити не множать вікна підтвердження');
+  await w.decide(apDup.id, true, MASTER, '1');
+  const [d1, d2] = await Promise.all([dupA, dupB]);
+  ok(d1.ok && d1.ok[0] === addr1 && d2.ok && d2.ok.length >= 1, 'auth: усі одночасні запити отримали відповідь після одного підтвердження');
+  // відмова лишає старе підключення
+  re = call(wcA, 'eth_requestAccounts');
+  const apNo = await waitApproval();
+  await w.decide(apNo.id, false);
+  ok((await re).err === 4001 && (await call(wcA, 'eth_accounts')).ok[0] === addr1, 'auth: відмова повертає 4001 і не змінює підключення');
+  // налаштування вимкнено: підключений сайт отримує рахунок мовчки
+  ctx.cfg().walletAskAccount = false;
+  const quiet = await call(wcA, 'eth_requestAccounts');
+  ok(quiet.ok && quiet.ok[0] === addr1 && !w.approval, 'auth: з вимкненим налаштуванням підключений сайт отримує рахунок без вікна');
+  ctx.cfg().walletAskAccount = true;
   // --- розбір підписів і захист: SIWE, permit, EIP-7702, буфер обміну (у підключеного сайту) ---
   const acc1 = wal.section().addresses[1];
   const siweMsg = `evil.example wants you to sign in with your Ethereum account:\n${acc1}\n\nSign in.\n\nURI: https://evil.example/\nVersion: 1\nChain ID: 31337\nNonce: abcdef123456\nIssued At: ${new Date().toISOString()}`;

@@ -251,7 +251,7 @@ async function walletApi(ctx, entry, name, arg) {
     switch (name) {
       case 'wallet:status': {
         const st = v.status();
-        return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, prices: ctx.cfg().walletPrices !== false, nftAnyHost: ctx.cfg().walletNftAnyHost === true, info: st === 'unlocked' && w.exists() ? w.info() : null };
+        return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, askAccount: ctx.cfg().walletAskAccount !== false, prices: ctx.cfg().walletPrices !== false, nftAnyHost: ctx.cfg().walletNftAnyHost === true, info: st === 'unlocked' && w.exists() ? w.info() : null };
       }
       case 'wallet:create': return { ok: true, phrase: w.create() };
       case 'wallet:import': w.importPhrase(arg.phrase, { passphrase: arg.passphrase, evmPath: arg.evmPath, solPath: arg.solPath }); return { ok: true };
@@ -363,6 +363,7 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:setRpc': w.setRpc(Number(arg.id), arg.url); return { ok: true };
       case 'wallet:disconnect': w.disconnectSite(String(arg.origin)); return { ok: true };
       case 'wallet:setInject': ctx.cfg().walletInject = !!arg.on; ctx.settingsStore.save(); return { ok: true };
+      case 'wallet:setAskAccount': ctx.cfg().walletAskAccount = !!arg.on; ctx.settingsStore.save(); return { ok: true };
       default: throw new Error('unknown');
     }
   } catch (e) { return { ok: false, error: e.code === 4100 ? 'Спершу розблокуйте сховище паролів.' : e.message }; }

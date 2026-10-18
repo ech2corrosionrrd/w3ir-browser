@@ -418,23 +418,43 @@ class Wallet {
     return r;
   }
 
+  // Авторизація сайту (eth_requestAccounts, wallet_requestPermissions): за налаштуванням walletAskAccount (типово ввімкнено) браузер щоразу
+  // питає, яким рахунком увійти, навіть якщо сайт уже підключено. Тихі запити (eth_accounts) підтвердження не потребують.
+  askAccountEveryTime() { return this.ctx.cfg().walletAskAccount !== false; }
+
   async requestAccounts(win, origin, sameTab) {
     const have = this.accountsFor(origin);
-    if (have.length) return have;
+    if (have.length && !this.askAccountEveryTime()) return have;
+    // один запит на сайт: повторні виклики, поки відкрито вікно підтвердження, отримують ту саму відповідь (без лавини вікон)
+    this._connectPending = this._connectPending || new Map();
+    if (this._connectPending.has(origin)) return this._connectPending.get(origin);
+    const run = this._askConnect(win, origin, sameTab, have).finally(() => this._connectPending.delete(origin));
+    this._connectPending.set(origin, run);
+    return run;
+  }
+
+  async _askConnect(win, origin, sameTab, have) {
     // Рахунків кілька — користувач вибирає, яким підключитися (за замовчуванням — типовий для сайтів)
-    const def = this.unlocked() ? this.dappIndex('evm') : 0;
+    let def = this.unlocked() ? this.dappIndex('evm') : 0;
     const options = this.unlocked() ? this.dappChoices('evm') : [];
+    // повторна авторизація: за замовчуванням пропонується рахунок, яким сайт підключено зараз
+    if (have.length) {
+      const cur = options.find(o => { try { return this.evmAccount(Number(o.value)) === have[0]; } catch { return false; } });
+      if (cur) def = Number(cur.value);
+    }
     const choose = options.length > 1;
     const ap = await this.approve(win, origin, sameTab, {
-      kind: 'connect', title: tr('Підключення до сайту'),
+      kind: 'connect', title: have.length ? tr('Авторизація на сайті') : tr('Підключення до сайту'),
       lines: [['Сайт отримає', 'доступ до адреси вашого рахунку та право пропонувати транзакції'], ...(choose ? [] : [['Рахунок', this.unlocked() ? this.evmAccount(def) : 'буде показано після розблокування']]), ['Мережа', (this.network(this.activeChain()) || {}).name || String(this.activeChain())]],
       ...(choose ? { choice: { label: 'Рахунок для сайту', options, value: String(def) } } : {}),
       warnings: ['Сайт не зможе нічого підписати без вашого окремого підтвердження.'],
     });
     const s = this.section();
-    s.connections[origin] = { accounts: [this.evmAccount(choose ? this.pickChoice(ap, options, def) : def)], chainId: s.activeChain, since: Date.now() };
+    const picked = this.evmAccount(choose ? this.pickChoice(ap, options, def) : def);
+    if (have.length && have[0] === picked) { this.log({ origin, action: 'Авторизація' }); return have; } // той самий рахунок: підключення не змінюється
+    s.connections[origin] = { accounts: [picked], chainId: have.length ? (s.connections[origin] || {}).chainId || s.activeChain : s.activeChain, since: Date.now() };
     this.vault.persist();
-    this.log({ origin, action: 'Підключення' });
+    this.log({ origin, action: have.length ? 'Авторизація іншим рахунком' : 'Підключення' });
     this.snapConns();
     this.emit(origin, 'accountsChanged', s.connections[origin].accounts);
     return s.connections[origin].accounts.slice();
