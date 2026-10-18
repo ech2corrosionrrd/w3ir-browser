@@ -237,6 +237,7 @@ function installSolana(b) {
 
   const provider = {
     isW3IR: true,
+    isPhantom: true, // сумісність: багато сайтів шукають Solana-гаманець лише за window.solana.isPhantom або window.phantom.solana
     get publicKey() { return pk; },
     get isConnected() { return !!account; },
     connect, disconnect, signTransaction: (tx) => signTransaction(tx), signAllTransactions, signAndSendTransaction: (tx, o) => signAndSendTransaction(tx, o), signMessage,
@@ -258,6 +259,7 @@ function installSolana(b) {
     else if (ev === 'sol:disconnect') clearAccount();
   });
   if (!window.solana) Object.defineProperty(window, 'solana', { value: provider, writable: false, configurable: false });
+  if (!window.phantom) Object.defineProperty(window, 'phantom', { value: Object.freeze({ solana: provider }), writable: false, configurable: false });
 
   // wallet-standard
   const sameAccount = (a) => { if (!account || !a || a.address !== account.address) throw Object.assign(new Error('Account is not connected'), { code: 4100 }); };
