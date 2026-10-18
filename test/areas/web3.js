@@ -636,6 +636,105 @@ async function walletTests(ctx) {
   const quiet = await call(wcA, 'eth_requestAccounts');
   ok(quiet.ok && quiet.ok[0] === addr1 && !w.approval, 'auth: з вимкненим налаштуванням підключений сайт отримує рахунок без вікна');
   ctx.cfg().walletAskAccount = true;
+  // --- підготовка транзакції: паралельно, із запасом газу, значення сайту не чіпаються ---
+  {
+    const sleepMs = (ms, v) => new Promise(r => setTimeout(() => r(v), ms));
+    const calls = [];
+    const prov = (est = 100000n, fee = { maxFeePerGas: 3n, maxPriorityFeePerGas: 1n, gasPrice: 2n }) => ({
+      estimateGas: async () => { calls.push('gas'); return sleepMs(120, est); },
+      getFeeData: async () => { calls.push('fee'); return sleepMs(120, fee); },
+    });
+    const sgn = { getNonce: async () => { calls.push('nonce'); return sleepMs(120, 7); }, populateTransaction: async (x) => x };
+    const base = { from: addr0, to: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', value: 0n, data: '0x1234', chainId: 1 };
+    const t0 = Date.now();
+    const p1 = await wal._prepareTx(prov(), sgn, base);
+    const ms = Date.now() - t0;
+    ok(ms < 260 && calls.length === 3, `prepare: nonce, газ і комісії запитуються одночасно (${ms} мс замість ≈360, запитів ${calls.length})`);
+    ok(p1.gasLimit === 120000n && p1.nonce === 7 && p1.maxFeePerGas === 3n && p1.maxPriorityFeePerGas === 1n, 'prepare: виклик контракту отримує запас газу +20 %, nonce й комісії EIP-1559');
+    ok((await wal._prepareTx(prov(21000n), sgn, { ...base, data: '0x' })).gasLimit === 21000n, 'prepare: простий переказ (21000 газу) без запасу');
+    calls.length = 0;
+    const own = await wal._prepareTx(prov(), sgn, { ...base, gasLimit: 90000n, nonce: 3, maxFeePerGas: 9n, maxPriorityFeePerGas: 2n });
+    ok(own.gasLimit === 90000n && own.nonce === 3 && own.maxFeePerGas === 9n && !calls.includes('fee') && !calls.includes('gas') && !calls.includes('nonce'), 'prepare: значення, задані сайтом, не змінюються й не запитуються повторно');
+    const legacy = await wal._prepareTx(prov(100000n, { maxFeePerGas: null, maxPriorityFeePerGas: null, gasPrice: 5n }), sgn, base);
+    ok(legacy.gasPrice === 5n && legacy.maxFeePerGas === undefined, 'prepare: мережа без EIP-1559 отримує gasPrice');
+    let perr = '';
+    try { await wal._prepareTx({ estimateGas: async () => { throw new Error('execution reverted'); }, getFeeData: async () => ({}) }, sgn, base); } catch (e) { perr = e.message; }
+    ok(/Не вдалося підготувати транзакцію/.test(perr) && /reverted/.test(perr), 'prepare: помилка оцінки газу перетворюється на зрозуміле повідомлення');
+  }
+
+  // --- сповіщення про результат транзакції (спостерігач) ---
+  {
+    const toasts = [];
+    const win0 = [...ctx.windows].find(x => !x.incognito && !x.agent);
+    const realToast = win0.toast;
+    win0.toast = (m) => toasts.push(String(m));
+    const realProvider = wal.provider, realSolRpc = wal.solRpc;
+    const receipts = new Map();
+    wal.provider = (id) => ({ getTransactionReceipt: async (h) => receipts.get(h) ?? null });
+    const sol = new Map();
+    wal.solRpc = async (cluster, method) => (method === 'getSignatureStatuses' ? { value: [sol.get(cluster) ?? null] } : null);
+    try {
+      wal._stopWatch(); wal._txWatch = new Map(); // ізоляція від транзакцій, відправлених попередніми перевірками
+      const hOk = '0x' + 'a1'.repeat(32), hBad = '0x' + 'b2'.repeat(32), hWait = '0x' + 'c3'.repeat(32);
+      wal.watchTx({ hash: hOk, chainId: 31337 }); wal.watchTx({ hash: hBad, chainId: 31337 }); wal.watchTx({ hash: hWait, chainId: 31337 });
+      wal.watchTx({ hash: hOk, chainId: 31337 }); // повторна реєстрація не дублює
+      ok(wal._txWatch.size === 3, 'txwatch: три транзакції на спостереженні, дубль не додається');
+      let n = await wal._pollWatch();
+      ok(n === 0 && toasts.length === 0, 'txwatch: поки квитанцій немає — жодних сповіщень');
+      receipts.set(hOk, { status: 1 }); receipts.set(hBad, { status: 0 });
+      n = await wal._pollWatch();
+      ok(n === 2 && toasts.some(t => /підтверджено/.test(t) && t.includes('0xa1a1a1')) && toasts.some(t => /не вдалася/.test(t) && t.includes('0xb2b2b2')) && wal._txWatch.size === 1 && wal._txWatch.has(hWait), `txwatch: підтверджена й невдала транзакції дали по одному сповіщенню (${toasts.length}), очікувана лишилась`);
+      n = await wal._pollWatch();
+      ok(n === 0 && toasts.length === 2, 'txwatch: повторних сповіщень про вже завершені немає');
+      const sigOk = '5'.repeat(88);
+      wal.watchTx({ hash: sigOk, chainId: 'mainnet-beta' });
+      n = await wal._pollWatch();
+      ok(n === 0 && wal._txWatch.has(sigOk), 'txwatch: Solana без статусу — чекаємо');
+      sol.set('mainnet-beta', { err: null, confirmationStatus: 'confirmed' });
+      n = await wal._pollWatch();
+      ok(n === 1 && toasts.length === 3 && /підтверджено/.test(toasts[2]) && !wal._txWatch.has(sigOk), 'txwatch: підтвердження Solana дає сповіщення');
+      const old = '0x' + 'd4'.repeat(32);
+      wal.watchTx({ hash: old, chainId: 31337 });
+      wal._txWatch.get(old).t = Date.now() - 4 * 3600 * 1000;
+      await wal._pollWatch();
+      ok(!wal._txWatch.has(old) && toasts.length === 3, 'txwatch: транзакцію, що не з’явилась за 3 години, прибрано без сповіщення');
+      wal.setHidden(true);
+      wal.watchTx({ hash: '0x' + 'e5'.repeat(32), chainId: 31337 }); receipts.set('0x' + 'e5'.repeat(32), { status: 1 });
+      n = await wal._pollWatch();
+      ok(n === 0 && toasts.length === 3 && wal._txWatch.size >= 1, 'txwatch: поки гаманець приховано, сповіщень немає, а спостереження зберігається');
+      wal.setHidden(false);
+      n = await wal._pollWatch();
+      ok(n === 1 && toasts.length === 4, 'txwatch: після показу гаманця відкладене сповіщення надходить');
+      wal._stopWatch();
+      wal._txWatchAuto = true;
+      wal.watchTx({ hash: '0x' + 'f6'.repeat(32), chainId: 31337 });
+      ok(!!wal._txWatchTimer, 'txwatch: відправка транзакції запускає опитування (у штатному режимі)');
+      wal._stopWatch(); wal._txWatchAuto = undefined; wal._txWatch = new Map();
+    } finally {
+      win0.toast = realToast; wal.provider = realProvider; wal.solRpc = realSolRpc;
+    }
+  }
+
+  // --- у підтвердженні транзакції є орієнтовна вартість у USD (лише коли ціна доступна) ---
+  {
+    const realPriceInfo = wal.priceInfo;
+    wal.priceInfo = async () => ({ enabled: true, native: 2000, tokens: {} });
+    const addr1u = wal.section().addresses[1];
+    let tp = call(wcA, 'eth_sendTransaction', [{ from: addr1u, to: addr0, value: '0xde0b6b3a7640000' }]); // 1 TST
+    const apU = await waitApproval();
+    const lineOf = (k) => (apU.spec.lines.find(l => l[0] === k) || [])[1];
+    ok(apU && lineOf('Сума, USD') === '≈ $2000.00' && /^≈ \$\d+\.\d\d$|^< \$0\.01$/.test(lineOf('Комісія, USD') || '') && /^≈ \$20\d\d\.\d\d$/.test(lineOf('Разом, USD') || ''), `usd: у підтвердженні є сума, комісія й разом у USD (${lineOf('Сума, USD')} / ${lineOf('Комісія, USD')} / ${lineOf('Разом, USD')})`);
+    await w.decide(apU.id, false);
+    await tp;
+    wal.priceInfo = async () => ({ enabled: false });
+    tp = call(wcA, 'eth_sendTransaction', [{ from: addr1u, to: addr0, value: '0x1' }]);
+    const apN = await waitApproval();
+    ok(apN && !apN.spec.lines.some(l => /USD/.test(l[0])), 'usd: без цін (вимкнено або недоступні) рядків USD немає');
+    await w.decide(apN.id, false);
+    await tp;
+    wal.priceInfo = realPriceInfo;
+  }
+
   // --- приховати гаманець: зникає з меню й для сайтів, сторінка віддає лише стан; показати можна лише з майстер-паролем ---
   const labels = (list) => list.map(x => x.label || '');
   ok(labels(w.menuItems()).some(l => /Гаманець \(Web3\)/.test(l)) && labels(w.commandList()).some(l => /Гаманець \(Web3\)/.test(l)), 'hide: до приховування гаманець є в меню й палітрі команд');

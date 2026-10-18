@@ -44,12 +44,18 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     this._tokenCache = this._tokenCache || new Map();
     const key = `${chainId}|${addr}`;
     if (this._tokenCache.has(key)) return this._tokenCache.get(key);
+    // decimals, symbol і name читаються паралельно (раніше по черзі: 3 раунди мережі замість одного)
+    const [dec, symRaw, nameRaw] = await Promise.all([
+      this._ethCall(chainId, addr, ERC20.encodeFunctionData('decimals')).then(r => ({ r }), () => ({ r: null })),
+      readText(this, chainId, addr, 'symbol'),
+      readText(this, chainId, addr, 'name'),
+    ]);
     let decimals;
-    try { decimals = Number(ERC20.decodeFunctionResult('decimals', await this._ethCall(chainId, addr, ERC20.encodeFunctionData('decimals')))[0]); }
+    try { decimals = Number(ERC20.decodeFunctionResult('decimals', dec.r)[0]); }
     catch { throw new RpcError(-32602, 'Це не схоже на токен ERC-20 у цій мережі (немає decimals).'); }
     if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) throw new RpcError(-32602, 'Некоректні decimals токена.');
-    const symbol = injectionClean(await readText(this, chainId, addr, 'symbol'), 16) || 'ERC20';
-    const name = injectionClean(await readText(this, chainId, addr, 'name'), 48);
+    const symbol = injectionClean(symRaw, 16) || 'ERC20';
+    const name = injectionClean(nameRaw, 48);
     const info = { address: addr, symbol, name, decimals };
     this._tokenCache.set(key, info);
     return info;

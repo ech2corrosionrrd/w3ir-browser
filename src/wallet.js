@@ -317,6 +317,7 @@ class Wallet {
       s.log.push({ t: Date.now(), ...entry });
       if (s.log.length > 200) s.log.splice(0, s.log.length - 200);
       this.vault.persist();
+      if (entry && entry.hash) this.watchTx(entry); // сповіщення про результат транзакції
     } catch { /* журнал необов'язковий */ }
   }
 
@@ -594,10 +595,6 @@ class Wallet {
     const chain = opts.internal ? this.activeChain() : this.chainOf(origin);
     if (tx.chainId !== undefined && Number(tx.chainId) !== chain) throw new RpcError(-32602, 'chainId транзакції не збігається з поточною мережею');
     const net = this.network(chain);
-    try {
-      const del = guard.delegateOf(await Promise.race([this.provider(chain).getCode(from), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))]));
-      if (del) opts = { ...opts, danger: true, warnings: [...(opts.warnings || []), `Ваш рахунок делеговано контракту ${del} (EIP-7702): цей контракт керує виконанням транзакцій рахунку. Якщо ви цього не робили — рахунок скомпрометовано, не підтверджуйте.`] };
-    } catch { /* RPC недоступний: перевірку пропущено */ }
     const num = (v, name) => {
       if (v === undefined || v === null) return undefined;
       if (typeof v === 'string' && /^0x[0-9a-fA-F]*$/.test(v)) return BigInt(v === '0x' ? '0x0' : v);
@@ -615,26 +612,36 @@ class Wallet {
     const nonce = num(tx.nonce, 'nonce');
     if (nonce !== undefined) req.nonce = Number(nonce);
 
-    const signer = this.signerFor(from).connect(this.provider(chain));
-    let populated;
-    try { populated = await signer.populateTransaction(req); }
-    catch (e) { throw new RpcError(-32000, `Не вдалося підготувати транзакцію (можливо, вона завершиться помилкою): ${clip(e.shortMessage || e.message, 200)}`); }
+    // Усе, що потрібне для вікна підтвердження, виконується ПАРАЛЕЛЬНО (раніше по черзі: ≈9 раундів мережі до появи вікна):
+    // делегування EIP-7702, nonce / газ / комісії, дані токена, симуляція й ціна нативної монети.
+    const provider = this.provider(chain);
+    const signer = this.signerFor(from).connect(provider);
+    const hint = setTimeout(() => { try { win.toast(tr('Готуємо підтвердження…')); } catch { /* вікно закрито */ } }, 500);
+    let desc = describeCall(data);
+    let populated, delegate = null, ti = null, nativePrice = null;
+    let simInfo = { lines: [], warnings: [], danger: false };
+    try {
+      const timed = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+      const [del, pop, tokenData, sim, price] = await Promise.all([
+        timed(provider.getCode(from), 4000).then(c => guard.delegateOf(c), () => null), // RPC недоступний: перевірку пропущено
+        this._prepareTx(provider, signer, req),
+        desc.token && to && !opts.summary ? this.tokenInfo(chain, to).catch(() => null) : null, // не схоже на ERC-20 або RPC недоступний
+        to && data !== '0x' ? this.simulateEvm(chain, { from, to, value, data }).then(r => this.describeSimulation(chain, r, { symbol: net.symbol }), () => null) : null,
+        timed(this.priceInfo({ chain, tokens: [] }), 1500).catch(() => null), // ціна лише для показу; повільний сервіс не затримує вікно
+      ]);
+      populated = pop; delegate = del; ti = tokenData; if (sim) simInfo = sim;
+      nativePrice = price && price.enabled && price.native ? price.native : null;
+    } finally { clearTimeout(hint); }
+    if (delegate) opts = { ...opts, danger: true, warnings: [...(opts.warnings || []), `Ваш рахунок делеговано контракту ${delegate} (EIP-7702): цей контракт керує виконанням транзакцій рахунку. Якщо ви цього не робили — рахунок скомпрометовано, не підтверджуйте.`] };
     this.applySpeed(populated, opts.speed);
     const fee = (populated.maxFeePerGas || populated.gasPrice || 0n) * (populated.gasLimit || 0n);
-    let desc = describeCall(data);
-    let ti = null;
-    if (desc.token && to && !opts.summary) {
-      try { ti = await this.tokenInfo(chain, to); desc = describeCall(data, ti); } catch { /* не схоже на ERC-20 або RPC недоступний */ }
-    }
+    if (ti) desc = describeCall(data, ti);
     const warnings = [...desc.warnings, ...(opts.warnings || [])];
     if (!to) warnings.push('Створення нового контракту.');
     if (fee > 10n ** 18n) warnings.push('Дуже висока комісія за газ.');
-    // симуляція виклику контракту на вузлі RPC: рух активів, дозволи, помилка виконання (якщо вузол це підтримує)
-    let simInfo = { lines: [], warnings: [], danger: false };
-    if (to && data !== '0x') {
-      simInfo = await this.describeSimulation(chain, await this.simulateEvm(chain, { from, to, value, data }), { symbol: net.symbol });
-      warnings.push(...simInfo.warnings);
-    }
+    warnings.push(...simInfo.warnings);
+    const usd = (wei) => (nativePrice ? Number(formatEther(wei)) * nativePrice : null);
+    const fmtUsd = (n) => (n === null ? null : n > 0 && n < 0.01 ? '< $0.01' : '≈ $' + n.toFixed(2));
     const lines = [
       ...(opts.summary || []),
       ['Мережа', `${net.name} (${chain})`], ['Від', from], ['Кому', to || 'новий контракт'],
@@ -643,6 +650,7 @@ class Wallet {
       ...(opts.speed && opts.speed !== 'standard' ? [['Швидкість комісії', opts.speed === 'fast' ? 'швидко (комісія вища)' : 'повільно (комісія нижча, підтвердження може затягнутись)']] : []),
       ...simInfo.lines,
       ['Ліміт газу', String(populated.gasLimit)], ['Макс. комісія', `${formatEther(fee)} ${net.symbol}`], ['Макс. разом', `${formatEther(fee + value)} ${net.symbol}`],
+      ...(nativePrice ? [...(value > 0n ? [['Сума, USD', fmtUsd(usd(value))]] : []), ['Комісія, USD', fmtUsd(usd(fee))], ['Разом, USD', fmtUsd(usd(fee + value))]] : []),
     ];
     await this.approve(win, origin, sameTab, { kind: 'tx', title: tr('Підтвердження транзакції'), danger: !!opts.danger || simInfo.danger || warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings, ...(opts.delay ? { delay: opts.delay } : {}) });
     let hash;
@@ -653,6 +661,26 @@ class Wallet {
     this.trackPending(hash, chain, populated);
     this.log({ origin, action: opts.action || `Транзакція ${formatEther(value)} ${net.symbol}`, hash, chainId: chain });
     return hash;
+  }
+
+  // Підготовка транзакції: nonce, оцінка газу й комісії запитуються одночасно (ethers робить це послідовно). Оцінка газу отримує запас 20 %
+  // для викликів, складніших за простий переказ: стан між оцінкою й включенням змінюється, а нестача газу коштує комісії. Значення, задані сайтом, не чіпаємо.
+  async _prepareTx(provider, signer, req) {
+    const needFee = req.maxFeePerGas === undefined && req.gasPrice === undefined && req.maxPriorityFeePerGas === undefined;
+    try {
+      const [nonce, est, feeData] = await Promise.all([
+        req.nonce === undefined ? signer.getNonce('pending') : req.nonce,
+        req.gasLimit === undefined ? provider.estimateGas({ from: req.from, to: req.to, value: req.value, data: req.data }) : req.gasLimit,
+        needFee ? provider.getFeeData() : null,
+      ]);
+      const full = { ...req, nonce: Number(nonce), gasLimit: est };
+      if (req.gasLimit === undefined && est > 21000n) full.gasLimit = est + est / 5n;
+      if (feeData) {
+        if (feeData.maxFeePerGas != null && feeData.maxPriorityFeePerGas != null) { full.maxFeePerGas = feeData.maxFeePerGas; full.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas; }
+        else if (feeData.gasPrice != null) full.gasPrice = feeData.gasPrice;
+      }
+      return await signer.populateTransaction(full);
+    } catch (e) { throw new RpcError(-32000, `Не вдалося підготувати транзакцію (можливо, вона завершиться помилкою): ${clip(e.shortMessage || e.message, 200)}`); }
   }
 
   // ---------- імена рахунків, переказ із гаманця, перевірка отримувача ----------
@@ -753,5 +781,6 @@ require('./wallet-approvals').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-history-evm').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-portfolio').install(Wallet, { unauthorized });
 require('./wallet-simulate').install(Wallet, { clip });
+require('./wallet-watch').install(Wallet);
 
 module.exports = { Wallet, RpcError, EVM_PATHS, BUILTIN_NETWORKS, describeCall, hexChain, isSafeRpc };
