@@ -43,10 +43,20 @@ function benchStore() {
 }
 
 // ---- пам'ять процесів: усі процеси, чий командний рядок містить наш тимчасовий профіль ----
-function memoryMb(marker) {
-  const ps = `(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${marker}*' } | Measure-Object -Property WorkingSetSize -Sum).Sum`;
+// wsMb: робочий набір (завищений: спільні сторінки Chromium рахуються в кожному процесі); privMb: приватна частина, ближча до правди.
+function memory(marker) {
+  const ps = `$perf = Get-CimInstance Win32_PerfFormattedData_PerfProc_Process
+Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${marker}*' } | ForEach-Object { $id = $_.ProcessId; $pf = $perf | Where-Object { $_.IDProcess -eq $id }
+ $t = if ($_.CommandLine -match '--type=([a-z-]+)') { $matches[1] } else { 'main' }
+ if ($_.CommandLine -match '--utility-sub-type=([A-Za-z.]+)') { $t = $t + ':' + $matches[1] }
+ [pscustomobject]@{ type = $t; ws = $_.WorkingSetSize; priv = $pf.WorkingSetPrivate } } | ConvertTo-Json -Compress`;
   const r = spawnSync('powershell', ['-NoProfile', '-Command', ps], { encoding: 'utf8' });
-  return mb(Number(String(r.stdout).trim()) || 0);
+  let rows = [];
+  try { rows = [].concat(JSON.parse(String(r.stdout).trim() || '[]')); } catch { /* порожньо */ }
+  const byType = {};
+  for (const x of rows) { const k = byType[x.type] || (byType[x.type] = { n: 0, privMb: 0 }); k.n++; k.privMb += (x.priv || 0) / 1048576; }
+  for (const k of Object.values(byType)) k.privMb = Math.round(k.privMb);
+  return { wsMb: mb(rows.reduce((a, x) => a + (x.ws || 0), 0)), privMb: mb(rows.reduce((a, x) => a + (x.priv || 0), 0)), byType };
 }
 
 const cdp = (ws) => new Promise((res, rej) => {
@@ -63,35 +73,56 @@ async function evalIn(t, expr) {
   return r.result && r.result.result ? r.result.result.value : undefined;
 }
 
+// Запускає тимчасову копію браузера з профілем data, чекає на інтерфейс і викликає fn(ui, ms до інтерфейсу); потім закриває лише своє дерево процесів.
+async function withApp(data, fn) {
+  const t0 = Date.now();
+  const child = spawn(electron, ['.', `--remote-debugging-port=${PORT}`, `--user-data-dir=${data}`], {
+    cwd: root, stdio: 'ignore', env: appEnv({ W3IR_USER_DATA: data }),
+  });
+  try {
+    let ui = null;
+    while (!ui && Date.now() - t0 < 30000) { try { ui = (await pages()).find(t => t.url === 'w3ir://ui/index.html'); } catch { /* ще не готовий */ } if (!ui) await sleep(100); }
+    if (!ui) throw new Error('Інтерфейс не з\'явився за 30 с');
+    return await fn(ui, Date.now() - t0);
+  } finally {
+    try { spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* ignore */ }
+    await sleep(1500);
+  }
+}
+
 async function benchApp() {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'w3ir-perf-app-'));
+  const marker = path.basename(data);
   // локальна сторінка для вкладок: звичайний вміст, щоб міряти справжній рендерер
   const body = '<!doctype html><title>perf</title>' + '<p>Текст сторінки для вимірювань пам\'яті.</p>'.repeat(400);
   const srv = http.createServer((q, s) => { s.setHeader('content-type', 'text/html; charset=utf-8'); s.end(body); });
   await new Promise(r => srv.listen(0, '127.0.0.1', r));
   const url = `http://127.0.0.1:${srv.address().port}/`;
-  const t0 = Date.now();
-  const child = spawn(electron, ['.', `--remote-debugging-port=${PORT}`, `--user-data-dir=${data}`], {
-    cwd: root, stdio: 'ignore', env: appEnv({ W3IR_USER_DATA: data }),
-  });
   const res = {};
   try {
-    let ui = null;
-    while (!ui && Date.now() - t0 < 30000) { try { ui = (await pages()).find(t => t.url === 'w3ir://ui/index.html'); } catch { /* ще не готовий */ } if (!ui) await sleep(100); }
-    if (!ui) throw new Error('Інтерфейс не з\'явився за 30 с');
-    res.startupMs = Date.now() - t0;
-    await sleep(4000); // відкладені фонові завдання (оновлення, списки загроз, блокувальник)
-    res.idleMb = memoryMb(path.basename(data));
-    const base = res.idleMb;
-    for (let i = 0; i < TABS; i++) { await evalIn(ui, `api.cmd('newTab')`); await sleep(400); await evalIn(ui, `api.cmd('go', ${JSON.stringify(url)})`); await sleep(1500); }
-    await sleep(2500);
-    res.tabs = TABS;
-    res.withTabsMb = memoryMb(path.basename(data));
-    res.perTabMb = +((res.withTabsMb - base) / TABS).toFixed(0);
+    // 1) холодний профіль: рушій блокувальника будується зі списків (так буває на новому профілі й раз на 7 діб) і кешується у файл
+    await withApp(data, async (ui, ms) => {
+      res.coldStartupMs = ms;
+      const bin = path.join(data, 'adblock-engine.bin');
+      for (let i = 0; i < 60 && !fs.existsSync(bin); i++) await sleep(500);
+      await sleep(3000);
+      res.coldIdle = memory(marker);
+      res.engineCached = fs.existsSync(bin);
+    });
+    // 2) теплий профіль: рушій завантажується з кешу, це типовий щоденний запуск
+    await withApp(data, async (ui, ms) => {
+      res.startupMs = ms;
+      await sleep(4000); // відкладені фонові завдання (оновлення, списки загроз, блокувальник)
+      res.idle = memory(marker);
+      for (let i = 0; i < TABS; i++) { await evalIn(ui, `api.cmd('newTab')`); await sleep(400); await evalIn(ui, `api.cmd('go', ${JSON.stringify(url)})`); await sleep(1500); }
+      await sleep(2500);
+      res.tabs = TABS;
+      res.withTabs = memory(marker);
+      res.perTabPrivMb = +((res.withTabs.privMb - res.idle.privMb) / TABS).toFixed(0);
+      res.perTabWsMb = +((res.withTabs.wsMb - res.idle.wsMb) / TABS).toFixed(0);
+    });
   } finally {
-    try { spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* ignore */ }
     srv.close();
-    await sleep(1500);
     try { fs.rmSync(data, { recursive: true, force: true }); } catch { /* ignore */ }
   }
   return res;
