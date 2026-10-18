@@ -20,6 +20,7 @@
     "release:github": "npm run dist && node build/release.js --github",
     "release:ci": "node build/release.js --from-ci ech2corrosionrrd/w3ir-browser --github ech2corrosionrrd/w3ir-browser",
     "check:rpc": "node build/check-rpc.js",
+    "perf": "node build/perf.js",
     "winget": "node build/winget.js",
     "winget:submit": "node build/winget.js --submit"
   },
