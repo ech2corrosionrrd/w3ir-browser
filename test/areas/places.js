@@ -166,7 +166,8 @@ async function placesTests(ctx) {
   const t2 = Date.now();
   const sub = big.search('торін', { limit: 7 });
   const subMs = Date.now() - t2;
-  ok(perAdd < 8, `places: запис візиту на 19 тис. записів швидкий (${perAdd.toFixed(2)} мс)`);
+  // поріг із запасом для спільних runner'ів CI (було 8 мс, на GitHub траплялось 33); повний перезапис JSON давав би сотні мс
+  ok(perAdd < 60, `places: запис візиту на 19 тис. записів швидкий (${perAdd.toFixed(2)} мс)`);
   ok(found.length === 7 && searchMs < 300 && sub.length === 7 && subMs < 400, `places: пошук підказок на 19 тис. записів (FTS ${searchMs} мс, підрядок ${subMs} мс)`);
   ok(big.visits({ query: 'ціни', limit: 500 }).length === 500, 'places: сторінка історії віддає до 500 записів');
   big.close();
