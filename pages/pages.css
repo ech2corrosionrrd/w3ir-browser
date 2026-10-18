@@ -213,3 +213,14 @@ body.pdftools .note[role=status] { margin: 0; flex: 1; }
 /* гаманець: швидкі дії у верхній панелі; панель лишається на екрані при прокручуванні, якщо вікно достатньо велике */
 .wquick { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 @media (min-width: 900px) and (min-height: 760px) { body.wallet .wsum { position: sticky; top: 8px; z-index: 6; backdrop-filter: blur(12px); } }
+
+/* ===== Тема «Pure Obsidian» (див. ui/obsidian.css): графіт, блакитний акцент, смарагдові статуси ===== */
+:root {
+  color-scheme: dark;
+  --bg: #0a0e14; --card: #10141a; --line: #222730; --fg: #f1f5f9; --dim: #94a3b8; --accent: #38bdf8;
+  --danger: #f87171; --link: #8ed5ff; --ok: #2dd4bf; --warnbg: #2a1f1f; --h1a: #f1f5f9; --h1b: #8ed5ff;
+  --glow1: rgba(45,212,191,.07); --glow2: rgba(56,189,248,.09);
+}
+html, body { font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #04141c; font-weight: 600; }
+button.primary:hover { background: #7dd3fc; }
