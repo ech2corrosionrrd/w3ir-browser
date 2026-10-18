@@ -34,3 +34,18 @@ jobs:
       - name: Завантажити Electron (скрипти встановлення вимкнено вище)
         run: node node_modules/electron/install.js
       - run: npm test
+  # Швидкі unit-тести без Electron на Linux і macOS: перевіряють, що чиста логіка не прив'язана до Windows.
+  unit-cross:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: npm }
+      - run: npm ci --ignore-scripts
+      - run: npm run test:unit
