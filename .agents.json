@@ -1,0 +1,27 @@
+{
+  "base": "main",
+  "test": "npm test",
+  "lint": "npm run lint",
+  "build": "",
+  "shareNodeModules": true,
+  "copyFiles": [],
+  "devPortBase": 0,
+  "protectedPaths": [
+    "src/wallet*.js",
+    "src/solana.js",
+    "src/vault.js",
+    "src/crypto-util.js",
+    "src/ipc.js",
+    "src/update-key.js",
+    "src/update-verify.js",
+    "src/updater.js",
+    "src/launch-guard.js",
+    "src/injection-guard.js",
+    "preload.js",
+    "page-preload.js",
+    "build/keys/**",
+    ".github/workflows/**",
+    "package.json",
+    "package-lock.json"
+  ]
+}

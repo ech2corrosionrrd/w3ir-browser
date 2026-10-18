@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.env*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.pfx)",
+      "Read(**/*.p12)",
+      "Read(**/*.jks)",
+      "Read(**/*.keystore)",
+      "Read(**/keystore.properties)",
+      "Read(**/google-services.json)",
+      "Read(**/vault.bin)",
+      "Read(**/vault.pepper)",
+      "Read(**/*.token)",
+      "Read(**/sync.key)",
+      "Read(build/keys/**)",
+      "Read(//c/Users/Home/AppData/Roaming/W3IR Browser/**)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ]
+  }
+}
