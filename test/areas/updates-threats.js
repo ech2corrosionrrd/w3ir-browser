@@ -23,17 +23,40 @@ async function helpTests(ctx) {
     hrefs: [...new Set([...document.querySelectorAll('a[href^="w3ir://"]')].map(a => a.getAttribute('href')))],
     text: document.body.innerText.toLowerCase(),
     rows: document.querySelectorAll('table.keys tr').length,
+    ids: [...document.querySelectorAll('section.sec')].map(s => s.id),
+    tocHrefs: [...document.querySelectorAll('#toc a')].map(a => a.getAttribute('href')),
+    emptyEntries: [...document.querySelectorAll('.entry')].filter(e => !e.querySelector('h3').textContent.trim() || (e.querySelectorAll('p,li').length === 0)).length,
+    emptyCells: [...document.querySelectorAll('table.keys td')].filter(td => !td.textContent.trim()).length,
+    internal: [...document.querySelectorAll('.entry a[href^="#"]')].map(a => a.getAttribute('href')),
   }))()`);
-  ok(stat.sections >= 18 && stat.toc === stat.sections && stat.entries >= 60, `help: довідка містить розділи (${stat.sections}) і статті (${stat.entries})`);
-  const must = ['ctrl+k', 'гаманець', 'профіл', 'github', 'magnet', 'режим читання', 'синхронізац', 'https', 'інкогніто', 'імпорт', 'менеджер паролів', 'вертикальні вкладки', 'групи вкладок', 'сплячі вкладки', 'блокування реклами', 'f1'];
+  ok(stat.sections >= 24 && stat.toc === stat.sections && stat.entries >= 100, `help: довідка містить розділи (${stat.sections}) і статті (${stat.entries})`);
+  const must = ['ctrl+k', 'гаманець', 'профіл', 'github', 'magnet', 'режим читання', 'синхронізац', 'https', 'інкогніто', 'імпорт', 'менеджер паролів', 'вертикальні вкладки', 'групи вкладок', 'сплячі вкладки', 'блокування реклами', 'f1', 'pdf-інструменти', 'w3ir://pdftools', 'crash.log', '.bak', '.corrupt', 'локальний ші-помічник', 'небезпечні завантаження', 'сторінка не відповідає', 'поради та хитрощі', 'усунення проблем', 'перші 5 хвилин', 'ctrl+f4'];
   const missing = must.filter(m => !stat.text.includes(m));
   ok(missing.length === 0, 'help: описано всі ключові функції' + (missing.length ? ' — немає: ' + missing.join(', ') : ''));
   const pagesDir = path.join(__dirname, '..', '..', 'pages');
   const broken = stat.hrefs.filter(h => !fs.existsSync(path.join(pagesDir, h.replace('w3ir://', '').replace(/\/$/, '') + '.html')));
   ok(stat.hrefs.length >= 8 && broken.length === 0, 'help: усі внутрішні посилання ведуть на наявні сторінки' + (broken.length ? ' — биті: ' + broken.join(', ') : ''));
-  ok(stat.rows >= 30, 'help: таблиця гарячих клавіш заповнена');
+  ok(stat.rows >= 32 && stat.emptyCells === 0, 'help: таблиця гарячих клавіш заповнена, без порожніх клітинок');
+  ok(stat.emptyEntries === 0, 'help: немає порожніх статей (кожна має заголовок і текст чи список)');
+  ok(new Set(stat.ids).size === stat.ids.length, 'help: ідентифікатори розділів унікальні');
+  ok(stat.tocHrefs.every(h => stat.ids.includes(h.slice(1))), 'help: усі пункти змісту ведуть на наявні розділи');
+  ok(['start', 'pdf', 'ai', 'tips', 'recovery', 'troubleshoot', 'keys', 'faq', 'privacy', 'web3'].every(id => stat.ids.includes(id)), 'help: є швидкий старт, PDF, ШІ, поради, відновлення, усунення проблем, клавіші, FAQ, безпека');
 
   // пошук
+  const helpSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'pages', 'help-data.js'), 'utf8');
+  const helpData = new Function(helpSrc + '; return { HELP, SHORTCUTS, FAQ };')();
+  const strs = [];
+  const walk = (v, k) => { if (typeof v === 'string') strs.push([k, v]); else if (Array.isArray(v)) v.forEach(x => walk(x, k)); else if (v && typeof v === 'object') Object.entries(v).forEach(([kk, x]) => walk(x, kk)); };
+  walk(helpData, '');
+  ok(strs.every(([, s]) => s.trim().length > 0), 'help: у даних довідки немає порожніх рядків');
+  const refs = [...helpSrc.matchAll(/\]\(w3ir:\/\/([a-z]+)\)/g)].map(m => m[1]);
+  ok(refs.length >= 20 && refs.every(r => fs.existsSync(path.join(__dirname, '..', '..', 'pages', r + '.html'))), 'help: усі посилання w3ir:// у даних довідки ведуть на наявні сторінки');
+  const locRead = (l) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'locales', l + '.json'), 'utf8'));
+  const helpStrs = [...new Set(strs.filter(([k]) => k !== 'id' && k !== 'icon').map(([, s]) => s))];
+  const untranslated = [];
+  for (const l of ['en', 'de', 'es', 'fr', 'pl']) { const c = locRead(l); for (const s of helpStrs) if (/[А-Яа-яІіЇїЄє]/.test(s) && !(c[s] && c[s].trim())) untranslated.push(l + ': ' + s.slice(0, 40)); }
+  ok(untranslated.length === 0, 'help: усі рядки довідки перекладено на 5 мов' + (untranslated.length ? ' — немає: ' + untranslated.slice(0, 3).join(' | ') : ''));
+
   const search = async (q) => w.wc().executeJavaScript(`(() => { const i = document.querySelector('#toc input'); i.value = ${JSON.stringify(q)}; i.dispatchEvent(new Event('input')); return { visible: [...document.querySelectorAll('section.sec')].filter(s => !s.hidden).map(s => s.id), empty: !document.querySelector('.empty').hidden }; })()`);
   const r1 = await search('гаманець');
   ok(r1.visible.includes('web3') && r1.visible.length < stat.sections && !r1.empty, 'help: пошук «гаманець» знаходить розділ Web3 і ховає решту');
@@ -58,6 +81,22 @@ async function helpTests(ctx) {
   key('a', { control: true, shift: true });
   ok(w.overlayType === 'palette', 'help: Ctrl+Shift+A відкриває пошук по вкладках, як описано');
   w.closeOverlay();
+  const before2 = w.tabs.length;
+  key('t', { control: true });
+  await sleep(300);
+  key('F4', { control: true });
+  await sleep(300);
+  ok(w.tabs.length === before2, 'help: Ctrl+F4 закриває вкладку, як описано');
+  key('t', { control: true });
+  await sleep(300);
+  const act = w.activeId;
+  key('PageUp', { control: true });
+  ok(w.activeId !== act, 'help: Ctrl+PgUp перемикає вкладку, як описано');
+  key('PageDown', { control: true });
+  ok(w.activeId === act, 'help: Ctrl+PgDn переходить до наступної вкладки, як описано');
+  key('w', { control: true });
+  await sleep(300);
+  ok(w.tabs.length === before2, 'help: тимчасова вкладка закрита');
 }
 
 async function updateTests(ctx) {
