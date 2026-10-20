@@ -64,6 +64,35 @@ async function main() {
   const body = sanitize(art.content);
   const box = h('div');
   while (body.firstChild) box.append(body.firstChild);
+  const origHtml = box.innerHTML;
+  let translatedText = '';
+  let showingTranslated = false;
+  const trBtn = h('button', { onclick: async () => {
+    if (translatedText) {
+      showingTranslated = !showingTranslated;
+      if (showingTranslated) {
+        box.textContent = '';
+        for (const p of translatedText.split(/\n{2,}/)) if (p.trim()) box.append(h('p', null, p.trim()));
+        trBtn.textContent = t('Оригінал');
+      } else {
+        box.textContent = '';
+        const restored = sanitize(origHtml);
+        while (restored.firstChild) box.append(restored.firstChild);
+        trBtn.textContent = t('Перекласти (ШІ)');
+      }
+      return;
+    }
+    trBtn.disabled = true;
+    const r = await w3ir.invoke('reader:translate', { text: box.innerText || box.textContent || '' });
+    trBtn.disabled = false;
+    if (!r || !r.ok) { alert((r && r.error) || t('Помилка')); return; }
+    translatedText = r.text || '';
+    showingTranslated = true;
+    box.textContent = '';
+    for (const p of translatedText.split(/\n{2,}/)) if (p.trim()) box.append(h('p', null, p.trim()));
+    trBtn.textContent = t('Оригінал');
+  }, title: 'Локальний переклад через Ollama' }, 'Перекласти (ШІ)');
+  tools.append(trBtn);
   app.append(box);
   apply();
 }

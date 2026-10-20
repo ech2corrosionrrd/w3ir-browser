@@ -2385,5 +2385,21 @@
   "Некоректний секрет TOTP.": "Ungültiges TOTP-Geheimnis.",
   "TOTP не налаштовано для цього запису.": "TOTP ist für diesen Eintrag nicht eingerichtet.",
   "Захист від цифрових відбитків (Canvas, екран)": "Fingerprinting-Schutz (Canvas, Bildschirm)",
-  "Маскування характеристик пристрою, округлення екрана та захист Canvas від зняття відбитків": "Gerätedaten maskieren, Bildschirmmaße runden und Canvas-Rauschen gegen Fingerprinting einsetzen"
+  "Маскування характеристик пристрою, округлення екрана та захист Canvas від зняття відбитків": "Gerätedaten maskieren, Bildschirmmaße runden und Canvas-Rauschen gegen Fingerprinting einsetzen",
+  "Використання IPFS / Pinata заборонено: медіафайли NFT мають зберігатися на Arweave (ar://).": "IPFS / Pinata ist verboten: NFT-Medien müssen auf Arweave (ar://) gespeichert werden.",
+  "Витоків не виявлено": "Keine Datenlecks gefunden",
+  "Вкажіть назву NFT.": "Geben Sie den NFT-Namen an.",
+  "Зображення NFT має бути посиланням ar://<txId> або 43-символьним ідентифікатором Arweave.": "Das NFT-Bild muss ein ar://<txId>-Link oder eine 43-stellige Arweave-ID sein.",
+  "Локальний переклад через Ollama": "Lokale Übersetzung über Ollama",
+  "недоступний": "nicht erreichbar",
+  "Некоректне посилання ar:// для зображення.": "Ungültiger ar://-Link für das Bild.",
+  "Немає тексту для перекладу.": "Kein Text zum Übersetzen.",
+  "Перевірити на витоки": "Auf Datenlecks prüfen",
+  "Перевірка шлюзів Arweave / Irys…": "Arweave / Irys-Gateways werden geprüft…",
+  "Перекласти (ШІ)": "Übersetzen (KI)",
+  "Помилка перевірки шлюзів.": "Gateway-Prüfung fehlgeschlagen.",
+  "У витоках ({0})": "In Datenlecks ({0})",
+  "У витоках: {0}": "In Datenlecks: {0}",
+  "Цей пароль знайдено у відомих базах витоків (HIBP). Замініть його!": "Dieses Passwort wurde in bekannten Datenlecks (HIBP) gefunden. Ändern Sie es!",
+  "Шлюзи Arweave": "Arweave-Gateways"
 }

@@ -1,7 +1,7 @@
 'use strict';
 // Правила для адрес верхнього рівня: видалення трекінгових параметрів та HTTPS-first.
 
-const TRACK = /^(utm_[a-z0-9_]+|fbclid|gclid|dclid|gbraid|wbraid|msclkid|mc_eid|mc_cid|igshid|yclid|_hsenc|_hsmi|mkt_tok|vero_id|oly_enc_id|oly_anon_id|ref_src|ref_url)$/i;
+const TRACK = /^(utm_[a-z0-9_]+|fbclid|gclid|dclid|gbraid|wbraid|msclkid|twclid|ttclid|yclid|igshid|mc_eid|mc_cid|_hsenc|_hsmi|_kx|mkt_tok|vero_id|oly_enc_id|oly_anon_id|rb_clickid|s_kwcid|zanpid|li_fat_id|epik|sccid|pk_(campaign|kwd|source|medium|content)|mtm_(campaign|kwd|source|medium|content|cid|group|placement)|ref_src|ref_url)$/i;
 
 function stripTracking(url) {
   try {

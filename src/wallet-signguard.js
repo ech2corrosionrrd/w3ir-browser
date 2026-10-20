@@ -5,6 +5,31 @@
 const { getAddress, isAddress } = require('ethers');
 
 const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3';
+// Відомі перевірені контракти-спендери за реєстром RevokeCash/whois (MIT)
+const KNOWN_SPENDERS = new Map([
+  [PERMIT2.toLowerCase(), 'Permit2 (Uniswap)'],
+  ['0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad', 'Uniswap Universal Router'],
+  ['0xef1c6e67703c7bd7107eed8303fbe6ec2554bf6b', 'Uniswap Universal Router (v1)'],
+  ['0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45', 'Uniswap SwapRouter02'],
+  ['0x7a250d5630b4cf539739df2c5dacb4c659f2488d', 'Uniswap V2 Router'],
+  ['0xe592427a0aece92de3edee1f18e0157c05861564', 'Uniswap V3 Router'],
+  ['0x1111111254eeb25477b68fb85ed929f73a960582', '1inch Aggregation Router v5'],
+  ['0x111111125421ca6dc452d289314280a0f8842a65', '1inch Aggregation Router v6'],
+  ['0xdef1c0ded9bec7f1a1670819833240f027b25eff', '0x Exchange Proxy'],
+  ['0x1e0049783f008a0085193e00003d00cd54003c71', 'OpenSea Conduit'],
+  ['0x00000000000000adc04c56bf30ac9d3c0aaf14dc', 'OpenSea Seaport 1.5'],
+  ['0x0000000000000068f116a894984e2db1123eb395', 'OpenSea Seaport 1.6'],
+  ['0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2', 'Aave V3 Pool'],
+  ['0x6352a56caad4f1e25cd6c75970fa768a3304e64', 'OpenOcean Exchange'],
+  ['0x216b4b4ba9f3e719726886d34a177484278bfcae', 'ParaSwap Augustus'],
+  ['0xc92e8bdf79f0507f65a392b0ab4667716bfe0110', 'CoW Protocol GPv2VaultRelayer'],
+]);
+const spenderLabel = (a) => (typeof a === 'string' ? KNOWN_SPENDERS.get(a.toLowerCase()) || '' : '');
+const fmtSpender = (sp, raw) => {
+  if (!sp) return clip(raw, 60);
+  const lbl = spenderLabel(sp);
+  return lbl ? `${lbl} (${sp})` : sp;
+};
 const UINT160_MAX = (1n << 160n) - 1n;
 const UNLIMITED_2612 = 1n << 255n;
 const YEAR = 365 * 24 * 3600;
@@ -136,7 +161,7 @@ function describeTyped(td, ctx = {}) {
     // EIP-2612 (value/deadline) або DAI-подібний (allowed/expiry)
     const owner = addr(m.owner || m.holder), spender = addr(m.spender);
     const token = addr(td.domain && td.domain.verifyingContract);
-    lines.push(['Дія', 'Дозвіл витрачати токени без транзакції (permit)'], ['Токен', token || '—'], ['Отримувач дозволу', spender || clip(m.spender, 60)]);
+    lines.push(['Дія', 'Дозвіл витрачати токени без транзакції (permit)'], ['Токен', token || '—'], ['Отримувач дозволу', fmtSpender(spender, m.spender)]);
     if (m.allowed !== undefined) lines.push(['Дозвіл', m.allowed ? 'ДАТИ повний доступ до токена' : 'скасувати']);
     else { const a = fmtAmount(m.value, UNLIMITED_2612, tokOf(token)); lines.push(['Сума', a.text]); if (a.unlimited) bad('Необмежений дозвіл: отримувач зможе витратити ВСІ ваші токени цього типу.'); }
     if (m.allowed === true) bad('Повний доступ до токена: отримувач зможе витратити ВСІ ваші токени цього типу.');
@@ -148,7 +173,7 @@ function describeTyped(td, ctx = {}) {
     // Permit2: дозвіл на кілька токенів з терміном
     const spender = addr(m.spender);
     const details = Array.isArray(m.details) ? m.details : [m.details || {}];
-    lines.push(['Дія', 'Дозвіл Permit2 витрачати токени'], ['Отримувач дозволу', spender || clip(m.spender, 60)]);
+    lines.push(['Дія', 'Дозвіл Permit2 витрачати токени'], ['Отримувач дозволу', fmtSpender(spender, m.spender)]);
     details.slice(0, 10).forEach((dt, i) => {
       const t = addr(dt.token), a = fmtAmount(dt.amount, UINT160_MAX, tokOf(t)), e = fmtTs(dt.expiration, now);
       lines.push([details.length > 1 ? `Токен ${i + 1}` : 'Токен', t || clip(dt.token, 60)], ['Сума', a.text], ['Дозвіл діє до', e.text]);
@@ -162,7 +187,7 @@ function describeTyped(td, ctx = {}) {
     // Permit2: одноразовий переказ за підписом (віддає токени, навіть без approve)
     const spender = addr(m.spender);
     const permitted = Array.isArray(m.permitted) ? m.permitted : [m.permitted || {}];
-    lines.push(['Дія', 'Підпис дозволяє ЗАБРАТИ токени (переказ за підписом, Permit2)'], ['Отримувач', spender || clip(m.spender, 60)]);
+    lines.push(['Дія', 'Підпис дозволяє ЗАБРАТИ токени (переказ за підписом, Permit2)'], ['Отримувач', fmtSpender(spender, m.spender)]);
     permitted.slice(0, 10).forEach((pt, i) => {
       const t = addr(pt.token), a = fmtAmount(pt.amount, UNLIMITED_2612, tokOf(t));
       lines.push([permitted.length > 1 ? `Токен ${i + 1}` : 'Токен', t || clip(pt.token, 60)], ['Максимальна сума', a.text]);
@@ -203,4 +228,4 @@ function delegateOf(code) {
   return m ? getAddress('0x' + m[1]) : null;
 }
 
-module.exports = { checkSiwe, parseSiwe, describeTyped, permitSpenders, permitTokens, rejectReason, hasDelegation, delegateOf, PERMIT2, REJECT_METHODS };
+module.exports = { checkSiwe, parseSiwe, describeTyped, permitSpenders, permitTokens, rejectReason, hasDelegation, delegateOf, PERMIT2, KNOWN_SPENDERS, spenderLabel, REJECT_METHODS };

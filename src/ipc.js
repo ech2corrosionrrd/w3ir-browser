@@ -180,7 +180,7 @@ const POLICY = {
 const PAGE_ONLY = {
   'settings:get': ['settings', 'help'], 'settings:set': ['settings'], defaultbrowser: ['settings'],
   'ext:add': ['settings'], 'ext:remove': ['settings'], clear: ['settings'],
-  'reader:get': ['reader'], 'doc:get': ['doc'], 'doc:print': ['doc'], 'doc:savePdf': ['doc'], resolve: ['newtab'], topsites: ['newtab'], startinfo: ['newtab'],
+  'reader:get': ['reader'], 'reader:translate': ['reader'], 'doc:get': ['doc'], 'doc:print': ['doc'], 'doc:savePdf': ['doc'], resolve: ['newtab'], topsites: ['newtab'], startinfo: ['newtab'],
   'history:get': ['history'], 'history:remove': ['history'], 'history:clear': ['history'],
   'bookmarks:get': ['bookmarks'], 'bookmarks:remove': ['bookmarks'],
   'downloads:get': ['downloads'], 'downloads:action': ['downloads'],
@@ -428,6 +428,10 @@ async function arweaveApi(ctx, name, arg) {
         const tags = await ar.fetchTags(txId);
         return { ok: true, tags };
       }
+      case 'arweave:ping':
+        return { ok: true, gateways: await ar.probeGateways() };
+      case 'arweave:buildMeta':
+        return { ok: true, metadata: ar.buildNftMetadata(arg) };
       default: throw new Error('unknown');
     }
   } catch (e) {
@@ -673,6 +677,19 @@ function registerIpc(resolve) {
         return cfg;
       }
       case 'reader:get': return entry.tab.reader || null;
+      case 'reader:translate': {
+        const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
+        const cfg = base.cfg();
+        const url = cfg.ollamaUrl || require('./ollama').DEFAULT_URL;
+        const model = cfg.ollamaModel || '';
+        if (!model) return { ok: false, error: 'Виберіть модель Ollama.' };
+        try {
+          const r = await require('./ollama').translate(url, { model, text: String(arg.text || ''), targetLang: String(arg.lang || 'Ukrainian') });
+          return { ok: true, text: r.content, model };
+        } catch (err) {
+          return { ok: false, error: String((err && err.message) || 'Помилка').slice(0, 300) };
+        }
+      }
       case 'doc:get': return entry.tab.doc || null;
       case 'doc:print': entry.tab.view.webContents.print(); return true;
       case 'doc:savePdf': {

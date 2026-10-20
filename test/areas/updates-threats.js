@@ -313,6 +313,7 @@ async function threatTests(ctx) {
   ok(t.check('https://bad.example.org/') === null, 'threats: разовий дозвіл «усе одно відкрити» діє');
   ok(JSON.stringify([...parseList('# c\n127.0.0.1\tevil.example\nplain.example # x\nBAD LINE here\n-bad-.com\nlocalhost\n  UP.Example.COM.  \n')].sort()) === JSON.stringify(['evil.example', 'plain.example', 'up.example.com']), 'threats: розбір hosts- і текстових списків');
   ok(JSON.stringify([...parseBlacklistJson('{"whitelist":["good.example"],"fuzzylist":["fz.example"],"blacklist":["Evil-OpenSea.xyz","sub.godaddysites.com","bad line",5,"localhost"]}')].sort()) === JSON.stringify(['evil-opensea.xyz', 'sub.godaddysites.com']), 'threats: eth-phishing-detect — береться лише blacklist');
+  ok(JSON.stringify([...parseBlacklistJson('{"allow":["polkadot.network"],"deny":["fake-dot-claim.org","scam-wallet.io"]}')].sort()) === JSON.stringify(['fake-dot-claim.org', 'scam-wallet.io']), 'threats: polkadot-js/phishing — береться лише deny');
   ok(parseBlacklistJson('не json').size === 0 && parseBlacklistJson('{"blacklist":"x"}').size === 0, 'threats: пошкоджений JSON не ламає оновлення');
 
   // --- оновлення списків із сервера, збереження, відновлення ---

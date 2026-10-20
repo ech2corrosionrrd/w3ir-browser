@@ -142,6 +142,19 @@ async function renderList(st) {
     h('p', { class: 'note' }, 'Пароль копіюється в буфер на 20 секунд. Автозаповнення працює лише за вашою командою (кнопка 🔑) і лише на сайті з точно такою самою адресою.'));
 
   let entries = [];
+  let breachedMap = null;
+  const checkBreachesBtn = h('button', { onclick: async () => {
+    checkBreachesBtn.disabled = true;
+    const r = await withAuth((x) => call('vault:breaches', x));
+    checkBreachesBtn.disabled = false;
+    if (!r) return;
+    if (!r.ok) { alert(r.error); return; }
+    breachedMap = r.breached || {};
+    updateAudit();
+    draw();
+  } }, 'Перевірити на витоки');
+  toolbar.append(checkBreachesBtn);
+
   const reveal = async (e, line) => {
     const r = await withAuth((x) => call('vault:reveal', { id: e.id, ...x }));
     if (!r || !r.ok) return;
@@ -159,11 +172,15 @@ async function renderList(st) {
       if (e.username) userCounts[e.username] = (userCounts[e.username] || 0) + 1;
     }
     const dupUsers = Object.values(userCounts).filter(c => c > 1).length;
+    const breachedCount = breachedMap ? Object.keys(breachedMap).length : null;
     auditBar.append(
       h('span', { class: 'pw-audit-badge' }, '🔑 ' + t('Збережених записів: {0}', entries.length)),
       dupUsers
         ? h('span', { class: 'pw-audit-badge warn', title: 'Одне й те саме ім’я користувача вживається на кількох сайтах' }, '⚠ ' + t('Збігів логінів: {0}', dupUsers))
-        : h('span', { class: 'pw-audit-badge' }, '🛡️ ' + t('Унікальні облікові записи'))
+        : h('span', { class: 'pw-audit-badge' }, '🛡️ ' + t('Унікальні облікові записи')),
+      breachedCount === null ? '' : (breachedCount > 0
+        ? h('span', { class: 'pw-audit-badge warn' }, '🚨 ' + t('У витоках: {0}', breachedCount))
+        : h('span', { class: 'pw-audit-badge' }, '✓ ' + t('Витоків не виявлено')))
     );
   };
 
@@ -202,11 +219,15 @@ async function renderList(st) {
         }
       } }, '🔑 2FA код') : null;
 
+      const pwnCount = breachedMap && breachedMap[e.id];
+      const pwnBadge = pwnCount ? h('span', { class: 'pw-audit-badge warn', title: 'Цей пароль знайдено у відомих базах витоків (HIBP). Замініть його!' }, '🚨 ' + t('У витоках ({0})', pwnCount)) : null;
+
       return h('div', { class: 'item' },
         avatar,
         h('div', { class: 'main' },
           h('div', { class: 't' }, e.host),
           h('div', { class: 's' }, e.username || '(без імені користувача)', ' · ', pw)),
+        pwnBadge,
         totpBtn,
         h('button', { class: 'link', onclick: () => reveal(e, pw) }, 'Показати'),
         h('button', { class: 'link', onclick: async () => {

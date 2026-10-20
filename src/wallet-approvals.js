@@ -3,7 +3,7 @@
 // Кандидатів знаходимо в журналах Approval/ApprovalForAll за останній проміжок блоків (публічні RPC обмежують діапазон, тож
 // пошук наближений), а ПОТОЧНИЙ стан завжди читається з контрактів. Скасування — окрема транзакція з підтвердженням.
 const { Interface, getAddress, isAddress, zeroPadValue, id: topicId, MaxUint256, formatUnits, ZeroAddress } = require('ethers');
-const { PERMIT2 } = require('./wallet-signguard');
+const { KNOWN_SPENDERS } = require('./wallet-signguard');
 
 const T_APPROVAL = topicId('Approval(address,address,uint256)');
 const T_APPROVAL_ALL = topicId('ApprovalForAll(address,address,bool)');
@@ -15,7 +15,7 @@ const IFACE = new Interface([
 const MAX_SEEN = 300;
 const MAX_LISTED = 60;
 const UNLIMITED = MaxUint256 >> 1n;
-const LABELS = new Map([[PERMIT2.toLowerCase(), 'Permit2 (Uniswap)']]);
+const LABELS = KNOWN_SPENDERS;
 
 function install(Wallet, { RpcError, clip, unauthorized }) {
   const proto = Wallet.prototype;

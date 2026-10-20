@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { Vault, normOrigin, checkMaster, parseCsv } = require(path.join(__dirname, '..', '..', 'src', 'vault.js'));
+const { Vault, normOrigin, checkMaster, parseCsv, sha1Password, parseHibpRange } = require(path.join(__dirname, '..', '..', 'src', 'vault.js'));
 
 test('vault: перевірка надійності майстер-пароля (checkMaster)', () => {
   // Коротший за 12 символів
@@ -188,6 +188,27 @@ test('vault: життєвий цикл сховища (create, lock, unlock, CRU
     assert.equal(unlocked.ok, true);
     assert.equal(v.status(), 'unlocked');
     assert.equal(v.list().length, 1);
+
+    // Перевірка паролів на витоки (k-анонімність HIBP Range API)
+    const { prefix, suffix } = sha1Password('NewSuperPassword999!');
+    assert.equal(prefix.length, 5);
+    assert.equal(suffix.length, 35);
+    let requestedUrl = '';
+    const mockFetch = async (url) => {
+      requestedUrl = url;
+      return {
+        ok: true,
+        status: 200,
+        text: async () => `00000000000000000000000000000000000:1\r\n${suffix}:42\r\nFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF:5`,
+      };
+    };
+    const br = await v.checkBreaches(mockFetch);
+    assert.equal(br.ok, true);
+    assert.equal(requestedUrl, `https://api.pwnedpasswords.com/range/${prefix}`);
+    assert.ok(!requestedUrl.includes(suffix), 'Суфікс хеша ніколи не передається в URL');
+    assert.equal(br.breachedCount, 1);
+    assert.equal(br.breached[id], 42);
+    assert.equal(parseHibpRange(`${suffix}:0`, suffix), 0);
 
     // Видалення запису
     v.remove(id);

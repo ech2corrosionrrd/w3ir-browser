@@ -206,4 +206,14 @@ test('signguard: describeTyped для Seaport OrderComponents (захист ві
 
   // Невідомий тип підпису повертає null
   assert.equal(guard.describeTyped({ primaryType: 'CustomStruct', message: {} }), null);
+
+  // Відомий spender із реєстру RevokeCash/whois підписується зрозумілою назвою протоколу
+  const uniRouter = '0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD';
+  assert.equal(guard.spenderLabel(uniRouter), 'Uniswap Universal Router');
+  const resKnown = guard.describeTyped({
+    primaryType: 'Permit',
+    domain: { verifyingContract: TOKEN_USDC },
+    message: { owner: ALICE, spender: uniRouter, value: '100', deadline: Math.floor(now / 1000) + 3600 },
+  }, { now, account: ALICE });
+  assert.ok(resKnown.lines.some(l => l[0] === 'Отримувач дозволу' && l[1].includes('Uniswap Universal Router')));
 });

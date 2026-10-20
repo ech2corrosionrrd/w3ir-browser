@@ -2385,5 +2385,21 @@
   "Некоректний секрет TOTP.": "Invalid TOTP secret.",
   "TOTP не налаштовано для цього запису.": "TOTP is not configured for this entry.",
   "Захист від цифрових відбитків (Canvas, екран)": "Fingerprinting protection (Canvas, screen)",
-  "Маскування характеристик пристрою, округлення екрана та захист Canvas від зняття відбитків": "Mask device hardware specs, normalize screen dimensions, and inject micro-noise to defeat canvas fingerprinting"
+  "Маскування характеристик пристрою, округлення екрана та захист Canvas від зняття відбитків": "Mask device hardware specs, normalize screen dimensions, and inject micro-noise to defeat canvas fingerprinting",
+  "Використання IPFS / Pinata заборонено: медіафайли NFT мають зберігатися на Arweave (ar://).": "IPFS / Pinata is forbidden: NFT media must be stored on Arweave (ar://).",
+  "Витоків не виявлено": "No breaches found",
+  "Вкажіть назву NFT.": "Specify the NFT name.",
+  "Зображення NFT має бути посиланням ar://<txId> або 43-символьним ідентифікатором Arweave.": "NFT image must be an ar://<txId> link or a 43-character Arweave ID.",
+  "Локальний переклад через Ollama": "Local translation via Ollama",
+  "недоступний": "unavailable",
+  "Некоректне посилання ar:// для зображення.": "Invalid ar:// link for image.",
+  "Немає тексту для перекладу.": "No text to translate.",
+  "Перевірити на витоки": "Check for breaches",
+  "Перевірка шлюзів Arweave / Irys…": "Checking Arweave / Irys gateways…",
+  "Перекласти (ШІ)": "Translate (AI)",
+  "Помилка перевірки шлюзів.": "Gateway check failed.",
+  "У витоках ({0})": "Breached ({0})",
+  "У витоках: {0}": "In breaches: {0}",
+  "Цей пароль знайдено у відомих базах витоків (HIBP). Замініть його!": "This password was found in known data breaches (HIBP). Change it!",
+  "Шлюзи Arweave": "Arweave Gateways"
 }

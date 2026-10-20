@@ -35,7 +35,7 @@ async function initBlocker(ctx) {
   let blocker;
   const cache = { path: file, read: fs.promises.readFile, write: fs.promises.writeFile };
   try {
-    blocker = await ElectronBlocker.fromPrebuiltAdsAndTracking(fetch, stale ? undefined : cache);
+    blocker = await ElectronBlocker.fromPrebuiltFull(fetch, stale ? undefined : cache);
     if (stale) await fs.promises.writeFile(file, blocker.serialize());
   } catch (e) {
     if (!exists) throw e;

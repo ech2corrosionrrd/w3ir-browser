@@ -79,6 +79,30 @@ async function arweaveTests(ctx) {
     const kwUrl = ctx.resolveInput(`ar ${validId}`);
     ok(kwUrl === `ar://${validId}`, 'context: ключове слово «ar <txId>» перетворюється на ar://<txId>');
   }
+
+  // 7. Маніфести шляхів Arweave (arweave/paths, ANS-105), конструктор NFT-метаданих та перевірка шлюзів
+  const targetTx = 'wtEIL1CXdgchVjI7UDQ0e0TyPBc1owSOfH9X1VgwI6o';
+  const manifest = {
+    manifest: 'arweave/paths',
+    version: '0.1.0',
+    index: { path: 'index.html' },
+    paths: {
+      'index.html': { id: validId },
+      'assets/art.png': { id: targetTx }
+    }
+  };
+  ok(arweave.resolveManifestPath(manifest, '') === validId, 'arweave: маніфест шляхів розпізнає index.html за замовчуванням');
+  ok(arweave.resolveManifestPath(manifest, '/assets/art.png?v=1') === targetTx, 'arweave: маніфест шляхів розпізнає вкладений шлях');
+  ok(arweave.resolveManifestPath({ manifest: 'other' }, 'index.html') === null, 'arweave: невалідний маніфест відхилено');
+
+  const builtMeta = arweave.buildNftMetadata({ name: 'Drop #1', description: 'Permadrop', image: validId, attributes: [{ trait_type: 'Tier', value: 'Gold' }] });
+  ok(builtMeta.image === `ar://${validId}` && builtMeta.attributes.length === 1, 'arweave: buildNftMetadata формує валідний Arweave-маніфест');
+  let ipfsRejected = false;
+  try { arweave.buildNftMetadata({ name: 'Bad', image: 'ipfs://QmHash' }); } catch { ipfsRejected = true; }
+  ok(ipfsRejected, 'arweave: buildNftMetadata суворо відхиляє IPFS/Pinata посилання');
+
+  const probes = await arweave.probeGateways(async (url) => ({ ok: !url.includes('arweave.dev') }));
+  ok(Array.isArray(probes) && probes.length === arweave.DEFAULT_GATEWAYS.length && probes[0].ok === true && probes[probes.length - 1].ok === false, 'arweave: probeGateways сортує живі шлюзи перед недоступними');
 }
 
 module.exports = { arweaveTests };

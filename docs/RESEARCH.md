@@ -1,20 +1,24 @@
 # Огляд сторонніх репозиторіїв
 
-_Складено 2026-10-16 за даними GitHub (зірки, ліцензія, дата останнього коміту); оновлено після випуску 1.15.x. Код репозиторіїв не аудитовано; перед використанням перечитати ліцензію._
+_Складено 2026-10-16 за даними GitHub (зірки, ліцензія, дата останнього коміту); оновлено 2026-10-20 (версія 1.38.0). Код репозиторіїв не аудитовано; перед використанням перечитати ліцензію._
 
 ## Рішення
 
 | Статус | Репозиторій | Ліцензія | Навіщо |
 |---|---|---|---|
 | ✅ Зроблено | MetaMask/eth-phishing-detect | DBAD (SPDX: NOASSERTION) | Список web3-фішингу (~107 тис. доменів). Додано джерелом `ethphish` у `src/threats.js`; береться лише `blacklist`, дані завантажуються під час роботи |
-| ✅ Готово в ядрі | node:sqlite (Node 24 у складі Electron 41) | MIT | Вбудована підтримка SQLite з повнотекстовим індексом FTS5! Замінює `better-sqlite3` та `minisearch`. Жодних зовнішніх бінарних залежностей, без ризиків збирання node-gyp |
-| ✅ Готово в ядрі | node:crypto (Ed25519) | MIT | Нативна генерація та підпис Ed25519 у Node 24 для Solana без потреби у сторонніх важких бібліотеках |
-| 🚀 В роботі | Irys-xyz/js-sdk, arweaveTeam/arweave-js | Apache-2.0 / MIT | Постійне зберігання NFT-метаданих і медіа на Arweave (`node1.irys.xyz` + шлюзи `arweave.net`). Нативна підтримка протоколу `ar://` у браузері |
-| 📋 До реалізації | anza-xyz/wallet-standard | Apache-2.0 | Офіційний стандарт інжекції гаманця Solana (`@wallet-standard/core`, подія `wallet-standard:register-wallet`) для повної сумісності з dApps |
-| 📋 До реалізації | WalletGuard/extension, RevokeCash/revoke.cash | GPL-3.0 / MIT | Захист від дрейнерів: виявлення `permit`/`permit2`, `eth_sign`, `SetAuthority`, симуляція транзакцій та перевірка/відкликання token allowance |
-| 📋 До реалізації | mozilla/gecko-dev (places.sqlite) | MPL-2.0 | Архітектура таблиць історії та алгоритм Frecency (частота + свіжість запитів) |
-| 📋 До реалізації | LedgerHQ/ledgerjs, trezor/connect | Apache-2.0 / MIT | Підключення апаратних гаманців через нативний WebHID сесії Electron (`session.setDevicePermissionHandler`) без C++ компіляторів |
-| 📋 До реалізації | ollama/ollama-js, protectai/rebuff | MIT / Apache-2.0 | Інтеграція локальних моделей через локальний MCP/HTTP та захист від непрямого Prompt Injection у веб-сторінках |
+| ✅ Зроблено | polkadot-js/phishing | Apache-2.0 | Додатковий список шахрайських криптодоменів (`all.json`, поле `deny`). Додано джерелом `dotphish` у `src/threats.js` |
+| ✅ Зроблено | RevokeCash/whois, WalletGuard | MIT | Захист від дрейнерів: розбір `permit`/`Permit2`/`Seaport`, відхилення `EIP-7702`, симуляція транзакцій (`eth_simulateV1`), перевірка/відкликання token allowance та реєстр відомих роутерів (`KNOWN_SPENDERS` у `src/wallet-signguard.js`) |
+| ✅ Зроблено | haveibeenpwned/pwned-passwords | BSD-3-Clause / CC-BY-4.0 | Перевірка збережених паролів на витоки за k-анонімністю (`src/vault.js`: надсилаються лише 5 символів SHA-1 префікса, звірка суфікса локальна, opt-in) |
+| ✅ Зроблено | ghostery/adblocker (fullLists) | MPL-2.0 | Приховування банерів cookie (`easylist-cookie`, `ublock-annoyances-cookies`) через `fromPrebuiltFull` у `src/adblock.js` та розширене очищення трекінгових URL-параметрів у `src/urlrules.js` |
+| ✅ Готово в ядрі | node:sqlite (Node 24 у складі Electron 44) | MIT | Вбудована підтримка SQLite з повнотекстовим індексом FTS5 та алгоритмом Frecency (`src/places.js`). Замінює `better-sqlite3` та `minisearch` без `node-gyp` |
+| ✅ Готово в ядрі | node:crypto (Ed25519) | MIT | Нативна генерація та підпис Ed25519 у Node 24 для Solana (`src/solana.js`) без сторонніх бібліотек |
+| ✅ Зроблено | Irys-xyz/js-sdk, ArweaveTeam/arweave-standards | Apache-2.0 / MIT | Постійне зберігання NFT-метаданих і медіа на Arweave (`gateway.irys.xyz` + `arweave.net`), нативний протокол `ar://`, маніфести шляхів `arweave/paths` (ANS-105), вибір найшвидшого шлюзу (`probeGateways`) та валідатор Arweave NFT-метаданих у `src/arweave.js` |
+| ✅ Зроблено | anza-xyz/wallet-standard | Apache-2.0 | Офіційний стандарт інжекції гаманця Solana (`window.solana`, `window.phantom.solana`, подія `wallet-standard:register-wallet`) |
+| ✅ Зроблено | ollama/ollama, protectai/rebuff | MIT / Apache-2.0 | Локальний ШІ-помічник (`w3ir://assistant`), локальний переклад статей у Режимі читання (`src/ollama.js`) та захист від непрямого Prompt Injection (`src/injection-guard.js`) |
+| 📋 До реалізації | argotorg/sourcify (API v2) | MIT | Перевірка верифікації смартконтракту перед підписом транзакції (opt-in) |
+| 📋 До реалізації | cantoo-scribe/pdf-lib (`@cantoo/pdf-lib`) | MIT | Активно підтримуваний форк `pdf-lib` для заміни `pdf-lib@1.17.1` |
+| ⏸ Відкладено | LedgerHQ/ledgerjs, trezor/connect | Apache-2.0 / MIT | Підключення апаратних гаманців через нативний WebHID сесії Electron (відкладено до появи фізичного пристрою для чесної верифікації) |
 | ⏭ Далі | castlabs/electron-releases | MIT | Форк Electron із Widevine (DRM). Потрібні акаунт EVS для підпису VMP і окреме тестування |
 | ⏭ Далі | vedantmgoyal9/winget-releaser | AGPL-3.0 | GitHub Action для автоподачі PR у winget-pkgs (лише в CI) |
 | ⏸ Рішення власника | samuelmaddock/electron-browser-shell | GPL-3.0 | Найповніша підтримка розширень Chrome; лише як архітектурний зразок, щоб уникнути копілефтного зараження GPL |

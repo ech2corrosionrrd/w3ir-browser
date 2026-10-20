@@ -37,8 +37,9 @@ const UPDATE_EVERY = 24 * 60 * 60 * 1000;
 const SOURCES = [
   { id: 'urlhaus', kind: 'malware', title: 'URLhaus (abuse.ch)', url: 'https://urlhaus.abuse.ch/downloads/hostfile/' },
   { id: 'phishdb', kind: 'phishing', title: 'Phishing.Database', url: 'https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/phishing-domains-ACTIVE.txt' },
-  // web3-фішинг (підроблені OpenSea/Uniswap/MetaMask тощо): JSON {blacklist:[домени]}
+  // web3-фішинг (підроблені OpenSea/Uniswap/MetaMask тощо): JSON {blacklist:[домени]} та Polkadot-JS {deny:[домени]}
   { id: 'ethphish', kind: 'phishing', title: 'MetaMask eth-phishing-detect', format: 'json-blacklist', url: 'https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json' },
+  { id: 'dotphish', kind: 'phishing', title: 'Polkadot-JS Phishing', format: 'json-blacklist', url: 'https://raw.githubusercontent.com/polkadot-js/phishing/master/all.json' },
 ];
 
 // ---------- бренди: назва → легітимні домени ----------
@@ -287,11 +288,12 @@ class Threats {
   }
 }
 
-// JSON-конфіг eth-phishing-detect: беремо лише blacklist (whitelist і fuzzylist ігноруємо)
+// JSON-конфіг eth-phishing-detect ({blacklist}) або polkadot-js/phishing ({deny}): беремо лише чорний список
 function parseBlacklistJson(text) {
   let j;
   try { j = JSON.parse(text); } catch { return new Set(); }
-  return parseList(Array.isArray(j && j.blacklist) ? j.blacklist.filter(x => typeof x === 'string').join('\n') : '');
+  const list = Array.isArray(j && j.blacklist) ? j.blacklist : (Array.isArray(j && j.deny) ? j.deny : []);
+  return parseList(list.filter(x => typeof x === 'string').join('\n'));
 }
 
 module.exports = { Threats, SOURCES, parseList, parseBlacklistJson, BRANDS };

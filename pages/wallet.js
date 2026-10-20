@@ -1120,11 +1120,19 @@ function buildArweaveSection(first, net) {
 
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') inspect(); });
 
+  const pingGateways = async () => {
+    statusMsg.textContent = 'Перевірка шлюзів Arweave / Irys…';
+    const r = await call('arweave:ping');
+    if (!r || !r.ok) { statusMsg.textContent = (r && r.error) || 'Помилка перевірки шлюзів.'; return; }
+    statusMsg.textContent = r.gateways.map(g => `${g.gateway.replace('https://', '')}: ${g.ok ? g.ms + ' ms' : t('недоступний')}`).join(' · ');
+  };
+
   return h('div', { class: 'card', style: 'max-width:none;margin:0' },
     h('p', { style: 'margin-top:0' }, 'Всі NFT та постійні медіафайли у W3IR Browser завантажуються та верифікуються напряму через децентралізоване сховище Arweave (шлюзи Irys / Arweave) без посередників чи платних API.'),
     h('div', { class: 'bar', style: 'margin:12px 0 6px' },
       input,
-      h('button', { class: 'primary', onclick: inspect }, 'Переглянути NFT')),
+      h('button', { class: 'primary', onclick: inspect }, 'Переглянути NFT'),
+      h('button', { onclick: pingGateways }, 'Шлюзи Arweave')),
     statusMsg,
     cardContainer,
     h('div', { class: 'tools', style: 'margin-top:10px' },

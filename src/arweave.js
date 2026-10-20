@@ -252,6 +252,80 @@ async function fetchTags(txId, fetchFn = globalThis.fetch) {
   return null;
 }
 
+/**
+ * Розв'язує шлях усередині маніфесту Arweave Path Manifest (arweave/paths, ANS-105).
+ * Повертає валідний 43-символьний txId цільового файлу або null.
+ */
+function resolveManifestPath(manifest, subPath = '') {
+  if (!manifest || typeof manifest !== 'object' || manifest.manifest !== 'arweave/paths') return null;
+  const paths = manifest.paths;
+  if (!paths || typeof paths !== 'object') return null;
+  let clean = String(subPath || '').replace(/^\/+/, '').split(/[?#]/)[0];
+  if (!clean && manifest.index && typeof manifest.index.path === 'string') {
+    clean = manifest.index.path.replace(/^\/+/, '');
+  }
+  const entry = paths[clean] || (clean ? paths[clean.replace(/\/+$/, '') + '/index.html'] : null);
+  const id = entry && typeof entry.id === 'string' ? entry.id.trim() : '';
+  return isValidTxId(id) ? id : null;
+}
+
+/**
+ * Формує та валідує стандартний JSON-маніфест метаданих NFT виключно для Arweave (забороняючи IPFS/Pinata).
+ */
+function buildNftMetadata({ name, description = '', image, externalUrl = '', attributes = [] } = {}) {
+  const cleanName = String(name || '').trim();
+  if (!cleanName) throw new Error('Вкажіть назву NFT.');
+  const rawImg = String(image || '').trim();
+  if (/^(ipfs:\/\/|https?:\/\/[^/]*(ipfs|pinata)\.)/i.test(rawImg)) {
+    throw new Error('Використання IPFS / Pinata заборонено: медіафайли NFT мають зберігатися на Arweave (ar://).');
+  }
+  let arImage = '';
+  if (rawImg.startsWith('ar://')) {
+    const parsed = parseArweaveUrl(rawImg);
+    if (!parsed) throw new Error('Некоректне посилання ar:// для зображення.');
+    arImage = parsed.href;
+  } else if (isValidTxId(rawImg)) {
+    arImage = `ar://${rawImg}`;
+  } else {
+    throw new Error('Зображення NFT має бути посиланням ar://<txId> або 43-символьним ідентифікатором Arweave.');
+  }
+  const out = {
+    name: cleanName.slice(0, 200),
+    description: String(description || '').trim().slice(0, 2000),
+    image: arImage,
+    attributes: (Array.isArray(attributes) ? attributes : [])
+      .filter(a => a && typeof a === 'object' && String(a.trait_type || a.name || '').trim())
+      .map(a => ({
+        trait_type: String(a.trait_type || a.name).trim().slice(0, 100),
+        value: String(a.value != null ? a.value : '').trim().slice(0, 200),
+      })),
+  };
+  if (externalUrl && /^https:\/\/|^ar:\/\//i.test(String(externalUrl).trim())) {
+    out.external_url = String(externalUrl).trim().slice(0, 500);
+  }
+  return out;
+}
+
+/**
+ * Перевіряє доступність і затримку (ms) пулу шлюзів Arweave / Irys (за ідеєю ar-io/wayfinder).
+ */
+async function probeGateways(fetchFn = globalThis.fetch) {
+  const results = await Promise.all(DEFAULT_GATEWAYS.map(async (gw) => {
+    const t0 = Date.now();
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), 4000) : null;
+    try {
+      const res = await fetchFn(`${gw}/info`, { signal: ctl ? ctl.signal : undefined });
+      if (timer) clearTimeout(timer);
+      return { gateway: gw, ok: !!res.ok, ms: Math.max(1, Date.now() - t0) };
+    } catch {
+      if (timer) clearTimeout(timer);
+      return { gateway: gw, ok: false, ms: -1 };
+    }
+  }));
+  return results.sort((a, b) => (a.ok === b.ok ? (a.ok ? a.ms - b.ms : 0) : (a.ok ? -1 : 1)));
+}
+
 module.exports = {
   TXID_RE,
   DEFAULT_GATEWAYS,
@@ -264,5 +338,8 @@ module.exports = {
   handleProtocolRequest,
   fetchMetadata,
   fetchTags,
-  normalizeNftMetadata
+  normalizeNftMetadata,
+  resolveManifestPath,
+  buildNftMetadata,
+  probeGateways
 };

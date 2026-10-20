@@ -42,6 +42,7 @@ test('queryMatcher: крайні випадки', () => {
 test('urlrules: прибирає трекінгові параметри й залишає решту', () => {
   const { stripTracking } = src('urlrules.js');
   assert.equal(stripTracking('https://a.com/p?utm_source=x&id=7&fbclid=1'), 'https://a.com/p?id=7');
+  assert.equal(stripTracking('https://a.com/p?ttclid=123&twclid=456&mtm_campaign=spring&pk_source=news&q=ok'), 'https://a.com/p?q=ok');
   assert.equal(stripTracking('https://a.com/p?id=7'), 'https://a.com/p?id=7');
   assert.equal(stripTracking('not a url'), 'not a url');
   assert.equal(stripTracking('ftp://a.com/?utm_source=x'), 'ftp://a.com/?utm_source=x');

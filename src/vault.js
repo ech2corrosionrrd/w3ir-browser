@@ -437,6 +437,78 @@ class Vault {
     for (let i = out.length - 1; i > 0; i--) { const j = crypto.randomInt(i + 1); [out[i], out[j]] = [out[j], out[i]]; }
     return out.join('');
   }
+
+  /**
+   * Перевірка паролів на витоки за k-анонімністю (Have I Been Pwned Range API).
+   * На сервер надсилаються лише перші 5 символів SHA-1 хеша; суфікс звіряється локально.
+   * @param {typeof globalThis.fetch} [fetchFn]
+   */
+  async checkBreaches(fetchFn = globalThis.fetch) {
+    this._need();
+    /** @type {Map<string, Array<{ id: string, suffix: string }>>} */
+    const byPrefix = new Map();
+    for (const e of this.data.entries) {
+      if (!e.password) continue;
+      const { prefix, suffix } = sha1Password(e.password);
+      let list = byPrefix.get(prefix);
+      if (!list) { list = []; byPrefix.set(prefix, list); }
+      list.push({ id: e.id, suffix });
+    }
+    /** @type {Record<string, number>} */
+    const breached = {};
+    let breachedCount = 0;
+    const prefixes = [...byPrefix.keys()];
+    for (let i = 0; i < prefixes.length; i += 4) {
+      await Promise.all(prefixes.slice(i, i + 4).map(async (prefix) => {
+        const res = await fetchFn(`https://api.pwnedpasswords.com/range/${prefix}`, {
+          headers: { 'Add-Padding': 'true', 'User-Agent': 'W3IR-Browser' },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!res.ok) throw new Error(`HIBP HTTP ${res.status}`);
+        const text = await res.text();
+        for (const item of byPrefix.get(prefix) || []) {
+          const count = parseHibpRange(text, item.suffix);
+          if (count > 0) {
+            breached[item.id] = count;
+            breachedCount++;
+          }
+        }
+      }));
+    }
+    return { ok: true, breached, breachedCount, total: this.data.entries.length };
+  }
 }
 
-module.exports = { Vault, normOrigin, checkMaster, parseCsv };
+/**
+ * Обчислює SHA-1 хеш пароля та ділить на 5-символьний префікс і 35-символьний суфікс (k-анонімність).
+ * @param {string} password
+ * @returns {{ prefix: string, suffix: string }}
+ */
+function sha1Password(password) {
+  const hex = crypto.createHash('sha1').update(String(password || ''), 'utf8').digest('hex').toUpperCase();
+  return { prefix: hex.slice(0, 5), suffix: hex.slice(5) };
+}
+
+/**
+ * Розбирає відповідь HIBP Range API (SUFFIX:COUNT) та повертає кількість витоків для суфікса.
+ * @param {string} rangeText
+ * @param {string} suffix
+ * @returns {number}
+ */
+function parseHibpRange(rangeText, suffix) {
+  const target = String(suffix || '').toUpperCase();
+  if (target.length !== 35) return 0;
+  for (const raw of String(rangeText || '').split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const idx = line.indexOf(':');
+    if (idx !== 35) continue;
+    if (line.slice(0, 35).toUpperCase() === target) {
+      const n = Number(line.slice(36));
+      return Number.isFinite(n) && n > 0 ? Math.trunc(n) : 0;
+    }
+  }
+  return 0;
+}
+
+module.exports = { Vault, normOrigin, checkMaster, parseCsv, sha1Password, parseHibpRange };
