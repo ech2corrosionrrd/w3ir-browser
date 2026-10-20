@@ -13,6 +13,7 @@
  * @property {string} password
  * @property {string} [name]
  * @property {string} [note]
+ * @property {string} [totp]
  * @property {number} [createdAt]
  * @property {number} [updatedAt]
  *
@@ -26,8 +27,9 @@ const path = require('path');
 const crypto = require('crypto');
 const { safeStorage, clipboard } = require('electron');
 const { KDF_DEFAULT, validKdf, deriveKey, encrypt, decrypt, b64, unb64, norm, writeAtomic } = require('./crypto-util');
+const { generateTotp, parseOtpAuth } = require('./totp');
 
-const MAX = { field: 2048, password: 1024, note: 8192, entries: 5000 };
+const MAX = { field: 2048, password: 1024, note: 8192, totp: 2048, entries: 5000 };
 const REAUTH_MS = 2 * 60 * 1000;
 
 function checkMaster(pw) {
@@ -223,7 +225,7 @@ class Vault {
   _pub(e) {
     let host = e.origin;
     try { host = new URL(e.origin).host; } catch { /* ignore */ }
-    return { id: e.id, origin: e.origin, host, username: e.username, modified: e.modified, hasNote: !!e.note };
+    return { id: e.id, origin: e.origin, host, username: e.username, modified: e.modified, hasNote: !!e.note, hasTotp: !!e.totp };
   }
 
   list(origin) {
@@ -243,7 +245,7 @@ class Vault {
     return this.data.entries.find(e => e.origin === origin && e.username === username) || null;
   }
 
-  add({ url, username = '', password, note = '' }) {
+  add({ url, username = '', password, note = '', totp = '' }) {
     this._need();
     const origin = normOrigin(url);
     if (!origin) throw new Error('Підтримуються лише https-адреси (та localhost).');
@@ -251,12 +253,21 @@ class Vault {
     password = String(password || '');
     if (!password || password.length > MAX.password) throw new Error('Некоректний пароль.');
     note = String(note).slice(0, MAX.note);
+    totp = String(totp || '').slice(0, MAX.totp).trim();
+    if (totp && !parseOtpAuth(totp)) throw new Error('Некоректний секрет TOTP або посилання otpauth://.');
     const now = Date.now();
     const ex = this.data.entries.find(e => e.origin === origin && e.username === username);
-    if (ex) { ex.password = password; ex.note = note || ex.note; ex.modified = now; }
-    else {
+    if (ex) {
+      ex.password = password;
+      ex.note = note || ex.note;
+      if (totp) ex.totp = totp;
+      ex.modified = now;
+    } else {
       if (this.data.entries.length >= MAX.entries) throw new Error('Досягнуто ліміт записів.');
-      this.data.entries.push({ id: crypto.randomUUID(), origin, username, password, note, created: now, modified: now });
+      /** @type {VaultEntry} */
+      const newEntry = { id: crypto.randomUUID(), origin, username, password, note, created: now, modified: now };
+      if (totp) newEntry.totp = totp;
+      this.data.entries.push(newEntry);
     }
     this._persist();
     return (ex || this.data.entries[this.data.entries.length - 1]).id;
@@ -273,6 +284,11 @@ class Vault {
       e.password = fields.password;
     }
     if (typeof fields.note === 'string') e.note = fields.note.slice(0, MAX.note);
+    if (typeof fields.totp === 'string') {
+      const t = fields.totp.slice(0, MAX.totp).trim();
+      if (t && !parseOtpAuth(t)) throw new Error('Некоректний секрет TOTP або посилання otpauth://.');
+      e.totp = t || undefined;
+    }
     e.modified = Date.now();
     this._persist();
   }
@@ -368,10 +384,35 @@ class Vault {
   copyPassword(id) {
     const e = this.get(id);
     if (!e) return false;
-    clipboard.writeText(e.password);
-    const pw = e.password;
-    clearTimeout(this.clipTimer);
-    this.clipTimer = setTimeout(() => { if (clipboard.readText() === pw) clipboard.clear(); }, 20000);
+    if (clipboard && clipboard.writeText) {
+      clipboard.writeText(e.password);
+      const pw = e.password;
+      clearTimeout(this.clipTimer);
+      this.clipTimer = setTimeout(() => { if (clipboard.readText() === pw) clipboard.clear(); }, 20000);
+      if (this.clipTimer.unref) this.clipTimer.unref();
+    }
+    return true;
+  }
+
+  getTotp(id) {
+    this._need();
+    const e = this.get(id);
+    if (!e || !e.totp) return { ok: false, error: 'TOTP не налаштовано для цього запису.' };
+    const res = generateTotp(e.totp);
+    if (!res) return { ok: false, error: 'Некоректний секрет TOTP.' };
+    return { ok: true, code: res.code, remaining: res.remaining, period: res.period };
+  }
+
+  copyTotp(id) {
+    const res = this.getTotp(id);
+    if (!res.ok) return false;
+    if (clipboard && clipboard.writeText) {
+      clipboard.writeText(res.code);
+      const code = res.code;
+      clearTimeout(this.clipTimer);
+      this.clipTimer = setTimeout(() => { if (clipboard.readText() === code) clipboard.clear(); }, 20000);
+      if (this.clipTimer.unref) this.clipTimer.unref();
+    }
     return true;
   }
 

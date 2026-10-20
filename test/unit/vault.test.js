@@ -115,12 +115,13 @@ test('vault: життєвий цикл сховища (create, lock, unlock, CRU
     assert.equal(v.exists(), true);
     assert.equal(v.status(), 'unlocked');
 
-    // Додавання запису
+    // Додавання запису з TOTP 2FA
     const id = v.add({
       url: 'https://github.com/login',
       username: 'developer',
       password: 'SuperSecretToken777!',
-      note: 'My API access'
+      note: 'My API access',
+      totp: 'JBSWY3DPEHPK3PXP'
     });
     assert.ok(typeof id === 'string' && id.length > 0);
 
@@ -130,12 +131,21 @@ test('vault: життєвий цикл сховища (create, lock, unlock, CRU
     assert.equal(list[0].id, id);
     assert.equal(list[0].host, 'github.com');
     assert.equal(list[0].password, undefined);
+    assert.equal(list[0].hasTotp, true);
 
     // Отримання запису за id
     const got = v.get(id);
     assert.equal(got.origin, 'https://github.com');
     assert.equal(got.username, 'developer');
     assert.equal(got.password, 'SuperSecretToken777!');
+    assert.equal(got.totp, 'JBSWY3DPEHPK3PXP');
+
+    // Генерація TOTP коду
+    const t1 = v.getTotp(id);
+    assert.equal(t1.ok, true);
+    assert.match(t1.code, /^\d{6}$/);
+    assert.ok(t1.remaining >= 1 && t1.remaining <= 30);
+    assert.equal(v.copyTotp(id), true);
 
     // Пошук за origin та username
     const found = v.find('https://github.com', 'developer');
@@ -143,14 +153,21 @@ test('vault: життєвий цикл сховища (create, lock, unlock, CRU
     assert.equal(found.id, id);
     assert.equal(found.username, 'developer');
 
-    // Редагування запису
+    // Редагування запису (оновлення пароля та TOTP на URI)
     v.update(id, {
       url: 'https://github.com',
       username: 'developer-updated',
-      password: 'NewSuperPassword999!'
+      password: 'NewSuperPassword999!',
+      totp: 'otpauth://totp/GitHub:developer?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&period=30'
     });
     assert.equal(v.get(id).username, 'developer-updated');
     assert.equal(v.get(id).password, 'NewSuperPassword999!');
+    const t2 = v.getTotp(id);
+    assert.equal(t2.ok, true);
+    assert.match(t2.code, /^\d{6}$/);
+
+    // Спроба встановити некоректний секрет
+    assert.throws(() => v.update(id, { totp: 'invalid!!secret##' }), /Некоректний секрет TOTP/);
 
     // Заблокувати сховище
     v.lock();

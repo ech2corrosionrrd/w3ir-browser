@@ -69,6 +69,11 @@ async function renderList(st) {
     [5, 15, 30, 60, 120].map(n => h('option', { value: n, selected: n === st.autolock }, `${n} хв`)));
 
   const addEntry = async (entry) => {
+    let currentTotp = '';
+    if (entry) {
+      const r = await withAuth((x) => call('vault:reveal', { id: entry.id, ...x }));
+      if (r && r.ok && r.totp) currentTotp = r.totp;
+    }
     const f = [
       { name: 'url', label: 'Адреса сайту (https://…)', value: entry ? entry.origin : 'https://' },
       { name: 'username', label: 'Ім’я користувача', value: entry ? entry.username : '' },
@@ -78,6 +83,7 @@ async function renderList(st) {
           const input = e.target.parentElement.querySelector('input');
           input.type = 'text'; input.value = r.password;
         } }, 'Згенерувати') },
+      { name: 'totp', label: 'Ключ 2FA (секрет або otpauth://)', value: currentTotp },
       { name: 'note', label: 'Нотатка', type: 'textarea', value: '' },
     ];
     const v = await ask(entry ? 'Редагувати запис' : 'Новий запис', f, { okText: 'Зберегти' });
@@ -168,11 +174,28 @@ async function renderList(st) {
       const cleanHost = (e.host || '').replace(/^https?:\/\//, '').replace(/^www\./, '');
       const initial = (cleanHost[0] || '🔑').toUpperCase();
       const avatar = h('div', { class: 'pw-avatar', title: e.host }, initial);
+      const totpBtn = e.hasTotp ? h('button', { class: 'pw-totp', title: 'Натисніть для копіювання коду', onclick: async (ev) => {
+        const btn = ev.currentTarget;
+        const r = await call('vault:totp', { id: e.id });
+        if (r && r.ok) {
+          const formatted = r.code.length === 6 ? `${r.code.slice(0, 3)} ${r.code.slice(3)}` : r.code;
+          btn.textContent = `${formatted} (${r.remaining}s)`;
+          btn.onclick = async () => {
+            await call('vault:copyTotp', { id: e.id });
+            btn.textContent = 'скопійовано (20 с)';
+            setTimeout(() => { load(); }, 2000);
+          };
+        } else if (r && r.error) {
+          alert(r.error);
+        }
+      } }, '🔑 2FA код') : null;
+
       return h('div', { class: 'item' },
         avatar,
         h('div', { class: 'main' },
           h('div', { class: 't' }, e.host),
           h('div', { class: 's' }, e.username || '(без імені користувача)', ' · ', pw)),
+        totpBtn,
         h('button', { class: 'link', onclick: () => reveal(e, pw) }, 'Показати'),
         h('button', { class: 'link', onclick: async () => {
           const r = await withAuth((x) => call('vault:copy', { id: e.id, ...x }));

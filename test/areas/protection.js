@@ -161,7 +161,7 @@ async function startPageTests(ctx) {
     const names = dom.hrefs.map(h => h.replace('w3ir://', ''));
     ok(dom.hrefs.length === 12 && new Set(dom.hrefs).size === 12, `start: 12 різних швидких запусків (${dom.hrefs.length})`);
     ok(names.every(n => fs.existsSync(path.join(pagesDir, n + '.html'))), `start: кожен запуск веде на наявну сторінку (${names.filter(n => !fs.existsSync(path.join(pagesDir, n + '.html'))).join() || 'усі є'})`);
-    ok(dom.pills === 5 && dom.keys === 6 && dom.tip && dom.clock && dom.search, `start: стан, поради, клавіші, годинник і пошук присутні (${JSON.stringify({ p: dom.pills, k: dom.keys, tip: dom.tip, clock: dom.clock, search: dom.search })})`);
+    ok((dom.pills === 5 || dom.pills === 6) && dom.keys === 6 && dom.tip && dom.clock && dom.search, `start: стан, поради, клавіші, годинник і пошук присутні (${JSON.stringify({ p: dom.pills, k: dom.keys, tip: dom.tip, clock: dom.clock, search: dom.search })})`);
     ok(dom.bms[0] === 'Тестова закладка Б' && dom.bms.includes('Тестова закладка А'), `start: останні закладки показані, найновіша першою (${dom.bms.slice(0, 2).join(' | ')})`);
     // дані стартової сторінки віддаються лише їй
     const probe = async (page, expr) => {

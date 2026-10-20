@@ -245,6 +245,8 @@ body.pdftools .note[role=status] { margin: 0; flex: 1; }
 .pw-audit { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 14px; background: color-mix(in srgb, var(--card) 94%, var(--line)); border: 1px solid var(--line); border-radius: 12px; margin: 10px 0 14px; }
 .pw-audit-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
 .pw-audit-badge.warn { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+.pw-totp { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; font-weight: 700; background: color-mix(in srgb, var(--ok) 16%, var(--card)); border: 1px solid color-mix(in srgb, var(--ok) 35%, var(--line)); color: var(--ok); text-decoration: none; cursor: pointer; transition: all .15s ease; }
+.pw-totp:hover { background: color-mix(in srgb, var(--ok) 26%, var(--card)); border-color: var(--ok); }
 
 /* ===== Тема «Pure Obsidian» (див. ui/obsidian.css): графіт, блакитний акцент, смарагдові статуси ===== */
 :root {

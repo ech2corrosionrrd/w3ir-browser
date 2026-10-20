@@ -50,14 +50,16 @@ async function vaultApi(ctx, entry, name, arg) {
         if (!v.recentlyAuthed() && !(await v.reauth(str(arg.master, 256)))) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
         if (name === 'vault:copy') return { ok: v.copyPassword(arg.id), cleared: 20 };
         const e = v.get(arg.id);
-        return e ? { ok: true, password: e.password, note: e.note } : { ok: false, error: 'Запис не знайдено.' };
+        return e ? { ok: true, password: e.password, note: e.note, totp: e.totp || '' } : { ok: false, error: 'Запис не знайдено.' };
       }
+      case 'vault:totp': return v.getTotp(str(arg.id, 64));
+      case 'vault:copyTotp': return { ok: v.copyTotp(str(arg.id, 64)), cleared: 20 };
       case 'vault:save': {
         if (arg.id) {
-          v.update(arg.id, { url: arg.url ? str(arg.url) : undefined, username: str(arg.username), password: arg.password ? str(arg.password, 1024) : undefined, note: str(arg.note, 8192) });
+          v.update(arg.id, { url: arg.url ? str(arg.url) : undefined, username: str(arg.username), password: arg.password ? str(arg.password, 1024) : undefined, note: str(arg.note, 8192), totp: arg.totp !== undefined ? str(arg.totp, 2048) : undefined });
           return { ok: true };
         }
-        v.add({ url: str(arg.url), username: str(arg.username), password: str(arg.password, 1024), note: str(arg.note, 8192) });
+        v.add({ url: str(arg.url), username: str(arg.username), password: str(arg.password, 1024), note: str(arg.note, 8192), totp: str(arg.totp, 2048) });
         return { ok: true };
       }
       case 'vault:remove': v.remove(str(arg.id, 64)); return { ok: true };

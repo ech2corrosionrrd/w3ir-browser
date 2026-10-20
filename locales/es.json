@@ -2377,5 +2377,11 @@
   "Збігів логінів: {0}": "Inicios de sesión duplicados: {0}",
   "Унікальні облікові записи": "Cuentas únicas",
   "Одне й те саме ім’я користувача вживається на кількох сайтах": "El mismo nombre de usuario se usa en varios sitios",
-  "Пошук завантажень…": "Buscar descargas…"
+  "Пошук завантажень…": "Buscar descargas…",
+  "🔑 2FA код": "🔑 Código 2FA",
+  "Ключ 2FA (секрет або otpauth://)": "Clave 2FA (secreto u otpauth://)",
+  "Натисніть для копіювання коду": "Haga clic para copiar el código",
+  "Некоректний секрет TOTP або посилання otpauth://.": "Secreto TOTP o enlace otpauth:// no válido.",
+  "Некоректний секрет TOTP.": "Secreto TOTP no válido.",
+  "TOTP не налаштовано для цього запису.": "TOTP no está configurado para esta entrada."
 }
