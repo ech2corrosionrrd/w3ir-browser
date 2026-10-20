@@ -1,11 +1,11 @@
 # Дорожня карта й поточний стан
 
-_Оновлено: 2026-10-20, версія 1.38.0._
+_Оновлено: 2026-10-21, версія 1.39.0._
 
 ## Де ми зараз
 
-- Випущено **v1.38.0** (GitHub Releases `ech2corrosionrrd/w3ir-browser`, Electron 44.9.0 / Chromium 152). Головні нововведення: Pure Obsidian UI внутрішніх сторінок, вбудований 2FA/TOTP-генератор (RFC 6238), захист від цифрових відбитків (Anti-Fingerprinting), Build Attestations, V8 Coverage та англомовна документація. Деталі — [PLAN.md](PLAN.md).
-- **1286 автоматичних перевірок** (`npm test`), 91 unit-тест без Electron (`npm run test:unit`), 0 помилок лінтера `npm run lint`. `npm audit --omit=dev` — 0 вразливостей.
+- Випущено **v1.39.0** (GitHub Releases `ech2corrosionrrd/w3ir-browser`, Electron 44.9.0 / Chromium 152). Головні нововведення: інтеграція HIBP k-Anonymity для перевірки паролів, мітки витрачальників Revoke.cash / whois, фід загроз Polkadot-js/phishing, авто-резолв маніфестів Arweave ANS-105 і конструктор метаданих NFT, перевірка верифікації смарт-контрактів Sourcify API v2, індикатор «Перша взаємодія», експорт історії Solana у CSV та локальний ШІ-конспект статей у режимі читання. Деталі — [PLAN.md](PLAN.md).
+- **1298 автоматичних перевірок** (`npm test`), 92 unit-тести без Electron (`npm run test:unit`), 0 помилок лінтера `npm run lint`. `npm audit --omit=dev` — 0 вразливостей.
 
 ## Відкриті рішення (потрібне слово власника)
 
@@ -16,6 +16,7 @@ _Оновлено: 2026-10-20, версія 1.38.0._
 
 ## Зроблено
 
+- **1.39.0:** HIBP k-Anonymity аудит паролів, Revoke.cash spender labels, Polkadot-js/phishing фід, Arweave ANS-105 manifest resolution, Arweave NFT metadata builder, Sourcify v2 верифікація контрактів, індикатор першої взаємодії, Solana CSV export, Ollama reader translation & summarization.
 - **1.38.0:** Pure Obsidian UI (`settings`, `passwords`, `downloads`, `history`, `bookmarks`, `newtab`), вбудований 2FA / TOTP (RFC 6238, копіювання з автоочищенням через 20 с), захист від відбитків (округлення екрана, маскування заліза, Canvas noise injection), build attestations, SHA-256 таблиця у випусках, 91 unit-тест без Electron, англомовний `README.md`.
 - **1.37.0:** переглядач документів: CSV/TSV (RFC 4180, фільтр, сортування, числовий вивід, до 5000 рядків), JSON (дерево зі згортанням, ледаче створення вузлів), текст/код (.log, .env, .py, .ts, .rs тощо — номери рядків, до 20 000 рядків). Усі типи друкуються й зберігаються «У PDF».
 - **1.36.0:** перегляд і друк Markdown у вкладці (`w3ir://doc`): заголовки, списки, таблиці, код, посилання, друк (`Ctrl+P`) і «У PDF»; рендерер без залежностей.
