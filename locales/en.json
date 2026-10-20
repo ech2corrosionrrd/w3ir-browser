@@ -2416,5 +2416,11 @@
   "Створити метадані": "Create Metadata",
   "Сформувати JSON": "Generate JSON",
   "Токени SPL": "SPL Tokens",
-  "JSON для завантаження в Arweave / Irys": "JSON for upload to Arweave / Irys"
+  "JSON для завантаження в Arweave / Irys": "JSON for upload to Arweave / Irys",
+  "Введіть майстер-пароль для показу гаманця:": "Enter master password to show wallet:",
+  "Введіть майстер-пароль.": "Enter master password.",
+  "Відкрити сторінку гаманця": "Open wallet page",
+  "Гаманець приховано. Дані збережено в зашифрованому сховищі.": "Wallet is hidden. Data is preserved in encrypted storage.",
+  "Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.": "Wallet is hidden. Click «Show wallet» to restore it.",
+  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Failed to show wallet. Check master password."
 }

@@ -403,9 +403,20 @@ async function main() {
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Менеджер паролів'), h('div', { class: 'd' }, 'Шифроване сховище: AES-256-GCM + scrypt + захист акаунтом Windows')),
         h('a', { href: 'w3ir://passwords' }, 'Відкрити'))),
     h('h2', { id: 'sec-wallet' }, 'Гаманець'),
-    h('div', { class: 'list' }, h('div', { class: 'row' }, h('div', null, h('div', null, 'Приховати гаманець'),
-      h('div', { class: 'd' }, settings.walletHidden ? 'Гаманець приховано. Щоб показати його, відкрийте w3ir://wallet і введіть майстер-пароль.' : 'Прибирає гаманець з меню, стартової сторінки й панелі та вимикає його для сайтів. Дані лишаються у зашифрованому сховищі. Показати знову можна на сторінці гаманця з майстер-паролем. Видалення гаманця — там само, у розділі «Безпека».')),
-      settings.walletHidden ? h('span', { class: 'note' }, 'Приховано') : h('button', { onclick: async () => { await w3ir.invoke('wallet:hide'); location.reload(); } }, 'Приховати'))),
+    h('div', { class: 'list' }, h('div', { class: 'row' }, h('div', null, h('div', null, settings.walletHidden ? 'Показати гаманець' : 'Приховати гаманець'),
+      h('div', { class: 'd' }, settings.walletHidden
+        ? [h('span', null, 'Гаманець приховано. Дані збережено в зашифрованому сховищі. '), h('a', { href: 'w3ir://wallet' }, 'Відкрити сторінку гаманця')]
+        : 'Прибирає гаманець з меню, стартової сторінки й панелі та вимикає його для сайтів. Дані лишаються у зашифрованому сховищі. Показати знову можна на сторінці гаманця з майстер-паролем. Видалення гаманця — там само, у розділі «Безпека».')),
+      settings.walletHidden ? h('button', { class: 'primary', onclick: async () => {
+        const pw = prompt(t('Введіть майстер-пароль для показу гаманця:'));
+        if (pw === null) return;
+        const r = await w3ir.invoke('wallet:unhide', { master: pw });
+        if (r && r.ok) {
+          location.reload();
+        } else {
+          alert((r && r.error) || t('Не вдалося показати гаманець. Перевірте майстер-пароль.'));
+        }
+      } }, 'Показати') : h('button', { onclick: async () => { await w3ir.invoke('wallet:hide'); location.reload(); } }, 'Приховати'))),
     h('h2', { id: 'sec-sync' }, 'Синхронізація закладок (наскрізне шифрування)'),
     syncBox,
     h('h2', { id: 'sec-updates' }, 'Оновлення браузера'),

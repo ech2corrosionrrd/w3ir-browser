@@ -2416,5 +2416,11 @@
   "Створити метадані": "Utwórz metadane",
   "Сформувати JSON": "Generuj JSON",
   "Токени SPL": "Tokeny SPL",
-  "JSON для завантаження в Arweave / Irys": "JSON do przesłania na Arweave / Irys"
+  "JSON для завантаження в Arweave / Irys": "JSON do przesłania na Arweave / Irys",
+  "Введіть майстер-пароль для показу гаманця:": "Wprowadź hasło główne, aby pokazać portfel:",
+  "Введіть майстер-пароль.": "Wprowadź hasło główne.",
+  "Відкрити сторінку гаманця": "Otwórz stronę portfela",
+  "Гаманець приховано. Дані збережено в зашифрованому сховищі.": "Portfel jest ukryty. Dane są zachowane w zaszyfrowanym magazynie.",
+  "Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.": "Portfel jest ukryty. Kliknij «Pokaż portfel», aby go przywrócić.",
+  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Nie udało się pokazać portfela. Sprawdź hasło główne."
 }

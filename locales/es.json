@@ -2416,5 +2416,11 @@
   "Створити метадані": "Crear metadatos",
   "Сформувати JSON": "Generar JSON",
   "Токени SPL": "Tokens SPL",
-  "JSON для завантаження в Arweave / Irys": "JSON para subir a Arweave / Irys"
+  "JSON для завантаження в Arweave / Irys": "JSON para subir a Arweave / Irys",
+  "Введіть майстер-пароль для показу гаманця:": "Introduzca la contraseña maestra para mostrar la billetera:",
+  "Введіть майстер-пароль.": "Introduzca la contraseña maestra.",
+  "Відкрити сторінку гаманця": "Abrir página de la billetera",
+  "Гаманець приховано. Дані збережено в зашифрованому сховищі.": "La billetera está oculta. Los datos se conservan en el almacenamiento cifrado.",
+  "Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.": "La billetera está oculta. Haga clic en «Mostrar billetera» para restaurarla.",
+  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "No se pudo mostrar la billetera. Verifique la contraseña maestra."
 }

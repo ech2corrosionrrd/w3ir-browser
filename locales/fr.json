@@ -2416,5 +2416,11 @@
   "Створити метадані": "Créer des métadonnées",
   "Сформувати JSON": "Générer le JSON",
   "Токени SPL": "Jetons SPL",
-  "JSON для завантаження в Arweave / Irys": "JSON à téléverser sur Arweave / Irys"
+  "JSON для завантаження в Arweave / Irys": "JSON à téléverser sur Arweave / Irys",
+  "Введіть майстер-пароль для показу гаманця:": "Entrez le mot de passe principal pour afficher le portefeuille :",
+  "Введіть майстер-пароль.": "Entrez le mot de passe principal.",
+  "Відкрити сторінку гаманця": "Ouvrir la page du portefeuille",
+  "Гаманець приховано. Дані збережено в зашифрованому сховищі.": "Le portefeuille est masqué. Les données sont conservées dans le coffre chiffré.",
+  "Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.": "Le portefeuille est masqué. Cliquez sur « Afficher le portefeuille » pour le restaurer.",
+  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Impossible d'afficher le portefeuille. Vérifiez le mot de passe principal."
 }

@@ -32,6 +32,7 @@ function gate(text, linkText, href) {
 function renderHidden(st) {
   const m = h('input', { type: 'password', placeholder: 'Майстер-пароль', autocomplete: 'off' });
   const err = h('div', { class: 'merr' });
+  const hasVault = st.vault !== 'none';
   const go = async () => {
     if (st.vault === 'locked') {
       const u = await call('vault:unlock', { master: m.value });
@@ -39,13 +40,13 @@ function renderHidden(st) {
     }
     const r = await call('wallet:unhide', { master: m.value });
     m.value = '';
-    if (r && r.ok) render(); else err.textContent = (r && r.error) || t('Не вдалося показати гаманець.');
+    if (r && r.ok) location.reload(); else err.textContent = (r && r.error) || t('Не вдалося показати гаманець.');
   };
   m.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
   app.append(h('div', { class: 'card' }, h('h2', null, 'Гаманець приховано'),
-    h('p', { class: 'note' }, 'Гаманця немає в меню, на стартовій сторінці й панелі, а сайти його не бачать. Дані лишаються в зашифрованому сховищі. Щоб показати гаманець, введіть майстер-пароль.'),
-    m, err, h('button', { class: 'primary', onclick: go }, 'Показати гаманець')));
-  m.focus();
+    h('p', { class: 'note' }, hasVault ? 'Гаманця немає в меню, на стартовій сторінці й панелі, а сайти його не бачать. Дані лишаються в зашифрованому сховищі. Щоб показати гаманець, введіть майстер-пароль.' : 'Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.'),
+    ...(hasVault ? [m] : []), err, h('button', { class: 'primary', onclick: go }, 'Показати гаманець')));
+  if (hasVault) m.focus();
 }
 
 function renderUnlock() {

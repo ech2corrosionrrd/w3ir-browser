@@ -165,7 +165,7 @@ async function githubApi(ctx, name, arg) {
 // ('*' — усі команди групи). Конфіденційні групи не приймають адреси із запитом (QUERY_OK).
 const PAGE_RE = /^w3ir:\/\/([a-z]+)\/?(\?[^#]*)?(#.*)?$/;
 const POLICY = {
-  'wallet:': { wallet: '*', settings: ['wallet:hide'] },
+  'wallet:': { wallet: '*', settings: ['wallet:hide', 'wallet:unhide'] },
   'pdf:': { pdftools: '*' },
   'arweave:': { wallet: '*', dashboard: '*' },
   'assistant:': { assistant: '*' },
@@ -257,8 +257,19 @@ async function walletApi(ctx, entry, name, arg) {
     switch (name) {
       case 'wallet:hide': w.setHidden(true); return { ok: true };
       case 'wallet:unhide': {
-        if (v.status() !== 'unlocked') return { ok: false, needUnlock: true, error: 'Спершу розблокуйте сховище.' };
-        if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
+        if (v.status() === 'none') {
+          w.setHidden(false);
+          return { ok: true };
+        }
+        if (v.status() === 'locked') {
+          if (typeof arg.master === 'string' && arg.master) {
+            const u = await v.unlock(arg.master.slice(0, 256));
+            if (!u.ok) return { ok: false, error: u.error || 'Хибний майстер-пароль.' };
+          } else {
+            return { ok: false, needUnlock: true, error: 'Спершу розблокуйте сховище.' };
+          }
+        }
+        if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : 'Введіть майстер-пароль.' };
         w.setHidden(false);
         return { ok: true };
       }
