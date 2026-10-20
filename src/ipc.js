@@ -180,7 +180,7 @@ const POLICY = {
 const PAGE_ONLY = {
   'settings:get': ['settings', 'help'], 'settings:set': ['settings'], defaultbrowser: ['settings'],
   'ext:add': ['settings'], 'ext:remove': ['settings'], clear: ['settings'],
-  'reader:get': ['reader'], 'reader:translate': ['reader'], 'doc:get': ['doc'], 'doc:print': ['doc'], 'doc:savePdf': ['doc'], resolve: ['newtab'], topsites: ['newtab'], startinfo: ['newtab'],
+  'reader:get': ['reader'], 'reader:translate': ['reader'], 'reader:summarize': ['reader'], 'doc:get': ['doc'], 'doc:print': ['doc'], 'doc:savePdf': ['doc'], resolve: ['newtab'], topsites: ['newtab'], startinfo: ['newtab'],
   'history:get': ['history'], 'history:remove': ['history'], 'history:clear': ['history'],
   'bookmarks:get': ['bookmarks'], 'bookmarks:remove': ['bookmarks'],
   'downloads:get': ['downloads'], 'downloads:action': ['downloads'],
@@ -296,6 +296,14 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:addToken': return { ok: true, token: await w.addToken(String(arg.address)) };
       case 'wallet:removeToken': return { ok: true, removed: w.removeToken(String(arg.address)) };
       case 'wallet:solHistory': return { ok: true, ...(await w.solHistory(String(arg.address))) };
+      case 'wallet:solHistoryCsv': {
+        const csv = w.solHistoryCsv(String(arg.address), tr);
+        const stamp = new Date().toISOString().slice(0, 10);
+        const r = await require('electron').dialog.showSaveDialog(entry.win.win, { title: tr('Зберегти історію (CSV)'), defaultPath: `w3ir-solana-history-${stamp}.csv`, filters: [{ name: 'CSV', extensions: ['csv'] }] });
+        if (r.canceled || !r.filePath) return { ok: false, error: 'Збереження скасовано.' };
+        require('fs').writeFileSync(r.filePath, csv);
+        return { ok: true, path: r.filePath };
+      }
       case 'wallet:txStatuses': return { ok: true, statuses: await w.txStatuses(arg.items) };
       case 'wallet:pending': return { ok: true, items: await w.evmPending() };
       case 'wallet:replace': return { ok: true, hash: await w.replacePending(entry.win, () => entry.win.tabs.includes(entry.tab), { hash: String(arg.hash), mode: String(arg.mode) }) };
@@ -677,14 +685,16 @@ function registerIpc(resolve) {
         return cfg;
       }
       case 'reader:get': return entry.tab.reader || null;
-      case 'reader:translate': {
+      case 'reader:translate':
+      case 'reader:summarize': {
         const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
         const cfg = base.cfg();
         const url = cfg.ollamaUrl || require('./ollama').DEFAULT_URL;
         const model = cfg.ollamaModel || '';
         if (!model) return { ok: false, error: 'Виберіть модель Ollama.' };
         try {
-          const r = await require('./ollama').translate(url, { model, text: String(arg.text || ''), targetLang: String(arg.lang || 'Ukrainian') });
+          const fn = name === 'reader:summarize' ? require('./ollama').summarize : require('./ollama').translate;
+          const r = await fn(url, { model, text: String(arg.text || ''), targetLang: String(arg.lang || 'Ukrainian') });
           return { ok: true, text: r.content, model };
         } catch (err) {
           return { ok: false, error: String((err && err.message) || 'Помилка').slice(0, 300) };

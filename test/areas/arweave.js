@@ -103,6 +103,22 @@ async function arweaveTests(ctx) {
 
   const probes = await arweave.probeGateways(async (url) => ({ ok: !url.includes('arweave.dev') }));
   ok(Array.isArray(probes) && probes.length === arweave.DEFAULT_GATEWAYS.length && probes[0].ok === true && probes[probes.length - 1].ok === false, 'arweave: probeGateways сортує живі шлюзи перед недоступними');
+
+  const manifestHandled = await arweave.handleProtocolRequest(
+    arweave.parseArweaveUrl(`ar://${validId}/assets/art.png`),
+    async (url) => {
+      if (url.includes(validId)) {
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: (k) => (k === 'content-type' ? 'application/x.arweave-manifest+json' : '') },
+          clone: () => ({ json: async () => manifest }),
+        };
+      }
+      return { ok: true, status: 200, resolvedTx: targetTx, headers: { get: () => 'image/png' } };
+    }
+  );
+  ok(manifestHandled && manifestHandled.resolvedTx === targetTx, 'arweave: handleProtocolRequest автоматично розгортає маніфест arweave/paths');
 }
 
 module.exports = { arweaveTests };

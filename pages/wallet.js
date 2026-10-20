@@ -523,6 +523,7 @@ async function renderDashboard(st) {
     const r = await call('wallet:solHistory', { address: solAddrOf(Number(histAcct.value)) });
     if (!r.ok) { histMsg.textContent = r.error || 'Помилка'; return; }
     histMsg.textContent = r.items.length ? '' : 'Транзакцій поки немає.';
+    solHistCsv.hidden = !r.items.length;
     for (const it of r.items) {
       const parts = [];
       if (it.solDelta !== undefined && it.solDelta !== '0') parts.push(fmtSol(it.solDelta));
@@ -564,6 +565,10 @@ async function renderDashboard(st) {
   const evHistCsv = h('button', { hidden: true, onclick: async () => {
     const r = await call('wallet:evmHistoryCsv', { index: Number(evHistAcct.value) });
     evHistMsg.textContent = r.ok ? t('Збережено: {0}', r.path) : (r.error || 'Помилка');
+  } }, 'Зберегти CSV');
+  const solHistCsv = h('button', { hidden: true, onclick: async () => {
+    const r = await call('wallet:solHistoryCsv', { address: solAddrOf(Number(histAcct.value)) });
+    histMsg.textContent = r.ok ? t('Збережено: {0}', r.path) : (r.error || 'Помилка');
   } }, 'Зберегти CSV');
   const evHistAcct = h('select', { 'aria-label': 'Рахунок', onchange: loadEvmHistory }, viewOptions().filter(o => o.chain !== 'sol').map(o => h('option', { value: String(o.id) }, o.label)));
   const histAcct = h('select', { 'aria-label': 'Рахунок', onchange: loadHistory }, [...info.accounts.map((a, i) => h('option', { value: String(i) }, nameOf(i))), ...imp.filter(a => a.chain === 'sol').map(a => h('option', { value: String(a.id) }, a.name || short(a.address))), ...watch.filter(a => a.chain === 'sol').map(a => h('option', { value: String(a.id) }, `${a.name || short(a.address)} (${t('перегляд')})`))]);
@@ -907,7 +912,7 @@ async function renderDashboard(st) {
     h('div', { class: 'bar' }, evHistAcct, h('button', { onclick: loadEvmHistory }, 'Показати'), evHistCsv),
     evHistMsg, evHistList,
     h('h2', null, 'Історія Solana'),
-    h('div', { class: 'bar' }, histAcct, h('button', { onclick: loadHistory }, 'Оновити')),
+    h('div', { class: 'bar' }, histAcct, h('button', { onclick: loadHistory }, 'Оновити'), solHistCsv),
     histMsg, histList,
     h('h2', { id: 'sec-arweave' }, 'Децентралізоване сховище & NFT (Arweave / Irys)'),
     buildArweaveSection(info.accounts[0], net),
@@ -1127,11 +1132,26 @@ function buildArweaveSection(first, net) {
     statusMsg.textContent = r.gateways.map(g => `${g.gateway.replace('https://', '')}: ${g.ok ? g.ms + ' ms' : t('недоступний')}`).join(' · ');
   };
 
+  const openMetaBuilder = async () => {
+    const f = [
+      { name: 'name', label: 'Назва NFT', value: '' },
+      { name: 'image', label: 'Зображення на Arweave (ar:// або txId)', value: input.value.trim() || 'ar://' },
+      { name: 'description', label: 'Опис', type: 'textarea', value: '' },
+    ];
+    const v = await ask('Конструктор метаданих NFT (Arweave)', f, { okText: 'Сформувати JSON' });
+    if (!v) return;
+    const r = await call('arweave:buildMeta', v);
+    if (!r || !r.ok) { statusMsg.textContent = (r && r.error) || t('Помилка'); return; }
+    const jsonStr = JSON.stringify(r.metadata, null, 2);
+    await ask('Готовий маніфест NFT (Arweave)', [{ name: 'json', label: 'JSON для завантаження в Arweave / Irys', type: 'textarea', value: jsonStr }], { okText: 'Закрити' });
+  };
+
   return h('div', { class: 'card', style: 'max-width:none;margin:0' },
     h('p', { style: 'margin-top:0' }, 'Всі NFT та постійні медіафайли у W3IR Browser завантажуються та верифікуються напряму через децентралізоване сховище Arweave (шлюзи Irys / Arweave) без посередників чи платних API.'),
     h('div', { class: 'bar', style: 'margin:12px 0 6px' },
       input,
       h('button', { class: 'primary', onclick: inspect }, 'Переглянути NFT'),
+      h('button', { onclick: openMetaBuilder }, 'Створити метадані'),
       h('button', { onclick: pingGateways }, 'Шлюзи Arweave')),
     statusMsg,
     cardContainer,

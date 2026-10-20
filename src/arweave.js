@@ -117,11 +117,23 @@ async function fetchWithFallback(txId, pathname = '', options = {}, fetchFn = gl
 }
 
 /**
- * Обробник для protocol.handle('ar', ...) в Electron
+ * Обробник для protocol.handle('ar', ...) в Electron.
+ * Автоматично розпізнає маніфести шляхів Arweave (application/x.arweave-manifest+json, ANS-105)
+ * і перенаправляє запит на відповідний txId цільового файлу.
  */
 async function handleProtocolRequest(parsed, fetchFn = globalThis.fetch) {
   const { response } = await fetchWithFallback(parsed.txId, parsed.pathname + parsed.search, {}, fetchFn);
-  // Передаємо відповідь шлюзу безпосередньо у вікно браузера
+  const ct = (response.headers && typeof response.headers.get === 'function' && response.headers.get('content-type')) || '';
+  if (ct.includes('arweave-manifest') && typeof response.clone === 'function') {
+    try {
+      const manifest = await response.clone().json();
+      const targetTxId = resolveManifestPath(manifest, parsed.pathname);
+      if (targetTxId) {
+        const sub = await fetchWithFallback(targetTxId, parsed.search || '', {}, fetchFn);
+        return sub.response;
+      }
+    } catch { /* якщо не вдалося розібрати маніфест — повертаємо початкову відповідь */ }
+  }
   return response;
 }
 

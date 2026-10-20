@@ -62,9 +62,12 @@ async function main() {
     h('h1', null, art.title || ''),
     h('div', { class: 'meta' }, [art.byline, art.siteName].filter(Boolean).join(' · ')));
   const body = sanitize(art.content);
+  const summaryBox = h('blockquote');
+  summaryBox.hidden = true;
   const box = h('div');
   while (body.firstChild) box.append(body.firstChild);
   const origHtml = box.innerHTML;
+  const rawArticleText = box.innerText || box.textContent || '';
   let translatedText = '';
   let showingTranslated = false;
   const trBtn = h('button', { onclick: async () => {
@@ -83,7 +86,7 @@ async function main() {
       return;
     }
     trBtn.disabled = true;
-    const r = await w3ir.invoke('reader:translate', { text: box.innerText || box.textContent || '' });
+    const r = await w3ir.invoke('reader:translate', { text: rawArticleText });
     trBtn.disabled = false;
     if (!r || !r.ok) { alert((r && r.error) || t('Помилка')); return; }
     translatedText = r.text || '';
@@ -92,8 +95,23 @@ async function main() {
     for (const p of translatedText.split(/\n{2,}/)) if (p.trim()) box.append(h('p', null, p.trim()));
     trBtn.textContent = t('Оригінал');
   }, title: 'Локальний переклад через Ollama' }, 'Перекласти (ШІ)');
-  tools.append(trBtn);
-  app.append(box);
+  const sumBtn = h('button', { onclick: async () => {
+    if (summaryBox.textContent) {
+      summaryBox.hidden = !summaryBox.hidden;
+      return;
+    }
+    sumBtn.disabled = true;
+    const r = await w3ir.invoke('reader:summarize', { text: rawArticleText });
+    sumBtn.disabled = false;
+    if (!r || !r.ok) { alert((r && r.error) || t('Помилка')); return; }
+    summaryBox.textContent = '';
+    for (const line of String(r.text || '').split('\n')) {
+      if (line.trim()) summaryBox.append(h('p', null, line.trim()));
+    }
+    summaryBox.hidden = false;
+  }, title: 'Локальний конспект через Ollama' }, 'Конспект (ШІ)');
+  tools.append(trBtn, sumBtn);
+  app.append(summaryBox, box);
   apply();
 }
 main();

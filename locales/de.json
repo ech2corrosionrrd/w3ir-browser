@@ -2401,5 +2401,20 @@
   "У витоках ({0})": "In Datenlecks ({0})",
   "У витоках: {0}": "In Datenlecks: {0}",
   "Цей пароль знайдено у відомих базах витоків (HIBP). Замініть його!": "Dieses Passwort wurde in bekannten Datenlecks (HIBP) gefunden. Ändern Sie es!",
-  "Шлюзи Arweave": "Arweave-Gateways"
+  "Шлюзи Arweave": "Arweave-Gateways",
+  "Взаємодія": "Interaktion",
+  "Готовий маніфест NFT (Arweave)": "Fertiges NFT-Manifest (Arweave)",
+  "Зміна SOL": "SOL-Änderung",
+  "Зображення на Arweave (ar:// або txId)": "Bild auf Arweave (ar:// oder txId)",
+  "Конспект (ШІ)": "Zusammenfassen (KI)",
+  "Конструктор метаданих NFT (Arweave)": "NFT-Metadaten-Generator (Arweave)",
+  "Локальний конспект через Ollama": "Lokale Zusammenfassung über Ollama",
+  "Назва NFT": "NFT-Name",
+  "Опис": "Beschreibung",
+  "перша взаємодія з цією адресою": "erste Interaktion mit dieser Adresse",
+  "Статус": "Status",
+  "Створити метадані": "Metadaten erstellen",
+  "Сформувати JSON": "JSON erstellen",
+  "Токени SPL": "SPL-Token",
+  "JSON для завантаження в Arweave / Irys": "JSON zum Hochladen auf Arweave / Irys"
 }

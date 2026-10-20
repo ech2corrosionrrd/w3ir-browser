@@ -671,7 +671,8 @@ class Wallet {
     const fmtUsd = (n) => (n === null ? null : n > 0 && n < 0.01 ? '< $0.01' : '≈ $' + n.toFixed(2));
     const lines = [
       ...(opts.summary || []),
-      ['Мережа', `${net.name} (${chain})`], ['Від', from], ['Кому', to || 'новий контракт'],
+      ['Мережа', `${net.name} (${chain})`], ['Від', from], ['Кому', to ? (guard.spenderLabel(to) ? `${guard.spenderLabel(to)} (${to})` : to) : 'новий контракт'],
+      ...(to && data !== '0x' && this.isFirstInteraction && this.isFirstInteraction(to) ? [['Взаємодія', 'перша взаємодія з цією адресою']] : []),
       ...(ti ? [['Токен', `${ti.symbol}${ti.name ? ' — ' + ti.name : ''}`]] : []),
       ['Сума', `${formatEther(value)} ${net.symbol}`], ...(opts.summary ? [] : desc.lines),
       ...(opts.speed && opts.speed !== 'standard' ? [['Швидкість комісії', opts.speed === 'fast' ? 'швидко (комісія вища)' : 'повільно (комісія нижча, підтвердження може затягнутись)']] : []),
@@ -686,6 +687,7 @@ class Wallet {
       hash = (await signer.provider.broadcastTransaction(signed)).hash;
     } catch (e) { throw new RpcError(-32000, `Не вдалося надіслати транзакцію: ${clip(e.shortMessage || e.message, 200)}`); }
     this.trackPending(hash, chain, populated);
+    if (to && this.rememberRecipient) this.rememberRecipient(to);
     this.log({ origin, action: opts.action || `Транзакція ${formatEther(value)} ${net.symbol}`, hash, chainId: chain });
     return hash;
   }

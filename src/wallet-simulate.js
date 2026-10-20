@@ -2,7 +2,8 @@
 // Симуляція транзакцій EVM до підпису (eth_simulateV1 на вузлі RPC): що піде з вашого рахунку, що прийде, які дозволи видаються
 // і чи завершиться виклик помилкою. Вузол — недовірене джерело, тому це підказка в підтвердженні, а не гарантія: якщо вузол
 // не підтримує метод (частина публічних RPC) або не відповів, симуляції просто немає й транзакція не блокується.
-const { Interface, getAddress, formatEther, formatUnits, MaxUint256 } = require('ethers');
+const { Interface, getAddress, isAddress, formatEther, formatUnits, MaxUint256 } = require('ethers');
+const { KNOWN_SPENDERS } = require('./wallet-signguard');
 
 const ETH_PSEUDO = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 const T_TRANSFER = new Interface(['event Transfer(address indexed from, address indexed to, uint256 value)']).getEvent('Transfer').topicHash;
@@ -126,6 +127,48 @@ function install(Wallet, { clip }) {
     }
     return { lines, warnings, danger };
   };
+
+  // Чи взаємодіяв користувач із цією адресою раніше (контакти, попередні одержувачі, власні рахунки, відомі роутери)
+  proto.isFirstInteraction = function (address) {
+    if (!address || typeof address !== 'string' || !isAddress(address)) return false;
+    const low = address.toLowerCase();
+    if (KNOWN_SPENDERS.has(low)) return false;
+    const s = this.data && this.data();
+    if (!s) return true;
+    if (Array.isArray(s.addresses) && s.addresses.some(a => String(a).toLowerCase() === low)) return false;
+    if (Array.isArray(s.contacts) && s.contacts.some(c => c && String(c.address).toLowerCase() === low)) return false;
+    if (Array.isArray(s.recipients) && s.recipients.some(r => String(r).toLowerCase() === low)) return false;
+    return true;
+  };
 }
 
-module.exports = { install, parseSimulation, revertReason, ETH_PSEUDO };
+/**
+ * Перевірка верифікації смартконтракту через відкритий реєстр Sourcify API v2 (MIT, opt-in).
+ */
+async function checkSourcify(chainId, address, fetchFn = globalThis.fetch) {
+  const cid = Number(chainId);
+  if (!Number.isInteger(cid) || cid <= 0 || typeof address !== 'string' || !isAddress(address)) {
+    return { verified: false, match: 'none', name: '' };
+  }
+  const cleanAddr = getAddress(address);
+  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), 4000) : null;
+  try {
+    const res = await fetchFn(`https://sourcify.dev/server/v2/contract/${cid}/${cleanAddr}`, {
+      headers: { Accept: 'application/json' },
+      signal: ctl ? ctl.signal : undefined,
+    });
+    if (timer) clearTimeout(timer);
+    if (!res.ok) return { verified: false, match: 'none', name: '' };
+    const j = await res.json();
+    const m = String((j && j.match) || '');
+    const verified = m === 'exact_match' || m === 'match';
+    const name = j && j.compilation && typeof j.compilation.name === 'string' ? j.compilation.name.slice(0, 80) : '';
+    return { verified, match: verified ? m : 'none', name };
+  } catch {
+    if (timer) clearTimeout(timer);
+    return { verified: false, match: 'none', name: '' };
+  }
+}
+
+module.exports = { install, parseSimulation, revertReason, checkSourcify, ETH_PSEUDO };

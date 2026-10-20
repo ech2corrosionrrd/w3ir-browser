@@ -5,7 +5,7 @@ const E = require('ethers');
 const { ok } = require('../lib');
 
 async function simulateTests() {
-  const { parseSimulation, revertReason, ETH_PSEUDO } = require('../../src/wallet-simulate');
+  const { parseSimulation, revertReason, checkSourcify, ETH_PSEUDO } = require('../../src/wallet-simulate');
   const { FailoverProvider } = require('../../src/rpc-failover');
   const coder = E.AbiCoder.defaultAbiCoder();
   const owner = E.getAddress('0x00000000000000000000000000000000000000a1');
@@ -96,6 +96,12 @@ async function simulateTests() {
   ok(noOut.warnings.some(x => /нічого не прийде/.test(x)), 'sim: якщо активи йдуть, а нічого не повертається — попередження');
   const none = await w.describeSimulation(1, { ok: true, out: [], inn: [], approvals: [], gasUsed: null }, { symbol: 'ETH' });
   ok(none.lines.some(l => l[0] === 'Рух активів') && none.warnings.length === 0, 'sim: без руху активів — спокійний рядок без попереджень');
+
+  const sfOk = await checkSourcify(1, TOKEN, async () => ({ ok: true, json: async () => ({ match: 'exact_match', compilation: { name: 'USD Coin' } }) }));
+  ok(sfOk.verified === true && sfOk.match === 'exact_match' && sfOk.name === 'USD Coin', 'sim: Sourcify v2 розпізнає верифікований контракт');
+  const sfNo = await checkSourcify(1, other, async () => ({ ok: false, status: 404 }));
+  ok(sfNo.verified === false && sfNo.match === 'none', 'sim: Sourcify v2 повертає verified=false для неверифікованого контракту');
+  ok(w.isFirstInteraction(other) === true && w.isFirstInteraction('0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD') === false, 'sim: isFirstInteraction відрізняє нові контракти від відомих роутерів');
 
   server.closeAllConnections(); server.close();
 }

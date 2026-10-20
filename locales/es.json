@@ -2401,5 +2401,20 @@
   "У витоках ({0})": "Filtrado ({0})",
   "У витоках: {0}": "En filtraciones: {0}",
   "Цей пароль знайдено у відомих базах витоків (HIBP). Замініть його!": "¡Esta contraseña se encontró en filtraciones de datos conocidas (HIBP). Cámbiela!",
-  "Шлюзи Arweave": "Pasarelas Arweave"
+  "Шлюзи Arweave": "Pasarelas Arweave",
+  "Взаємодія": "Interacción",
+  "Готовий маніфест NFT (Arweave)": "Manifiesto NFT listo (Arweave)",
+  "Зміна SOL": "Cambio de SOL",
+  "Зображення на Arweave (ar:// або txId)": "Imagen en Arweave (ar:// o txId)",
+  "Конспект (ШІ)": "Resumir (IA)",
+  "Конструктор метаданих NFT (Arweave)": "Generador de metadatos NFT (Arweave)",
+  "Локальний конспект через Ollama": "Resumen local mediante Ollama",
+  "Назва NFT": "Nombre del NFT",
+  "Опис": "Descripción",
+  "перша взаємодія з цією адресою": "primera interacción con esta dirección",
+  "Статус": "Estado",
+  "Створити метадані": "Crear metadatos",
+  "Сформувати JSON": "Generar JSON",
+  "Токени SPL": "Tokens SPL",
+  "JSON для завантаження в Arweave / Irys": "JSON para subir a Arweave / Irys"
 }

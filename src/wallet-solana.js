@@ -4,6 +4,27 @@
 const { Mnemonic } = require('ethers');
 const S = require('./solana');
 const { t: tr } = require('./i18n');
+const { csvCell } = require('./wallet-history-evm');
+
+function solToCsv(items, { cluster = '', tr: translate = (x) => x } = {}) {
+  const head = ['Час (UTC)', 'Мережа', 'Статус', 'Зміна SOL', 'Токени SPL', 'Транзакція'];
+  const fmtSolDelta = (v) => {
+    if (v === undefined || v === null || v === '0') return '';
+    const n = BigInt(v);
+    const sign = n < 0n ? '-' : '+';
+    const a = n < 0n ? -n : n;
+    return `${sign}${(Number(a) / 1e9).toFixed(6).replace(/0+$/, '').replace(/\.$/, '')} SOL`;
+  };
+  const rows = (Array.isArray(items) ? items : []).map(it => [
+    it.time ? new Date(it.time).toISOString() : '',
+    cluster,
+    it.ok ? translate('Підтверджено') : translate('Помилка'),
+    fmtSolDelta(it.solDelta),
+    (it.tokens || []).map(d => `${d.delta} (${d.mint})`).join('; '),
+    it.signature || '',
+  ]);
+  return '\uFEFF' + [head.map(h => translate(h)), ...rows].map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
 
 const CLUSTERS = {
   'mainnet-beta': { name: 'Mainnet Beta', chain: 'solana:mainnet', rpc: ['https://api.mainnet-beta.solana.com', 'https://solana-rpc.publicnode.com'], explorer: 'https://explorer.solana.com' },
@@ -401,7 +422,17 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       }
     };
     await Promise.all([work(), work(), work(), work()]);
+    this._solHistoryCache = this._solHistoryCache || new Map();
+    this._solHistoryCache.set(`${cluster}|${address}`, { cluster, items });
     return { cluster, items };
+  };
+
+  proto.solHistoryCsv = function (address, translate) {
+    if (!this.isViewSol(address)) throw unauthorized('Невідомий рахунок');
+    const cluster = this.solCluster();
+    const hit = this._solHistoryCache && this._solHistoryCache.get(`${cluster}|${address}`);
+    if (!hit) throw new RpcError(-32602, 'Спершу відкрийте історію цього рахунку.');
+    return solToCsv(hit.items, { cluster: (CLUSTERS[cluster] && CLUSTERS[cluster].name) || cluster, tr: translate });
   };
 
   // Статуси записів журналу: Solana (getSignatureStatuses) і EVM (квитанції)
@@ -570,4 +601,4 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   };
 }
 
-module.exports = { install, CLUSTERS };
+module.exports = { install, CLUSTERS, solToCsv };

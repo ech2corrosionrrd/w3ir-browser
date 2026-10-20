@@ -137,4 +137,13 @@ test('wallet-history: evmHistoryCsv експортує дані з кешу', as
   assert.ok(csv.includes('Alice'));
   assert.ok(csv.includes('0xhash_out_1'));
   assert.ok(csv.includes('0xhash_in_spam'));
+
+  // Перевірка solToCsv (експорт історії Solana з нейтралізацією формул)
+  const { solToCsv } = require(path.join(__dirname, '..', '..', 'src', 'wallet-solana.js'));
+  const solCsv = solToCsv([
+    { time: 1729000000000, ok: true, solDelta: '-1500000000', tokens: [{ mint: '=EVIL', delta: '100' }], signature: '5xSigSolana' },
+  ], { cluster: 'Mainnet Beta' });
+  assert.ok(solCsv.startsWith('\uFEFF'));
+  assert.ok(solCsv.includes('-1.5 SOL'));
+  assert.ok(solCsv.includes('5xSigSolana'));
 });
