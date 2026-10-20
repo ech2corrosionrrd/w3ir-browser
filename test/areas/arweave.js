@@ -50,6 +50,8 @@ async function arweaveTests(ctx) {
   ok(norm.image.startsWith('ar://'), 'arweave: збережено оригінальне ar:// посилання на медіа');
   ok(norm.imageGateway.startsWith('https://gateway.irys.xyz/'), 'arweave: сформовано шлюзове посилання для показу зображення');
   ok(norm.attributes.length === 2 && norm.attributes[0].trait_type === 'Rarity' && norm.attributes[1].trait_type === 'Power', 'arweave: атрибути/трейти нормалізовано');
+  const unsafeNorm = arweave.normalizeNftMetadata({ name: 'X', image: 'javascript:alert(1)' }, validId);
+  ok(unsafeNorm.image === '' && unsafeNorm.imageGateway === '', 'arweave: небезпечні схеми зображень (javascript:) відхилено');
 
   // 5. Каскадний fallback при збоях шлюзів (fetchWithFallback)
   const failedCalls = [];

@@ -136,6 +136,8 @@ async function fetchMetadata(txId, fetchFn = globalThis.fetch) {
   }
 
   const { response, gateway } = await fetchWithFallback(txId, '', {}, fetchFn);
+  const len = Number((response.headers && typeof response.headers.get === 'function' && response.headers.get('content-length')) || 0);
+  if (len > 2 * 1024 * 1024) throw new Error('Arweave metadata payload too large');
   const json = await response.json();
   const normalized = normalizeNftMetadata(json, txId, gateway);
 
@@ -153,19 +155,24 @@ async function fetchMetadata(txId, fetchFn = globalThis.fetch) {
  */
 function normalizeNftMetadata(raw, txId, gateway = DEFAULT_GATEWAYS[0]) {
   if (!raw || typeof raw !== 'object') {
-    return { txId, name: 'Untitled Arweave Asset', description: '', image: '', attributes: [] };
+    return { txId, name: 'Untitled Arweave Asset', description: '', image: '', imageGateway: '', attributes: [] };
   }
 
-  let image = raw.image || raw.image_url || raw.imageUrl || '';
-  let imageGateway = image;
+  let image = String(raw.image || raw.image_url || raw.imageUrl || '').trim();
+  let imageGateway = '';
 
-  // Якщо посилання на зображення використовує ar://, готуємо прямий HTTP шлюз для безпечного відображення
-  if (typeof image === 'string' && image.startsWith('ar://')) {
+  // Дозволяємо лише безпечні адреси медіа (ar://, 43-символьний txId або https://)
+  if (image.startsWith('ar://')) {
     imageGateway = toGatewayUrl(image);
   } else if (isValidTxId(image)) {
     const originalTx = image;
     image = `ar://${originalTx}`;
     imageGateway = `${gateway}/${originalTx}`;
+  } else if (/^https:\/\//i.test(image)) {
+    imageGateway = image;
+  } else {
+    image = '';
+    imageGateway = '';
   }
 
   const attributes = Array.isArray(raw.attributes) ? raw.attributes : (Array.isArray(raw.traits) ? raw.traits : []);
@@ -209,12 +216,16 @@ async function fetchTags(txId, fetchFn = globalThis.fetch) {
   };
 
   for (const gw of DEFAULT_GATEWAYS) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 8000) : null;
     try {
       const resp = await fetchFn(`${gw}/graphql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(query)
+        body: JSON.stringify(query),
+        signal: controller ? controller.signal : undefined
       });
+      if (timer) clearTimeout(timer);
       if (!resp.ok) continue;
       const json = await resp.json();
       const node = json?.data?.transactions?.edges?.[0]?.node;
@@ -234,6 +245,7 @@ async function fetchTags(txId, fetchFn = globalThis.fetch) {
         };
       }
     } catch {
+      if (timer) clearTimeout(timer);
       // спробувати наступний шлюз
     }
   }

@@ -469,4 +469,14 @@ function buildRail() {
   window.addEventListener('scroll', mark, { passive: true });
   mark();
 }
-main().then(() => setTimeout(buildRail, 50));
+main().then(() => setTimeout(() => {
+  buildRail();
+  if (location.hash && location.hash.length > 1) {
+    const targetId = location.hash.slice(1);
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) {
+      if (window.syncActiveTab) window.syncActiveTab(targetId);
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+}, 50));

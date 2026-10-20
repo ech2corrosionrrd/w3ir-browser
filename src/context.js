@@ -397,7 +397,11 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
         });
       }
       try {
-        return await arweave.handleProtocolRequest(parsed, net.fetch);
+        const r = await arweave.handleProtocolRequest(parsed, net.fetch);
+        const h = new Headers(r.headers);
+        h.set('X-Content-Type-Options', 'nosniff');
+        h.set('Referrer-Policy', 'no-referrer');
+        return new Response(r.body, { status: r.status, statusText: r.statusText, headers: h });
       } catch (err) {
         return new Response(`Failed to fetch from Arweave gateways: ${err.message}`, {
           status: 502,

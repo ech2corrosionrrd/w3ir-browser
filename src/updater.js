@@ -122,10 +122,13 @@ class Updater {
 
   start() {
     this.stop();
-    setTimeout(() => this.check(), 20000);
+    this.initTimer = setTimeout(() => this.check(), 20000);
     this.timer = setInterval(() => this.check(), CHECK_EVERY);
   }
-  stop() { clearInterval(this.timer); this.timer = null; }
+  stop() {
+    clearTimeout(this.initTimer); this.initTimer = null;
+    clearInterval(this.timer); this.timer = null;
+  }
 
   async check({ manual = false } = {}) {
     if (['checking', 'downloading', 'ready'].includes(this.state.state)) return this.status();

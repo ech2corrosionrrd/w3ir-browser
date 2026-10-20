@@ -1311,6 +1311,8 @@ class AppWindow {
       this.ses.clearStorageData().catch(() => {});
       this.ses.clearCache().catch(() => {});
       this.ctx.incognitoSessions.delete(this.id);
+      const idx = this.ctx.sessions.indexOf(this.ses);
+      if (idx >= 0) this.ctx.sessions.splice(idx, 1);
     } else {
       this.ctx.saveSession();
     }
