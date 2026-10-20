@@ -70,6 +70,16 @@ if (!fs.existsSync(installer)) fail('Не знайдено інсталятор 
   const portable = fs.readdirSync(dist).find(f => /portable|^W3IR-Browser-\d.*\.exe$/i.test(f) && f !== entry.url && f.includes(version));
   if (portable) fs.copyFileSync(path.join(dist, portable), path.join(out, portable));
 
+  const crypto = require('crypto');
+  const sumLines = [];
+  for (const f of fs.readdirSync(out)) {
+    if (f.endsWith('.exe') || f === 'latest.yml') {
+      const h = crypto.createHash('sha256').update(fs.readFileSync(path.join(out, f))).digest('hex');
+      sumLines.push(`${h}  ${f}`);
+    }
+  }
+  fs.writeFileSync(path.join(out, 'SHA256SUMS.txt'), sumLines.join('\n') + '\n');
+
   console.log(`Реліз ${version} підписано (ключ ${info.w3irKeyId}).`);
   console.log('Файли для публікації:', out);
   fs.readdirSync(out).forEach(f => console.log('  ', f));
@@ -78,10 +88,14 @@ if (!fs.existsSync(installer)) fail('Не знайдено інсталятор 
   if (gi > 0) {
     const repo = process.argv[gi + 1];
     const { publishDraft } = require('./publish-github');
+    const sha256List = sumLines.filter(l => l.includes('.exe')).map(l => {
+      const [h, f] = l.split(/\s+/);
+      return `- \`${f}\`: \`${h}\``;
+    }).join('\n');
     try {
       const url = await publishDraft({
         repo, tag: 'v' + version, dir: out, title: 'W3IR Browser ' + version,
-        notes: `Автоматичне оновлення ${version}. Підпис випускача: ${info.w3irKeyId}.`,
+        notes: `W3IR Browser ${version}\n\nПідпис випускача: \`${info.w3irKeyId}\`\n\n### Контрольні суми SHA-256:\n${sha256List}\n\nБраузер працює повністю локально та не збирає жодної телеметрії.\nПеревірка походження збірки: \`gh attestation verify <інсталятор> --repo ${repo}\``,
       });
       console.log('GitHub Release опубліковано:', url);
     } catch (e) { fail(e.message); }

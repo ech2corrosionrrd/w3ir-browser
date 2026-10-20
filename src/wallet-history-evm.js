@@ -29,7 +29,16 @@ function toCsv(items, { network = '', tr = (x) => x } = {}) {
 
 function install(Wallet, { RpcError, clip, unauthorized }) {
   const proto = Wallet.prototype;
-  const timed = (p, ms = 15000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  const timed = (p, ms = 15000) => {
+    let t;
+    return Promise.race([
+      p,
+      new Promise((_, rej) => {
+        t = setTimeout(() => rej(new Error('timeout')), ms);
+        if (t.unref) t.unref();
+      }),
+    ]).finally(() => { if (t) clearTimeout(t); });
+  };
   const topicAddr = (t) => getAddress('0x' + String(t).slice(-40));
 
   proto.evmHistory = async function (index, { blocks = 60000, chunk = 5000, parallel = 3, maxLogs = 600 } = {}) {

@@ -8,6 +8,8 @@ on:
     tags: ['v*']
 permissions:
   contents: read
+  id-token: write
+  attestations: write
 jobs:
   build:
     runs-on: windows-latest
@@ -25,6 +27,12 @@ jobs:
       - name: Контрольні суми
         shell: bash
         run: cd dist && sha256sum *.exe latest.yml | tee SHA256SUMS.txt
+      - name: Підтвердження походження збірок (Build Provenance Attestation)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/*.exe
+            dist/latest.yml
       - uses: actions/upload-artifact@v7
         with:
           name: dist

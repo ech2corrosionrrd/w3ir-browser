@@ -1,6 +1,14 @@
+// @ts-check
 'use strict';
 // Спільні криптопримітиви: scrypt (KDF) + AES-256-GCM.
 const crypto = require('crypto');
+
+/**
+ * @typedef {Object} KdfParams
+ * @property {number} n
+ * @property {number} r
+ * @property {number} p
+ */
 
 const KDF_DEFAULT = { n: 1 << 17, r: 8, p: 1 };
 const MAXMEM = 512 * 1024 * 1024;

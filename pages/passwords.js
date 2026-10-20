@@ -62,7 +62,8 @@ function renderUnlock() {
 }
 
 async function renderList(st) {
-  const search = h('input', { type: 'text', placeholder: 'Пошук за сайтом або іменем', spellcheck: false });
+  const search = h('input', { type: 'search', class: 'wfilter-input', placeholder: 'Пошук за сайтом або іменем', spellcheck: false });
+  const auditBar = h('div', { class: 'pw-audit', style: 'display:none' });
   const listEl = h('div');
   const autolock = h('select', { onchange: () => call('vault:setAutolock', { minutes: Number(autolock.value) }) },
     [5, 15, 30, 60, 120].map(n => h('option', { value: n, selected: n === st.autolock }, `${n} хв`)));
@@ -86,7 +87,7 @@ async function renderList(st) {
     load();
   };
 
-  const toolbar = h('div', { class: 'bar wrap' },
+  const toolbar = h('div', { class: 'bar wrap', style: 'margin-bottom:10px' },
     search,
     h('button', { class: 'primary', onclick: () => addEntry(null) }, '+ Додати'),
     h('button', { onclick: async () => {
@@ -128,7 +129,7 @@ async function renderList(st) {
     h('label', { class: 'note' }, 'Автоблокування через ', autolock),
     h('button', { class: 'danger', onclick: async () => { await call('vault:lock'); render(); } }, 'Заблокувати'));
 
-  app.append(toolbar, listEl, h('h2', null, 'Керування'), tools,
+  app.append(toolbar, auditBar, listEl, h('h2', null, 'Керування'), tools,
     h('p', { class: 'note' }, 'Пароль копіюється в буфер на 20 секунд. Автозаповнення працює лише за вашою командою (кнопка 🔑) і лише на сайті з точно такою самою адресою.'));
 
   let entries = [];
@@ -139,14 +140,36 @@ async function renderList(st) {
     line.classList.add('shown');
     setTimeout(() => { line.textContent = '••••••••••'; line.classList.remove('shown'); }, 15000);
   };
+
+  const updateAudit = () => {
+    if (!entries.length) { auditBar.style.display = 'none'; return; }
+    auditBar.style.display = 'flex';
+    auditBar.textContent = '';
+    const userCounts = {};
+    for (const e of entries) {
+      if (e.username) userCounts[e.username] = (userCounts[e.username] || 0) + 1;
+    }
+    const dupUsers = Object.values(userCounts).filter(c => c > 1).length;
+    auditBar.append(
+      h('span', { class: 'pw-audit-badge' }, '🔑 ' + t('Збережених записів: {0}', entries.length)),
+      dupUsers
+        ? h('span', { class: 'pw-audit-badge warn', title: 'Одне й те саме ім’я користувача вживається на кількох сайтах' }, '⚠ ' + t('Збігів логінів: {0}', dupUsers))
+        : h('span', { class: 'pw-audit-badge' }, '🛡️ ' + t('Унікальні облікові записи'))
+    );
+  };
+
   const draw = () => {
-    const q = search.value.toLowerCase();
-    const items = entries.filter(e => !q || e.host.toLowerCase().includes(q) || e.username.toLowerCase().includes(q));
+    const q = search.value.toLowerCase().trim();
+    const items = entries.filter(e => !q || e.host.toLowerCase().includes(q) || (e.username && e.username.toLowerCase().includes(q)));
     listEl.textContent = '';
     if (!items.length) { listEl.append(h('div', { class: 'empty' }, entries.length ? 'Нічого не знайдено' : 'Збережених паролів поки немає. Увійдіть на сайт — браузер запропонує зберегти пароль.')); return; }
     listEl.append(h('div', { class: 'list' }, items.map(e => {
       const pw = h('span', { class: 'pw' }, '••••••••••');
+      const cleanHost = (e.host || '').replace(/^https?:\/\//, '').replace(/^www\./, '');
+      const initial = (cleanHost[0] || '🔑').toUpperCase();
+      const avatar = h('div', { class: 'pw-avatar', title: e.host }, initial);
       return h('div', { class: 'item' },
+        avatar,
         h('div', { class: 'main' },
           h('div', { class: 't' }, e.host),
           h('div', { class: 's' }, e.username || '(без імені користувача)', ' · ', pw)),
@@ -165,6 +188,7 @@ async function renderList(st) {
     const r = await call('vault:list');
     if (!r.ok) { render(); return; }
     entries = r.entries;
+    updateAudit();
     draw();
   }
   search.addEventListener('input', draw);

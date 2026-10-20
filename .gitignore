@@ -8,5 +8,8 @@ node_modules/
 .env
 *.pfx
 *.p12
-vault.*
+/vault.*
+vault.json*
+!test/unit/vault.test.js
+!src/vault.js
 *.token

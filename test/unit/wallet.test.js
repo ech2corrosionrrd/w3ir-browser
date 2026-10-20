@@ -85,6 +85,103 @@ test('solana: обірвані й спотворені повідомлення 
   assert.throws(() => s.parseMessage(Buffer.from([0x81, 0, 0, 0])), undefined, 'версія 1 не підтримується');
 });
 
+test('solana: isOnCurve, findProgramAddress та metadataPda', () => {
+  const s = src('solana.js');
+  const kp = s.keypairFromSeed(Buffer.alloc(32, 2));
+  assert.equal(s.isOnCurve(s.b58decode(kp.address)), true);
+
+  const mint = s.b58encode(Buffer.alloc(32, 1));
+  const pda = s.metadataPda(mint);
+  assert.ok(s.isAddress(pda));
+  // PDA точки завжди знаходяться поза кривою (не мають закритого ключа)
+  assert.equal(s.isOnCurve(s.b58decode(pda)), false);
+});
+
+test('solana: parseMetadata розбір метаданих Metaplex NFT', () => {
+  const s = src('solana.js');
+  const mintBuf = Buffer.alloc(32, 7);
+  const updateAuth = Buffer.alloc(32, 8);
+  const name = Buffer.from('W3IR Genesis Pass');
+  const symbol = Buffer.from('W3IR');
+  const uri = Buffer.from('https://arweave.net/tx-w3ir-metadata-001');
+
+  const b = Buffer.concat([
+    Buffer.from([4]),
+    updateAuth,
+    mintBuf,
+    Buffer.from([name.length, 0, 0, 0]), name,
+    Buffer.from([symbol.length, 0, 0, 0]), symbol,
+    Buffer.from([uri.length, 0, 0, 0]), uri,
+  ]);
+  const meta = s.parseMetadata(b);
+  assert.ok(meta);
+  assert.equal(meta.name, 'W3IR Genesis Pass');
+  assert.equal(meta.symbol, 'W3IR');
+  assert.equal(meta.uri, 'https://arweave.net/tx-w3ir-metadata-001');
+
+  // Пошкоджений буфер повертає null
+  assert.equal(s.parseMetadata(Buffer.from([1, 2, 3])), null);
+});
+
+test('solana: signTransaction підпис і перевірка підписанта', () => {
+  const s = src('solana.js');
+  const kp = s.keypairFromSeed(Buffer.alloc(32, 3));
+  const to = s.b58encode(Buffer.alloc(32, 4));
+  const blockhash = s.b58encode(Buffer.alloc(32, 5));
+  const msg = s.buildTransferMessage({ from: kp.address, to, lamports: 5000n, blockhash });
+  const wire = s.unsignedWire(msg);
+
+  // Успішний підпис
+  const signed = s.signTransaction(kp.secret, kp.address, wire);
+  assert.equal(signed.signature.length, 64);
+  assert.equal(signed.index, 0);
+
+  // Спроба підписати не тим акаунтом викликає виняток
+  const wrongKp = s.keypairFromSeed(Buffer.alloc(32, 9));
+  assert.throws(() => s.signTransaction(wrongKp.secret, wrongKp.address, wire), /не потребує підпису цього рахунку/);
+});
+
+test('solana: describe виявляє шахрайські шаблони (Assign, Token Approve)', () => {
+  const s = src('solana.js');
+  const kp = s.keypairFromSeed(Buffer.alloc(32, 3));
+  const blockhash = s.b58encode(Buffer.alloc(32, 5));
+
+  // 1. Небезпечний System Assign: передача власності над рахунком
+  const assignData = Buffer.concat([Buffer.from([1, 0, 0, 0]), Buffer.alloc(32, 0xef)]);
+  const msgAssign = s.compileMessage({
+    feePayer: kp.address,
+    instructions: [{
+      programId: s.PROGRAMS.SYSTEM,
+      keys: [{ pubkey: kp.address, isSigner: true, isWritable: true }],
+      data: assignData,
+    }],
+    blockhash,
+  });
+  const descAssign = s.describe(s.parseMessage(msgAssign), [kp.address]);
+  assert.equal(descAssign.danger, true);
+  assert.ok(descAssign.warnings.some(w => w.includes('передає власність над ВАШИМ акаунтом')));
+
+  // 2. Небезпечний Token Approve: необмежений дозвіл іншій особі витрачати токени
+  const spender = s.b58encode(Buffer.alloc(32, 7));
+  const approveData = Buffer.concat([Buffer.from([4]), s.u64(1000000n)]);
+  const msgApprove = s.compileMessage({
+    feePayer: kp.address,
+    instructions: [{
+      programId: s.PROGRAMS.TOKEN,
+      keys: [
+        { pubkey: kp.address, isSigner: false, isWritable: true },
+        { pubkey: spender, isSigner: false, isWritable: false },
+        { pubkey: kp.address, isSigner: true, isWritable: false },
+      ],
+      data: approveData,
+    }],
+    blockhash,
+  });
+  const descApprove = s.describe(s.parseMessage(msgApprove), [kp.address]);
+  assert.equal(descApprove.danger, true);
+  assert.ok(descApprove.warnings.some(w => w.includes('право витрачати ваші токени')));
+});
+
 const SIWE = (over = {}) => [
   `${over.domain || 'app.example'} wants you to sign in with your Ethereum account:`,
   over.address || '0x1111111111111111111111111111111111111111',

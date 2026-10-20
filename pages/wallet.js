@@ -220,6 +220,12 @@ async function renderDashboard(st) {
     const r = await call('wallet:rename', { index: i, name: a.name });
     if (r.ok) render();
   };
+  const gotoTokens = (id) => {
+    tokAcct.value = String(id);
+    loadTokens(id);
+    const anchor = document.getElementById('tokens-anchor');
+    if (anchor) anchor.scrollIntoView({ behavior: 'smooth' });
+  };
   const accounts = h('div', { class: 'accts' }, info.accounts.map((a, i) => {
     const sa = sol.addresses[i];
     const eb = h('span', { class: 'bal' }, '…'), sb = h('span', { class: 'bal' }, '…');
@@ -234,7 +240,7 @@ async function renderDashboard(st) {
         h('div', { class: 'aname' }, nameOf(i), h('button', { class: 'link', title: 'Перейменувати', onclick: () => rename(i) }, '✎')),
         h('div', { class: 'aact' },
           h('button', { class: 'primary', onclick: () => sendDialog(i) }, 'Надіслати'),
-          h('button', { onclick: () => { tokAcct.value = String(i); loadTokens(i); document.getElementById('tokens-anchor').scrollIntoView({ behavior: 'smooth' }); } }, 'Токени та NFT'))),
+          h('button', { onclick: () => gotoTokens(i) }, 'Токени та NFT'))),
       h('div', { class: 'chain' }, h('span', { class: 'tag' }, 'EVM'), h('code', null, a), eb, copyBtnE, qrE, net.explorer ? h('a', { href: `${net.explorer}/address/${a}` }, 'Оглядач') : ''),
       h('div', { class: 'chain' }, h('span', { class: 'tag sol' }, 'SOL'), h('code', null, sa), sb, copyBtnS, qrS, h('a', { href: solExplorer(sa, sol.cluster) }, 'Оглядач')));
   }));
@@ -247,7 +253,7 @@ async function renderDashboard(st) {
       h('div', { class: 'ahead' }, h('span', { class: 'avatar imp' }, '\u2193'),
         h('div', { class: 'aname' }, a.name || t('Імпортований рахунок'), h('button', { class: 'link', title: 'Перейменувати', onclick: () => rename(a.id) }, '\u270E')),
         h('div', { class: 'aact' }, h('button', { class: 'primary', onclick: () => sendDialog(a.id, { chain: a.chain }) }, 'Надіслати'),
-          h('button', { onclick: () => { tokAcct.value = String(a.id); loadTokens(a.id); document.getElementById('tokens-anchor').scrollIntoView({ behavior: 'smooth' }); } }, 'Токени та NFT'))),
+          h('button', { onclick: () => gotoTokens(a.id) }, 'Токени та NFT'))),
       h('div', { class: 'chain' }, h('span', { class: 'tag' + (a.chain === 'sol' ? ' sol' : '') }, impTag(a)), h('code', null, a.address), bal, cp,
         h('button', { class: 'link', onclick: () => showQr(a.name || impTag(a), a.address) }, 'QR'),
         h('a', { href: a.chain === 'sol' ? solExplorer(a.address, sol.cluster) : (net.explorer ? `${net.explorer}/address/${a.address}` : '#') }, 'Оглядач')),
@@ -262,7 +268,7 @@ async function renderDashboard(st) {
     return h('div', { class: 'acct' },
       h('div', { class: 'ahead' }, h('span', { class: 'avatar imp' }, '\u{1F441}'),
         h('div', { class: 'aname' }, a.name || short(a.address), h('button', { class: 'link', title: 'Перейменувати', onclick: () => rename(a.id) }, '\u270E')),
-        h('div', { class: 'aact' }, h('button', { onclick: () => { tokAcct.value = String(a.id); loadTokens(a.id); document.getElementById('tokens-anchor').scrollIntoView({ behavior: 'smooth' }); } }, 'Токени та NFT'))),
+        h('div', { class: 'aact' }, h('button', { onclick: () => gotoTokens(a.id) }, 'Токени та NFT'))),
       h('div', { class: 'chain' }, h('span', { class: 'tag' + (a.chain === 'sol' ? ' sol' : '') }, impTag(a)), h('code', null, a.address), bal, cp,
         h('button', { class: 'link', onclick: () => showQr(a.name || impTag(a), a.address) }, 'QR'),
         h('a', { href: a.chain === 'sol' ? solExplorer(a.address, sol.cluster) : (net.explorer ? `${net.explorer}/address/${a.address}` : '#') }, 'Оглядач')),
@@ -287,8 +293,17 @@ async function renderDashboard(st) {
   const tokAcct = h('select', { 'aria-label': 'Рахунок', onchange: () => loadTokens() }, viewEls());
   const tokChain = h('select', { 'aria-label': 'Мережа', onchange: () => loadTokens() },
     h('option', { value: 'evm' }, net.name), h('option', { value: 'sol' }, `Solana ${sol.clusters.find(c => c.id === sol.cluster).name}`));
+  const tokSearch = h('input', { type: 'text', class: 'wfilter-input', placeholder: 'ERC-20, SPL, Mint, Symbol…', spellcheck: false, autocomplete: 'off' });
   const tokMsg = h('div', { class: 'note', style: 'margin:8px 0' });
   const tokList = h('div', { class: 'list' });
+  tokSearch.addEventListener('input', () => {
+    const q = tokSearch.value.trim().toLowerCase();
+    for (const it of tokList.children) {
+      if (!it.classList || !it.classList.contains('item')) continue;
+      it.style.display = it.textContent.toLowerCase().includes(q) ? '' : 'none';
+    }
+  });
+  const tokFilterBar = h('div', { class: 'wfilter-bar', style: 'display:none' }, tokSearch);
   const nftGrid = h('div', { class: 'nft-grid' });
   const nftMsg = h('div', { class: 'note', style: 'margin:8px 0' });
   const nftMore = h('div', { class: 'bar' });
@@ -352,6 +367,7 @@ async function renderDashboard(st) {
     const canSend = idx < 5000; // рахунки лише для перегляду нічого не надсилають
     nftGen++; const gen = nftGen; // нове завантаження скасовує незавершені запити метаданих попереднього рахунку
     tokMsg.textContent = '…'; tokList.textContent = ''; nftGrid.textContent = ''; nftMsg.textContent = ''; nftMore.textContent = '';
+    tokSearch.value = ''; tokFilterBar.style.display = 'none';
     nftAddBar.style.display = 'none';
     const usdSpans = []; // [адреса, елемент, кількість] — ціни підставляються після завантаження
     const fillUsd = async (chain) => {
@@ -379,6 +395,7 @@ async function renderDashboard(st) {
           h('span', { class: 'note' }, tk.amount), usd, canSend ? h('button', { class: 'link', onclick: () => sendDialog(idx, { chain: 'sol', asset: tk.mint }) }, 'Надіслати') : '', link));
       }
       fillUsd('sol');
+      if (tokList.querySelectorAll('.item').length >= 3) tokFilterBar.style.display = 'flex';
       loadSolNfts(idx, 0, gen);
       return;
     }
@@ -398,6 +415,7 @@ async function renderDashboard(st) {
         tk.custom ? h('button', { class: 'link danger', title: 'Прибрати зі списку', onclick: async () => { await call('wallet:removeToken', { address: tk.address }); loadTokens(); } }, '✕') : ''));
     }
     fillUsd('evm');
+    if (tokList.querySelectorAll('.item').length >= 3) tokFilterBar.style.display = 'flex';
     loadEvmNfts(idx, gen);
   }
 
@@ -793,6 +811,7 @@ async function renderDashboard(st) {
     if (!r.ok) { apMsg.textContent = r.error; return; }
     const net2 = info.networks.find(n => n.chainId === r.chainId);
     apDanger = r.items.filter(i => i.danger.length);
+    updateSecBadge();
     apMsg.textContent = (prefix ? prefix + ' ' : '') + (r.items.length ? t('Діючих дозволів: {0}.', r.total) : (r.saved ? 'Діючих дозволів не знайдено.' : 'Натисніть «Знайти дозволи», щоб переглянути, хто може витрачати ваші токени.'));
     if (apDanger.length) { apBulk.style.display = ''; apBulk.textContent = t('Скасувати небезпечні ({0})', apDanger.length); }
     for (const it of r.items) {
@@ -815,23 +834,78 @@ async function renderDashboard(st) {
     h('p', { class: 'note' }, 'Тут видно, які адреси зараз можуть витрачати ваші токени ERC-20 чи всі NFT колекції. Небезпечні (необмежені чи для звичайного рахунку) угорі. Список складається з недавніх подій блокчейну й перевіряється за поточним станом контрактів.'),
     h('div', { class: 'bar' }, apAcct, apScan, h('button', { onclick: () => loadApprovals() }, 'Оновити'), apBulk), apMsg, apList);
 
+  const secBadge = h('span', { class: 'wtab-badge', style: 'display:none' });
+  function updateSecBadge() {
+    if (apDanger && apDanger.length > 0) {
+      secBadge.textContent = String(apDanger.length);
+      secBadge.className = 'wtab-badge';
+      secBadge.title = t('Скасувати небезпечні ({0})', apDanger.length);
+      secBadge.style.display = '';
+    } else if (info.backup && !info.backup.confirmed) {
+      secBadge.textContent = '!';
+      secBadge.className = 'wtab-badge warn';
+      secBadge.title = t('Резервна копія фрази');
+      secBadge.style.display = '';
+    } else {
+      secBadge.style.display = 'none';
+    }
+  }
+  updateSecBadge();
+
+  const tabDefs = [
+    { id: 'sec-accounts', label: 'Рахунки', icon: '💎' },
+    { id: 'sec-portfolio', label: 'Портфель', icon: '📊' },
+    { id: 'sec-history', label: 'Історія', icon: '⏱' },
+    { id: 'sec-security', label: 'Безпека', icon: '🛡', badge: secBadge },
+    { id: 'sec-arweave', label: 'Arweave', icon: '⚡' }
+  ];
+
+  const tabBtns = {};
+  const activateTab = (targetId) => {
+    for (const td of tabDefs) {
+      const btn = tabBtns[td.id];
+      if (btn) {
+        const isCur = td.id === targetId;
+        btn.classList.toggle('active', isCur);
+        btn.setAttribute('aria-selected', isCur ? 'true' : 'false');
+      }
+    }
+  };
+
+  const tabsBar = h('div', { class: 'wtabs', role: 'tablist' }, tabDefs.map(td => {
+    const btn = h('button', {
+      class: 'wtab',
+      role: 'tab',
+      'aria-selected': 'false',
+      onclick: () => {
+        activateTab(td.id);
+        const el = document.getElementById(td.id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        try { history.replaceState(null, '', '#' + td.id); } catch {}
+      }
+    }, h('span', null, td.icon), h('span', null, td.label), td.badge || '');
+    tabBtns[td.id] = btn;
+    return btn;
+  }));
+
   app.append(
     info.backup && !info.backup.confirmed ? h('div', { class: 'warnbox', style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('div', { style: 'flex:1' }, 'Резервну копію не підтверджено: ви ще не перевіряли, що фразу відновлення записано. Без неї кошти не повернути, якщо пристрій втратиться.'), h('button', { class: 'primary', onclick: async () => { if (await backupQuizFlow()) render(); } }, 'Перевірити зараз')) : '',
     h('h2', null, 'Огляд'), summary,
-    h('h2', null, 'Портфель'), portfolioBox,
-    h('h2', null, 'Рахунки'),
+    tabsBar,
+    h('h2', { id: 'sec-accounts' }, 'Рахунки'),
     accountsAll,
     h('div', { class: 'bar', style: 'margin-top:10px' }, info.accounts.length < 10 ? h('button', { onclick: async () => { const r = await call('wallet:addAccount'); if (!r.ok) alert(r.error); render(); } }, '+ Додати рахунок') : '', h('button', { onclick: importDialog }, 'Імпортувати ключ\u2026'), h('button', { onclick: watchDialog }, 'Додати адресу для перегляду\u2026')),
     h('h2', { id: 'tokens-anchor' }, 'Токени та NFT'),
     h('div', { class: 'bar' }, tokAcct, tokChain, h('button', { onclick: () => loadTokens() }, 'Оновити')),
-    tokMsg, tokList, nftMsg, nftGrid, nftMore, tokAddBar, nftAddBar,
-    h('h2', null, 'Історія EVM'),
+    tokFilterBar, tokMsg, tokList, nftMsg, nftGrid, nftMore, tokAddBar, nftAddBar,
+    h('h2', { id: 'sec-portfolio' }, 'Портфель'), portfolioBox,
+    h('h2', { id: 'sec-history' }, 'Історія EVM'),
     h('div', { class: 'bar' }, evHistAcct, h('button', { onclick: loadEvmHistory }, 'Показати'), evHistCsv),
     evHistMsg, evHistList,
     h('h2', null, 'Історія Solana'),
     h('div', { class: 'bar' }, histAcct, h('button', { onclick: loadHistory }, 'Оновити')),
     histMsg, histList,
-    h('h2', null, 'Децентралізоване сховище & NFT (Arweave / Irys)'),
+    h('h2', { id: 'sec-arweave' }, 'Децентралізоване сховище & NFT (Arweave / Irys)'),
     buildArweaveSection(info.accounts[0], net),
     h('h2', null, 'Адресна книга'),
     contactsBox,
@@ -851,7 +925,7 @@ async function renderDashboard(st) {
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'RPC-сервер Solana'), h('div', { class: 'd' }, 'Для вибраної мережі Solana; порожнє поле — типові вузли. Адреси виводяться з тієї самої фрази відновлення (шлях m/44′/501′/N′/0′, як у Phantom).'), solRpc, solRpcMsg))),
     h('h2', null, 'Активні дозволи'),
     approvalsBox,
-    h('h2', null, 'Безпека'),
+    h('h2', { id: 'sec-security' }, 'Безпека'),
     h('div', { class: 'list' },
       // режими обережності: ліміти, лише адресна книга, автовідключення сайтів
       h('div', { class: 'row', style: 'flex-direction:column;align-items:stretch;gap:8px' }, h('div', null, h('div', null, 'Режими обережності'), h('div', { class: 'd' }, 'Діють для переказів зі сторінки гаманця (не для транзакцій, які пропонують сайти). Зміна потребує майстер-пароля. Ліміти в USD працюють лише коли ціна відома.')),

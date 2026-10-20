@@ -214,6 +214,38 @@ body.pdftools .note[role=status] { margin: 0; flex: 1; }
 .wquick { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 @media (min-width: 900px) and (min-height: 760px) { body.wallet .wsum { position: sticky; top: 8px; z-index: 6; backdrop-filter: blur(12px); } }
 
+/* гаманець: сегментовані вкладки (Obsidian tab navigation) */
+.wtabs { display: flex; gap: 6px; padding: 6px; background: color-mix(in srgb, var(--card) 92%, var(--line)); border: 1px solid var(--line); border-radius: 14px; margin: 18px 0 22px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.wtabs::-webkit-scrollbar { display: none; }
+@media (min-height: 500px) {
+  body.settings .wtabs {
+    position: sticky;
+    top: 8px;
+    z-index: 6;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: color-mix(in srgb, var(--card) 90%, transparent);
+  }
+}
+.wtab { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: var(--dim); font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all .16s ease; user-select: none; }
+.wtab:hover { color: var(--fg); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.wtab.active { color: #fff; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 26%, var(--card)), color-mix(in srgb, var(--ok) 14%, var(--card))); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); box-shadow: 0 4px 16px rgba(56,189,248,.16); font-weight: 600; }
+.wtab .wtab-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; font-size: 11px; font-weight: 700; border-radius: 999px; background: var(--danger); color: #fff; line-height: 1; }
+.wtab .wtab-badge.warn { background: #f59e0b; color: #04141c; }
+.wtab-panel { display: none; }
+.wtab-panel.active { display: block; animation: wtabFade .18s ease-out; }
+@keyframes wtabFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.wfilter-bar { display: flex; gap: 10px; align-items: center; margin: 10px 0 14px; }
+.wfilter-input { flex: 1; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font-size: 13px; outline: none; }
+.wfilter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+
+/* менеджер паролів, закладок, історії: Obsidian UI */
+.item-avatar, .pw-avatar { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 24%, var(--card)), color-mix(in srgb, var(--ok) 14%, var(--card))); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); color: var(--accent); font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-transform: uppercase; user-select: none; }
+.pw-audit { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 14px; background: color-mix(in srgb, var(--card) 94%, var(--line)); border: 1px solid var(--line); border-radius: 12px; margin: 10px 0 14px; }
+.pw-audit-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.pw-audit-badge.warn { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+
 /* ===== Тема «Pure Obsidian» (див. ui/obsidian.css): графіт, блакитний акцент, смарагдові статуси ===== */
 :root {
   color-scheme: dark;

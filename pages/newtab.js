@@ -94,6 +94,7 @@ function statusRow(i) {
     pill('update', t('Оновлення'), up ? t('Доступне {0}: натисніть ⬆', i.update.version) : t('Актуальна версія {0}', i.version), 'w3ir://settings', up ? 'hot' : ''),
     pill('tabs', t('Вкладки'), i.tabs.sleeping ? t('{0} · сплять: {1}', i.tabs.total, i.tabs.sleeping) : String(i.tabs.total), 'w3ir://dashboard'),
     i.wallet === 'hidden' ? null : pill('wallet', t('Гаманець'), wallet, 'w3ir://wallet'),
+    i.wallet === 'hidden' ? null : pill('spark', 'Arweave', '⚡ Irys Web3', 'w3ir://wallet#sec-arweave'),
     pill('download', t('Завантаження'), dl, 'w3ir://downloads'));
 }
 

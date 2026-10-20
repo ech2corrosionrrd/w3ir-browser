@@ -1,8 +1,26 @@
+// @ts-check
 'use strict';
 // Менеджер паролів.
 //  * Ключ = scrypt(майстер-пароль + «перець» DPAPI, сіль) — файл сховища марний без акаунта Windows і майстер-пароля.
 //  * Дані шифруються AES-256-GCM; заголовок (параметри KDF) входить в AAD, тому підміна параметрів виявляється.
 //  * Ключ та розшифровані дані живуть лише в пам'яті головного процесу й стираються при блокуванні.
+
+/**
+ * @typedef {Object} VaultEntry
+ * @property {string} id
+ * @property {string} origin
+ * @property {string} username
+ * @property {string} password
+ * @property {string} [name]
+ * @property {string} [note]
+ * @property {number} [createdAt]
+ * @property {number} [updatedAt]
+ *
+ * @typedef {Object} VaultHeader
+ * @property {number} v
+ * @property {Object} kdf
+ * @property {boolean} pepper
+ */
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -76,7 +94,10 @@ class Vault {
 
   touch() {
     clearTimeout(this.timer);
-    if (this.key) this.timer = setTimeout(() => this.lock(), this.autolockMs);
+    if (this.key) {
+      this.timer = setTimeout(() => this.lock(), this.autolockMs);
+      if (this.timer.unref) this.timer.unref();
+    }
   }
 
   _pepper(create) {
@@ -366,4 +387,4 @@ class Vault {
   }
 }
 
-module.exports = { Vault, normOrigin, checkMaster };
+module.exports = { Vault, normOrigin, checkMaster, parseCsv };

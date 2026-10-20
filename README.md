@@ -2,91 +2,94 @@
 
 # W3IR Browser
 
-Браузер для Windows на основі Chromium (Electron 44) з упором на приватність, безпеку й зручність. Усі функції працюють локально, без облікових записів і серверів розробника.
+[Українська версія](docs/README-uk.md)
 
-- Поточна версія: **1.35.1** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
-- Мова інтерфейсу: українська, English, Polski, Deutsch, Español, Français (вибір у налаштуваннях) · Платформа: Windows 10/11 x64
-- Довідка в самому браузері: **F1**
+A privacy-focused, Web3-native desktop browser for Windows built on Chromium (Electron 44). Engineered with built-in multichain wallet security, local AI assistance, decentralized storage (Arweave), and document viewing tools. Operates entirely locally with **zero telemetry** and no developer server dependencies.
 
-## Можливості
+- Current Version: **1.37.0** · Downloads: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
+- Supported Languages: English, Ukrainian, Polish, German, Spanish, French (switchable in settings) · Platform: Windows 10/11 x64
+- Built-in Browser Help: **F1**
 
-| Область | Що є |
+## Key Features
+
+| Area | Features |
 |---|---|
-| **Вкладки** | закріплені (помітна «пілюля», хрестик при наведенні), сплячі (економія пам'яті), вертикальний режим, **групи з кольорами** («закрити інші в групі»), **винесення вкладки в нове вікно** (перетягування за межі панелі), відновлення закритих і сесії (разом із парою розділеного екрана), перетягування |
-| **Стартова сторінка** | рядок стану (захист, оновлення, вкладки, гаманець, завантаження), швидкий доступ до всіх розділів браузера, найчастіші сайти, останні закладки, поради та гарячі клавіші |
-| **Навігація** | адресний рядок із підказками (закладки, історія), ключові слова (`gh owner/repo`, `npm …`, власні), палітра команд **Ctrl+K**, пошук по вкладках Ctrl+Shift+A, режим читання |
-| **Приватність** | режими захисту «Стандартний / Суворий / Максимальний» (сторонні cookie, WebRTC, Referer), блокувальник EasyList/EasyPrivacy/uBlock із косметичними фільтрами, HTTPS-first, очищення трекінгових параметрів, DNT/GPC, інкогніто, **панель «Інформація про сайт»** (дозволи, виняток блокувальника, очищення даних сайту) |
-| **Захист від шахрайства** | локальні списки URLhaus + Phishing.Database + MetaMask eth-phishing-detect (~500 тис. доменів, web3-фішинг включно) та евристики (омогліфи, двійники брендів) |
-| **Паролі** | зашифроване сховище (AES-256-GCM, scrypt, DPAPI), автозаповнення лише за командою й лише на точному origin, генератор, резервна копія, імпорт CSV |
-| **Web3 (гаманець)** | вбудований гаманець **EVM** (EIP-1193/6963) і **Solana** (`window.solana`, `wallet-standard`). Безпека: підтвердження кожної дії довіреним вікном, розбір підписів (вхід **SIWE**, **permit/Permit2**, ордери Seaport), **симуляція** транзакцій EVM і Solana (що піде й що прийде), захист від підміни адрес і буфера обміну, відхилення пакетних викликів та EIP-7702, режими обережності (ліміти в USD, «лише адресна книга», автовідключення сайтів). Можливості: переказ коштів, токенів (ERC-20, SPL) і **NFT** (ERC-721/1155, Metaplex), активні дозволи зі скасуванням, портфель по мережах із цінами в USD, **історія EVM** (перекази токенів і NFT; розсилки згортаються; експорт CSV), імена `.sol` і пріоритетна комісія Solana, галерея NFT із ледачим завантаженням, адресна книга, ENS, QR, імпорт за приватним ключем, фраза-пароль BIP39 і шляхи Ledger Live/MetaMask, рахунки лише для перегляду, рахунок для кожного сайту, шифрована резервна копія. Код **не проходив незалежного аудиту** |
-| **Історія й закладки** | вбудований SQLite (`places.sqlite`, WAL): повнотекстовий пошук FTS5 у підказках, «frecency» (частота × свіжість), одноразова міграція зі старих JSON |
-| **Синхронізація** | закладки через вибрану теку (OneDrive/Dropbox/Syncthing), наскрізне шифрування |
-| **Профілі** | окремі cookie, закладки, історія, паролі, налаштування й синхронізація |
-| **Імпорт** | закладки й історія з Chrome/Edge/Brave/Vivaldi/Firefox; паролі — через CSV |
-| **GitHub** | сповіщення й запити на рев'ю (🐙), команди для репозиторіїв у Ctrl+K, ключові слова `gh`, `ghi`, `ghp`, `gha`, `ghc` |
-| **Розділений екран** | дві вкладки поруч у одному вікні, межу можна перетягувати мишею, обмін панелей |
-| **Панель** | сторінка стану в реальному часі: пам'ять і процесор зі спарклайнами, вкладки (активні/сплячі), лічильники захисту за сеанс, розподіл пам'яті за процесами, найважчі вкладки, версія й оновлення; а також мережі гаманця з пінгом RPC, керування ШІ, журнал |
-| **ШІ-помічник (локально)** | захист від prompt injection у вмісті сторінок (для всіх ШІ-клієнтів); сторінка `w3ir://assistant` (Ctrl+K): модель Ollama на вашому ПК керує браузером тими самими безпечними інструментами, що й зовнішній агент; дані не залишають комп'ютер; захист від prompt injection для вмісту сторінок |
-| **Керування ШІ** | вбудований локальний сервер MCP (вимкнений за замовчуванням) для Claude Code зі вашою підпискою: ШІ працює в окремому тимчасовому вікні (кожен сайт підтверджуєте ви) або у ваших вкладках, якими ви самі поділилися (читання чи керування); паролі, гаманець і ваші входи в окремому вікні недоступні |
-| **Торенти** | `magnet:` і `.torrent` передаються у зовнішній клієнт (з попередженням) |
-| **Вигляд** | фірмовий стиль W3IR (глибокий індиго, неонові акценти, «скло»; темна/світла/системна тема), нова вкладка з брендом, бічна навігація в налаштуваннях, довідка, підказки при наведенні |
-| **Оновлення** | автоматичні, підписані ключем випускача (Ed25519), диференційне завантаження, журнал `updater.log` |
+| **Tabs** | Pinned tabs (distinct pill design, hover close), sleeping tabs (memory saver with configurable timeout & form-input protection), vertical tab layout, **colored tab groups** ("close others in group"), **tear-off tab to new window** (drag outside tab bar), session & closed tab restore, split-screen persistence |
+| **Start Page** | Status bar (protection stats, update status, active/sleeping tabs, wallet state, downloads), quick launch tiles, top sites, recent bookmarks, tips, and keyboard shortcut cheatsheet |
+| **Navigation** | Smart address bar with autocomplete (bookmarks, frecency history), custom search keywords (`gh owner/repo`, `npm …`), command palette **Ctrl+K**, tab search Ctrl+Shift+A, clean Reader Mode |
+| **Privacy & Protection** | 3-tier protection modes ("Standard / Strict / Maximum" controlling 3rd-party cookies, WebRTC IP leakage, and Referer headers), ad & tracker blocking via EasyList/EasyPrivacy/uBlock rules with cosmetic filters, HTTPS-first, tracking parameter stripper, DNT/GPC, incognito mode, **Site Information panel** (granular permissions, per-site adblock exceptions, site data clearing) |
+| **Threat Protection** | Local threat databases from URLhaus + Phishing.Database + MetaMask eth-phishing-detect (~500k domains including Web3 phishing) with binary search heuristics (homoglyphs, brand spoofing, lookalikes) |
+| **Password Manager** | Encrypted local vault (AES-256-GCM, scrypt KDF with DPAPI pepper), strict exact-origin autofill triggered only by user action, password generator, backup/restore, CSV import |
+| **Web3 Wallet** | Native **EVM** (EIP-1193 / EIP-6963) and **Solana** (`window.solana`, `wallet-standard`) wallet. **Security:** trusted native overlay confirmation for every action, signature dissection (**SIWE**, **permit/Permit2**, Seaport orders), transaction **simulation** (pre-execution balance changes for EVM and Solana), address poisoning & clipboard hijacking defense, rejection of batch calls and EIP-7702 delegation, caution policies (USD transfer limits, contacts-only mode, site auto-disconnect). **Features:** token transfers (ERC-20, SPL), **NFT gallery** (ERC-721/1155, Metaplex) with lazy loading and Arweave-first storage, active allowance management & revoking, cross-chain USD portfolio, **EVM history** (token/NFT transfers with spam-token collapsing & CSV export), `.sol` SNS domain resolution, compute budget priority fees, address book, ENS, QR code generator, private key import, BIP39 passphrase & Ledger Live/MetaMask derivation paths, watch-only accounts, per-site active account assignment, encrypted backup. *Note: code has not yet undergone an independent third-party audit.* |
+| **History & Bookmarks** | Embedded SQLite (`places.sqlite`, WAL mode): FTS5 full-text search suggestions, **frecency** ranking (frequency × exponential decay), seamless one-time migration from legacy JSON |
+| **Sync** | Folder-based sync (OneDrive, Dropbox, Syncthing) with client-side end-to-end encryption |
+| **Profiles** | Multiple isolated profiles with separate cookies, bookmarks, history, passwords, and settings |
+| **Data Import** | One-click import of bookmarks and history from Chrome, Edge, Brave, Vivaldi, and Firefox; passwords via CSV |
+| **GitHub Integration** | Notification and pull request review indicators (🐙), repository navigation via Ctrl+K, search shortcuts (`gh`, `ghi`, `ghp`, `gha`, `ghc`) |
+| **Split Screen** | Side-by-side view of two tabs in a single window with draggable divider and session restoration |
+| **Browser Dashboard** | Real-time diagnostics at `w3ir://dashboard`: live CPU & memory sparklines, tab breakdown, session protection counters, process memory distribution, heavy tab detection, RPC ping latency, AI control, audit log |
+| **Local AI Assistant** | In-browser assistant at `w3ir://assistant` powered by local Ollama models (100% on-device, no data sent externally), protected by multi-language prompt injection sanitization (`injection-guard`) |
+| **AI Agent Control (MCP)** | Built-in local Model Context Protocol (MCP) server for Claude Code: executes inside isolated temporary sessions with per-domain explicit user confirmation; optional read/control sharing for active user tabs; strictly excludes passwords, credentials, and wallet access |
+| **Documents & Code** | Secure built-in document viewer at `w3ir://doc`: **Markdown** (rendered headers, lists, tables, syntax-highlighted code, Ctrl+P print & "Save to PDF"), **CSV/TSV** (RFC 4180 parsing, column filtering, numeric sorting), **JSON** (collapsible interactive tree), **source code/text** (syntax support for 20+ languages with line numbers, zero external libraries) |
+| **PDF Tools** | Chromium PDF viewer in tabs (search, annotations, form filling, print); internal toolkit at `w3ir://pdftools` for PDF merging, page extraction/splitting, page rotation, image stamp signatures, and metadata removal — running in an isolated worker thread |
+| **Design** | Obsidian-inspired aesthetic (deep indigo, neon accents, frosted glass; dark/light/system theme), branded new tab page, adaptive responsive layout |
+| **Updates** | Automatic updates signed with an Ed25519 publisher key, differential delta downloads, full verification |
 
-**PDF:** відкриваються у вкладці вбудованим переглядачем Chromium (пошук, мініатюри, масштаб, поворот, друк, заповнення форм і анотації, збереження копії); PDF із «Завантажень» — одним кліком у вкладці. Сторінка «PDF-інструменти» (`w3ir://pdftools`, меню): злиття, розділення, видалення й переставляння сторінок, поворот, підпис зображенням, видалення метаданих, збереження вкладки в PDF з діапазоном сторінок — усе локально. OCR поки не реалізовано (див. docs/PLAN.md).
+## Installation & Updates
 
-## Встановлення й оновлення
+1. Download `W3IR-Browser-Setup-*.exe` from [GitHub Releases](https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest) (includes auto-updater) or the standalone `W3IR-Browser-*-portable.exe`.
+2. Windows SmartScreen may display an unknown publisher notice — code signing certificate acquisition is currently in progress (see [Code Signing Policy](#code-signing-policy) and [Roadmap](docs/ROADMAP.md)).
+3. Automatic updates: Checked every 6 hours, or manually via Settings → "Browser Updates" → "Check for Updates".
+4. Windows Package Manager: `winget install W3IR.Browser` (pending Microsoft repository approval: PR [#454063](https://github.com/microsoft/winget-pkgs/pull/454063)).
 
-1. Завантажте `W3IR-Browser-Setup-*.exe` зі сторінки Releases (встановлювач підтримує автооновлення) або портативну `W3IR-Browser-*-portable.exe` (автоматично не оновлюється).
-2. Windows SmartScreen може попередити про невідомого видавця — програму ще не підписано сертифікатом видавця (див. [політику підпису коду](#політика-підпису-коду) і [дорожню карту](docs/ROADMAP.md)).
-3. Оновлення: Налаштування → «Оновлення браузера» → «Перевірити оновлення» (також автоматично кожні 6 годин). Встановлення тихе й триває 15–30 с — не відкривайте браузер вручну.
-4. `winget install W3IR.Browser` — після схвалення пакета (PR [#454063](https://github.com/microsoft/winget-pkgs/pull/454063): CLA підписано, чекає модератора).
+### Verifying Build Provenance (Attestations)
 
-## Дані користувача
+Every release built via GitHub Actions includes cryptographic OpenSSF provenance attestations. You can verify that your installer was built unmodified directly from this repository using the GitHub CLI:
 
-- Встановлена версія: `%APPDATA%\W3IR Browser` (у режимі розробки — `%APPDATA%\w3ir-browser`); додаткові профілі — у підтеці `profiles\<id>`.
-- Файли: `settings.json`, `places.sqlite` (історія й закладки; SQLite + WAL, старі `history.json`/`bookmarks.json` переносяться один раз і лишаються як `*.migrated`), `session.json`, `permissions.json`, `downloads.json`, `window.json`, `vault.bin` + `vault.pepper` (паролі й гаманець, зашифровано), `github.token` (DPAPI), `sync.json` + `sync.key`, `threats-*.bin`, `adblock-engine.bin`, `profiles.json`, `updater.log`.
-- Кеш оновлень: `%LOCALAPPDATA%\w3ir-browser-updater`.
-
-## Для розробників
-
+```bash
+gh attestation verify W3IR-Browser-Setup-1.37.0.exe --repo ech2corrosionrrd/w3ir-browser
 ```
+
+Checksums are also available in `SHA256SUMS.txt` accompanying every release.
+
+## User Data Architecture
+
+- Installed location: `%APPDATA%\W3IR Browser` (development mode: `%APPDATA%\w3ir-browser`); secondary profiles stored in `profiles\<id>`.
+- Core files: `settings.json`, `places.sqlite` (SQLite WAL), `session.json`, `permissions.json`, `downloads.json`, `window.json`, `vault.bin` + `vault.pepper` (encrypted credentials & wallet keys), `sync.json`, `threats-*.bin`, `adblock-engine.bin`, `updater.log`.
+
+## Development
+
+```bash
 npm install
-npm start                      # запуск із вихідного коду
-npm test                       # повний автотест у тимчасовому профілі (код виходу 1 при збоях)
-W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # 1086 автоматичних перевірок (W3IR_ONLY=<області> — лише названі)
-ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron.exe build/mainnet-sim-check.js   # транзакції Solana на справжньому mainnet (симуляція, без коштів)
-npm run release                # збірка + підпис оновлення → dist/release
-npm run check:rpc               # онлайн-перевірка вбудованих RPC гаманця
-npm run icon                   # перегенерація фірмових ресурсів із build/brand (Python, Pillow, numpy, scipy)
-npm run release:github -- ech2corrosionrrd/w3ir-browser    # публікація через чернетку
-npm run release:ci             # публікація збірки GitHub Actions (workflow Build) для поточного коміту
-npm run winget:submit          # PR із маніфестами winget
+npm start                      # Run from source
+npm test                       # Run full end-to-end Electron test suite (1086 checks)
+npm run test:unit              # Fast headless unit tests (80 checks, node:test)
+npm run test:coverage          # Native V8 test coverage (>= 98% on wallet safety & crypto)
+npm run lint                   # ESLint static analysis (0 errors, 0 warnings required)
+npm run perf                   # Performance and memory benchmark suite
+npm run dist                   # Build installer and portable binary into dist/
+npm run release:github -- ech2corrosionrrd/w3ir-browser  # Sign release and draft on GitHub
 ```
 
-Документація:
+### Technical Documentation
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — модулі, процеси, IPC, схема даних
-- [docs/SECURITY.md](docs/SECURITY.md) — модель загроз і криптографія
-- [docs/TESTING.md](docs/TESTING.md) — як запускати й що перевіряють тести
-- [docs/RELEASING.md](docs/RELEASING.md) — випуск, підпис, GitHub, winget
-- [docs/AI-MCP.md](docs/AI-MCP.md) — Claude Code керує браузером: підключення, зони, приклади
-- [docs/I18N.md](docs/I18N.md) — багатомовність: каталоги, нові рядки, нова мова
-- [docs/PLAN.md](docs/PLAN.md) — план розвитку по етапах
-- [docs/BRANDING.md](docs/BRANDING.md) — фірмовий стиль, палітра, ресурси
-- [docs/ROADMAP.md](docs/ROADMAP.md) — поточний стан, відкриті питання, плани
-- [CHANGELOG.md](CHANGELOG.md) — історія версій
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Process model, IPC policy table, and data flow
+- [docs/SECURITY.md](docs/SECURITY.md) — Threat model, cryptographic primitives, and sandboxing
+- [docs/TESTING.md](docs/TESTING.md) — Unit and integration test architecture
+- [docs/RELEASING.md](docs/RELEASING.md) — Release packaging, signing, and distribution
+- [docs/PLAN.md](docs/PLAN.md) — Multi-stage strategic development plan
+- [docs/ROADMAP.md](docs/ROADMAP.md) — Project status, milestones, and pending items
+- [docs/AI-MCP.md](docs/AI-MCP.md) — Claude Code MCP integration guide
+- [docs/I18N.md](docs/I18N.md) — Localization architecture (6 languages)
+- [CHANGELOG.md](CHANGELOG.md) — Full release history
 
-## Відомі обмеження
+## Code Signing Policy & Privacy
 
-Немає DRM (Widevine: Netflix тощо), passkeys/WebAuthn не підтримуються (вхід паролем працює), розширення Chrome підтримуються частково, Bitcoin, апаратні гаманці (Ledger/Trezor), обміни й мости в гаманці не підтримуються, код гаманця незалежно не аудитований, інсталятор не підписаний сертифікатом видавця.
+Code signing via Authenticode is being established. Integrity is currently verified via Ed25519 updater signatures, SHA-256 checksums, and GitHub Sigstore provenance attestations.
 
-## Політика підпису коду
+- **Scope:** Only binaries compiled from this repository are signed.
+- **Privacy Guarantee:** W3IR Browser **does not collect, track, or transmit any telemetry, usage metrics, or browsing data**. Network requests initiated by the browser are strictly limited to user-configured actions: checking GitHub Releases for updates, downloading public threat blocklists, and querying public blockchain RPC endpoints (which can be customized or disabled in settings).
 
-Підпис коду поки відсутній: заявку до [SignPath Foundation](https://signpath.org) відхилено через замалу публічну помітність проєкту, інші варіанти розглядаються. Тому SmartScreen може показувати попередження; цілісність перевіряйте за контрольними сумами SHA-256 і підписом оновлень.
+## License
 
-- **Що підписується:** лише власні збірки W3IR Browser (встановлювач і портативна версія), зібрані з вихідного коду цього репозиторію. Сторонні програми не підписуються.
-- **Ролі:** автор, рецензент і той, хто затверджує, — власник проєкту [ech2corrosionrrd](https://github.com/ech2corrosionrrd); кожен запит на підпис затверджується вручну. Для всіх, хто матиме доступ до підпису, обов'язкова багатофакторна автентифікація.
-- **Приватність:** браузер не збирає телеметрію й не надсилає відомостей про вас розробникам. Мережеві запити, які програма робить сама: перевірка оновлень у GitHub Releases, завантаження списків блокувальника, а для гаманця — запити до RPC-вузлів і джерел цін/метаданих, які ви можете вимкнути в налаштуваннях. Докладніше — розділ «Дані користувача» вище.
-
-
-Код відкритий за ліцензією [MIT](LICENSE). Вразливості — приватно, див. [SECURITY.md](SECURITY.md); як долучитися — [CONTRIBUTING.md](CONTRIBUTING.md). Збірки, не підписані ключем випускача, встановлені копії не оновлюють.
+Licensed under the [MIT License](LICENSE). Vulnerabilities should be reported responsibly according to [SECURITY.md](SECURITY.md). Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).

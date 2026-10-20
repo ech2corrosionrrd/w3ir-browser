@@ -229,11 +229,119 @@ async function main() {
   };
   renderSync();
 
+  // ---------- сегментовані вкладки та живий пошук ----------
+  const tabDefs = [
+    { id: 'sec-general', label: 'Загальні', icon: '⚙️' },
+    { id: 'sec-privacy', label: 'Приватність', icon: '🛡️' },
+    { id: 'sec-passwords', label: 'Паролі', icon: '🔐' },
+    { id: 'sec-wallet', label: 'Гаманець', icon: '💼' },
+    { id: 'sec-ai', label: 'ШІ', icon: '🤖' },
+    { id: 'sec-updates', label: 'Оновлення', icon: '📦' }
+  ];
+
+  const tabBtns = {};
+  const activateTab = (targetId) => {
+    for (const td of tabDefs) {
+      const btn = tabBtns[td.id];
+      if (btn) {
+        const isCur = td.id === targetId;
+        btn.classList.toggle('active', isCur);
+        btn.setAttribute('aria-selected', isCur ? 'true' : 'false');
+      }
+    }
+  };
+
+  const tabsBar = h('div', { class: 'wtabs', role: 'tablist' }, tabDefs.map((td, i) => {
+    const btn = h('button', {
+      class: 'wtab' + (i === 0 ? ' active' : ''),
+      role: 'tab',
+      'aria-selected': i === 0 ? 'true' : 'false',
+      onclick: () => {
+        activateTab(td.id);
+        const el = document.getElementById(td.id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        try { history.replaceState(null, '', '#' + td.id); } catch {}
+      }
+    }, h('span', null, td.icon), h('span', null, td.label));
+    tabBtns[td.id] = btn;
+    return btn;
+  }));
+
+  const secToTab = {
+    'sec-general': 'sec-general',
+    'sec-privacy': 'sec-privacy',
+    'sec-sites': 'sec-privacy',
+    'sec-downloads': 'sec-general',
+    'sec-passwords': 'sec-passwords',
+    'sec-wallet': 'sec-wallet',
+    'sec-sync': 'sec-general',
+    'sec-updates': 'sec-updates',
+    'sec-github': 'sec-general',
+    'sec-ai': 'sec-ai',
+    'sec-keywords': 'sec-general',
+    'sec-defaultbrowser': 'sec-general',
+    'sec-extensions': 'sec-general',
+    'sec-features': 'sec-general',
+    'sec-clear': 'sec-privacy'
+  };
+
+  window.syncActiveTab = (headId) => {
+    const target = secToTab[headId] || headId;
+    if (tabBtns[target]) activateTab(target);
+  };
+
+  const filterInput = h('input', {
+    type: 'search',
+    class: 'wfilter-input',
+    placeholder: 'Пошук налаштувань…',
+    autocomplete: 'off',
+    spellcheck: false
+  });
+  const filterBar = h('div', { class: 'wfilter-bar', style: 'margin: 12px 0 16px' }, filterInput);
+  const noMatches = h('div', { class: 'note', style: 'display:none;margin:18px 0;text-align:center;padding:20px;background:var(--card);border-radius:12px;border:1px dashed var(--line)' }, 'Нічого не знайдено');
+
+  const onFilter = () => {
+    const q = filterInput.value.trim().toLowerCase();
+    const allRows = app.querySelectorAll('.list .row');
+    if (!q) {
+      allRows.forEach(r => { r.style.display = ''; });
+      app.querySelectorAll('h2, .list').forEach(el => { el.style.display = ''; });
+      noMatches.style.display = 'none';
+      return;
+    }
+    let matchedTotal = 0;
+    allRows.forEach(r => {
+      const match = r.textContent.toLowerCase().includes(q);
+      r.style.display = match ? '' : 'none';
+      if (match) matchedTotal++;
+    });
+    const heads = [...app.querySelectorAll('main > h2')];
+    heads.forEach((hd, i) => {
+      const nextHd = heads[i + 1];
+      let cur = hd.nextElementSibling;
+      let hasVisible = false;
+      while (cur && cur !== nextHd) {
+        if (cur.classList && cur.classList.contains('list')) {
+          const listVisible = [...cur.querySelectorAll('.row')].some(r => r.style.display !== 'none');
+          cur.style.display = listVisible ? '' : 'none';
+          if (listVisible) hasVisible = true;
+        }
+        cur = cur.nextElementSibling;
+      }
+      hd.style.display = hasVisible ? '' : 'none';
+    });
+    noMatches.style.display = matchedTotal === 0 ? 'block' : 'none';
+  };
+  filterInput.addEventListener('input', debounce(onFilter, 50));
+
   app.append(
     h('h1', null, 'Налаштування'),
     h('p', { class: 'note' }, 'Потрібна допомога? Відкрийте ', h('a', { href: 'w3ir://help' }, 'довідку'), ' (F1). Наведіть курсор на параметр, щоб побачити пояснення.'),
     incognito ? h('div', { class: 'note' }, 'Ви в режимі інкогніто: історія та cookie не зберігаються.') : '',
-    h('h2', null, 'Загальні'),
+    filterBar,
+    tabsBar,
+    noMatches,
+    h('h2', { id: 'sec-general' }, 'Загальні'),
     h('div', { class: 'list' },
       (() => {
         const sel = h('select', { onchange: () => save({ theme: sel.value }) },
@@ -258,7 +366,7 @@ async function main() {
           h('div', { class: 'd' }, 'Закріплені вкладки, вкладки зі звуком чи відео й вкладки з незбереженим введенням у формах не присипляються.')), sel);
       })(),
       toggle('sleepTabs', 'Приспляти неактивні вкладки', 'Неактивні вкладки звільняють оперативну пам’ять і оновлюються при поверненні')),
-    h('h2', null, 'Приватність'),
+    h('h2', { id: 'sec-privacy' }, 'Приватність'),
     h('div', { class: 'list' },
       (() => {
         const modes = { standard: 'Стандартний', strict: 'Суворий', maximum: 'Максимальний' };
@@ -273,42 +381,42 @@ async function main() {
       toggle('safeBrowsing', 'Захист від шахрайських сайтів', 'Блокує відомі фішингові та шкідливі сайти й попереджає про підробні адреси (двійники банків, бірж, гаманців). Перевірка локальна'),
       toggle('sendGpc', 'Надсилати «Не відстежувати» (DNT / GPC)', 'Сайти отримують сигнал, що ви не хочете персоналізації')),
     safeBox,
-    h('h2', null, 'Дозволи та винятки сайтів'),
+    h('h2', { id: 'sec-sites' }, 'Дозволи та винятки сайтів'),
     sitesBox,
-    h('h2', null, 'Завантаження'),
+    h('h2', { id: 'sec-downloads' }, 'Завантаження'),
     h('div', { class: 'list' },
       text('downloadDir', 'Папка завантажень', 'Порожньо — стандартна папка «Завантаження»', 'Стандартна'),
       toggle('askDownload', 'Питати, куди зберегти кожен файл'),
       toggle('torrentConfirm', 'Питати перед відкриттям торентів', 'magnet-посилання та .torrent-файли відкриваються у вашому зовнішньому торент-клієнті')),
     h('div', { class: 'list', style: 'margin-bottom:10px' }, h('div', { class: 'row' }, h('div', null, h('div', null, 'Імпорт із Chrome, Edge, Firefox'), h('div', { class: 'd' }, 'Закладки, історія та паролі')), h('a', { href: 'w3ir://import' }, 'Відкрити'))),
-    h('h2', null, 'Паролі'),
+    h('h2', { id: 'sec-passwords' }, 'Паролі'),
     h('div', { class: 'list' },
       toggle('savePasswords', 'Пропонувати зберігати паролі', 'Після входу на сайті браузер запитає, чи зберегти пароль'),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Менеджер паролів'), h('div', { class: 'd' }, 'Шифроване сховище: AES-256-GCM + scrypt + захист акаунтом Windows')),
         h('a', { href: 'w3ir://passwords' }, 'Відкрити'))),
-    h('h2', null, 'Гаманець'),
+    h('h2', { id: 'sec-wallet' }, 'Гаманець'),
     h('div', { class: 'list' }, h('div', { class: 'row' }, h('div', null, h('div', null, 'Приховати гаманець'),
       h('div', { class: 'd' }, settings.walletHidden ? 'Гаманець приховано. Щоб показати його, відкрийте w3ir://wallet і введіть майстер-пароль.' : 'Прибирає гаманець з меню, стартової сторінки й панелі та вимикає його для сайтів. Дані лишаються у зашифрованому сховищі. Показати знову можна на сторінці гаманця з майстер-паролем. Видалення гаманця — там само, у розділі «Безпека».')),
       settings.walletHidden ? h('span', { class: 'note' }, 'Приховано') : h('button', { onclick: async () => { await w3ir.invoke('wallet:hide'); location.reload(); } }, 'Приховати'))),
-    h('h2', null, 'Синхронізація закладок (наскрізне шифрування)'),
+    h('h2', { id: 'sec-sync' }, 'Синхронізація закладок (наскрізне шифрування)'),
     syncBox,
-    h('h2', null, 'Оновлення браузера'),
+    h('h2', { id: 'sec-updates' }, 'Оновлення браузера'),
     updBox,
-    h('h2', null, 'GitHub'),
+    h('h2', { id: 'sec-github' }, 'GitHub'),
     ghBox,
-    h('h2', null, 'Керування браузером ШІ (MCP)'),
+    h('h2', { id: 'sec-ai' }, 'Керування браузером ШІ (MCP)'),
     agBox,
-    h('h2', null, 'Ключові слова адресного рядка'),
+    h('h2', { id: 'sec-keywords' }, 'Ключові слова адресного рядка'),
     h('div', { class: 'list' }, h('div', { class: 'row' }, h('div', { style: 'flex:1' },
       h('div', null, 'Вбудовані: gh owner/repo, ghi, ghp, gha, ghc, npm, mdn, yt, wiki, crates, pypi'),
       h('div', { class: 'd' }, 'Власні: по одному в рядку, формат «слово = https://сайт/?q=%s»'), kw))),
-    h('h2', null, 'Браузер за замовчуванням'),
+    h('h2', { id: 'sec-defaultbrowser' }, 'Браузер за замовчуванням'),
     h('div', { class: 'list' }, h('div', { class: 'row' },
       h('div', null, h('div', null, 'Зробити W3IR Browser основним'), h('div', { class: 'd' }, 'Відкриє системні налаштування «Програми за замовчуванням» (працює для встановленої версії)')),
       h('button', { onclick: () => w3ir.invoke('defaultbrowser') }, 'Відкрити налаштування'))),
-    h('h2', null, 'Розширення (експериментально)'),
+    h('h2', { id: 'sec-extensions' }, 'Розширення (експериментально)'),
     extBox,
-    h('h2', null, 'Стан функцій'),
+    h('h2', { id: 'sec-features' }, 'Стан функцій'),
     h('p', { class: 'note' }, 'Стабільна функція перевірена тривалим використанням і тестами. Бета працює, але ще дозріває. Експериментальна може змінюватися або давати збої.'),
     h('div', { class: 'list' }, [
       ['stable', 'Вкладки, закладки та історія'],
@@ -327,7 +435,7 @@ async function main() {
     ].map(([level, name, note]) => h('div', { class: 'row' },
       h('div', null, h('div', null, name), note && h('div', { class: 'd' }, note)),
       h('span', { class: 'maturity ' + level }, { stable: 'Стабільна', beta: 'Бета', experimental: 'Експериментальна' }[level])))),
-    h('h2', null, 'Очистити дані перегляду'),
+    h('h2', { id: 'sec-clear' }, 'Очистити дані перегляду'),
     h('div', { class: 'list' }, h('div', { class: 'row' },
       h('div', null,
         h('label', null, hist, ' Історія'), ' ',
@@ -340,14 +448,15 @@ function buildRail() {
   const heads = [...document.querySelectorAll('main > h2')];
   if (heads.length < 4) return;
   const links = heads.map((hd, i) => {
-    hd.id = 'sec' + i;
-    return h('a', { href: '#sec' + i, onclick: (e) => { e.preventDefault(); hd.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, hd.textContent);
+    if (!hd.id) hd.id = 'sec' + i;
+    return h('a', { href: '#' + hd.id, onclick: (e) => { e.preventDefault(); hd.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, hd.textContent);
   });
   document.body.append(h('nav', { class: 'rail', 'aria-label': 'Розділи налаштувань' }, links));
   const mark = () => {
     let cur = 0;
     heads.forEach((hd, i) => { if (hd.getBoundingClientRect().top < 140) cur = i; });
     links.forEach((a, i) => a.classList.toggle('on', i === cur));
+    if (window.syncActiveTab && heads[cur] && heads[cur].id) window.syncActiveTab(heads[cur].id);
   };
   window.addEventListener('scroll', mark, { passive: true });
   mark();

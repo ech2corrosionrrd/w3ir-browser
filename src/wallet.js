@@ -1,7 +1,25 @@
+// @ts-check
 'use strict';
 const { t: tr } = require('./i18n');
 const { FailoverProvider } = require('./rpc-failover');
 const guard = require('./wallet-signguard');
+
+/**
+ * @typedef {Object} EvmNetwork
+ * @property {number} chainId
+ * @property {string} name
+ * @property {string} symbol
+ * @property {string} rpc
+ * @property {string[]} [rpcFallback]
+ * @property {string} [explorer]
+ *
+ * @typedef {Object} EvmAccount
+ * @property {string} address
+ * @property {string} name
+ * @property {number} index
+ * @property {boolean} [imported]
+ * @property {boolean} [viewOnly]
+ */
 // Вбудований EVM-гаманець (EIP-1193 / EIP-6963). Фраза відновлення зберігається всередині зашифрованого сховища паролів
 // (AES-256-GCM + scrypt + DPAPI); приватні ключі виводяться лише на мить підпису й ніколи не кешуються.
 // Кожен підпис і транзакція потребують явного підтвердження у довіреному вікні браузера, яке сторінка підробити не може.
