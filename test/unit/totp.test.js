@@ -42,7 +42,10 @@ test('totp: розбір otpauth URI (parseOtpAuth)', () => {
 
   // Некоректний секрет
   assert.equal(parseOtpAuth(''), null);
+  assert.equal(parseOtpAuth('A'), null); // 5 біт < 1 байт
   assert.equal(parseOtpAuth('invalid!characters#'), null);
+  assert.equal(parseOtpAuth('otpauth://totp/Test?secret=0189INVALID!'), null);
+  assert.equal(parseOtpAuth('otpauth://hotp/Test?secret=JBSWY3DPEHPK3PXP&counter=1'), null);
 });
 
 test('totp: офіційні тестові вектори RFC 6238 (Appendix B)', () => {

@@ -7,6 +7,7 @@ function h(tag, props, ...children) {
     for (const [k, v] of Object.entries(props)) {
       if (k === 'class') e.className = v;
       else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+      else if ((k === 'role' || k.includes('-')) && v !== false && v != null) e.setAttribute(k, String(v));
       else if (v !== false && v != null) e[k] = v;
     }
   }
@@ -76,6 +77,10 @@ function ask(title, fields, { okText = 'OK', note = '' } = {}) {
 // ---------- бічна навігація за заголовками h2 розділів (як у налаштуваннях) ----------
 function railNav(label) {
   document.querySelectorAll('nav.rail').forEach(n => n.remove());
+  if (window._railMark) {
+    window.removeEventListener('scroll', window._railMark);
+    window._railMark = null;
+  }
   const heads = [...document.querySelectorAll('main > h2')];
   if (heads.length < 4) return;
   const links = heads.map((hd, i) => {
@@ -87,7 +92,9 @@ function railNav(label) {
     let cur = 0;
     heads.forEach((hd, i) => { if (hd.getBoundingClientRect().top < 140) cur = i; });
     links.forEach((a, i) => a.classList.toggle('on', i === cur));
+    if (window.syncActiveTab && heads[cur] && heads[cur].id) window.syncActiveTab(heads[cur].id);
   };
+  window._railMark = mark;
   window.addEventListener('scroll', mark, { passive: true });
   mark();
 }

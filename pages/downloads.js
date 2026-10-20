@@ -20,6 +20,7 @@ const fileIcon = (name) => {
 };
 
 let cached = [];
+let lastSig = '';
 function render() {
   const q = search.value.toLowerCase().trim();
   const items = cached.filter(d => !q || (d.filename || '').toLowerCase().includes(q));
@@ -48,9 +49,13 @@ function render() {
 }
 
 async function load() {
-  cached = await w3ir.invoke('downloads:get');
+  const next = await w3ir.invoke('downloads:get');
+  const sig = JSON.stringify(next);
+  if (sig === lastSig) return;
+  lastSig = sig;
+  cached = next;
   render();
 }
 search.addEventListener('input', render);
 load();
-setInterval(load, 1000);
+setInterval(() => { if (document.visibilityState === 'visible') load(); }, 1000);

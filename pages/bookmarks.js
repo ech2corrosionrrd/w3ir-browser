@@ -10,7 +10,7 @@ function render() {
   listEl.textContent = '';
   if (!items.length) { listEl.append(h('div', { class: 'empty' }, all.length ? 'Нічого не знайдено' : 'Закладок поки немає. Натисніть ☆ в адресному рядку.')); return; }
   listEl.append(h('div', { class: 'list' }, items.map(b => {
-    const host = (b.url || '').replace(/^https?:\/\//, '').replace(/^www\./, '');
+    const host = (b.url || '').replace(/^[a-z]+:\/\//i, '').replace(/^www\./, '');
     const initial = (host[0] || '★').toUpperCase();
     return h('div', { class: 'item' },
       h('div', { class: 'item-avatar', title: host }, initial),

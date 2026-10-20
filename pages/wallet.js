@@ -872,11 +872,11 @@ async function renderDashboard(st) {
     }
   };
 
-  const tabsBar = h('div', { class: 'wtabs', role: 'tablist' }, tabDefs.map(td => {
+  const tabsBar = h('div', { class: 'wtabs', role: 'tablist' }, tabDefs.map((td, i) => {
     const btn = h('button', {
-      class: 'wtab',
+      class: 'wtab' + (i === 0 ? ' active' : ''),
       role: 'tab',
-      'aria-selected': 'false',
+      'aria-selected': i === 0 ? 'true' : 'false',
       onclick: () => {
         activateTab(td.id);
         const el = document.getElementById(td.id);
@@ -887,6 +887,10 @@ async function renderDashboard(st) {
     tabBtns[td.id] = btn;
     return btn;
   }));
+
+  window.syncActiveTab = (headId) => {
+    if (tabBtns[headId]) activateTab(headId);
+  };
 
   app.append(
     info.backup && !info.backup.confirmed ? h('div', { class: 'warnbox', style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('div', { style: 'flex:1' }, 'Резервну копію не підтверджено: ви ще не перевіряли, що фразу відновлення записано. Без неї кошти не повернути, якщо пристрій втратиться.'), h('button', { class: 'primary', onclick: async () => { if (await backupQuizFlow()) render(); } }, 'Перевірити зараз')) : '',
@@ -958,6 +962,14 @@ async function renderDashboard(st) {
         } }, 'Видалити'))),
     h('p', { class: 'note' }, 'Підтримуються мережі EVM (Ethereum, Polygon, Base, Arbitrum, Optimism, BNB, Avalanche та власні) і Solana. Bitcoin та апаратні гаманці (Ledger/Trezor) поки не підтримуються. Це новий, незалежно не аудитований код — для великих сум використовуйте апаратний гаманець.'));
   railNav('Розділи гаманця');
+  if (location.hash && location.hash.length > 1) {
+    const targetId = location.hash.slice(1);
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) {
+      activateTab(targetId);
+      setTimeout(() => targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
+    }
+  }
   loadContacts();
   if (sol.addresses.length) { loadTokens(); loadHistory(); }
 

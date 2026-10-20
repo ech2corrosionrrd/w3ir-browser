@@ -19,7 +19,7 @@ async function load() {
       box = h('div', { class: 'list' });
       listEl.append(box);
     }
-    const host = (it.url || '').replace(/^https?:\/\//, '').replace(/^www\./, '');
+    const host = (it.url || '').replace(/^[a-z]+:\/\//i, '').replace(/^www\./, '');
     const initial = (host[0] || '🌐').toUpperCase();
     box.append(h('div', { class: 'item' },
       h('span', { class: 'time' }, fmtTime(it.time)),

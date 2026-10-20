@@ -42,8 +42,9 @@ function parseOtpAuth(input) {
   if (input.toLowerCase().startsWith('otpauth://')) {
     try {
       const u = new URL(input);
+      if (u.hostname.toLowerCase() !== 'totp') return null;
       const secret = (u.searchParams.get('secret') || '').replace(/[\s=-]/g, '').toUpperCase();
-      if (!secret) return null;
+      if (!secret || !/^[A-Z2-7]+$/.test(secret) || base32Decode(secret).length === 0) return null;
       const digits = Math.min(8, Math.max(6, parseInt(u.searchParams.get('digits') || '6', 10) || 6));
       const period = Math.min(120, Math.max(10, parseInt(u.searchParams.get('period') || '30', 10) || 30));
       const rawAlgo = (u.searchParams.get('algorithm') || 'sha1').toLowerCase();
@@ -54,7 +55,7 @@ function parseOtpAuth(input) {
     }
   }
   const secret = input.replace(/[\s=-]/g, '').toUpperCase();
-  if (!secret || !/^[A-Z2-7]+$/.test(secret)) return null;
+  if (!secret || !/^[A-Z2-7]+$/.test(secret) || base32Decode(secret).length === 0) return null;
   return { secret, digits: 6, period: 30, algo: 'sha1' };
 }
 

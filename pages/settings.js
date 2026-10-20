@@ -74,6 +74,7 @@ async function main() {
   };
   renderSafe();
 
+  let applyFilter = () => {};
   // ---------- оновлення ----------
   const updBox = h('div', { class: 'list' });
   const renderUpd = async () => {
@@ -103,6 +104,7 @@ async function main() {
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Джерело оновлень'), h('div', { class: 'd' }, `Залиште порожнім, щоб використовувати офіційне джерело. Лише https або github:власник/репозиторій. Кожне оновлення перевіряється підписом випускача (Ed25519, відбиток ключа: ${st.fingerprint}) — підроблений файл не буде встановлено.`), feed, feedMsg)),
       st.logFile ? h('div', { class: 'row', title: 'У журнал записуються перевірки, завантаження та спроби встановлення' }, h('div', null, h('div', null, 'Журнал оновлень'), h('div', { class: 'd pw', style: 'user-select:text' }, st.logFile))) : '',
       st.packaged ? '' : h('div', { class: 'row' }, 'Режим розробки: оновлення працюють лише в встановленій версії.'));
+    applyFilter();
   };
   renderUpd();
   setInterval(() => { if (document.visibilityState === 'visible') renderUpd(); }, 4000);
@@ -305,7 +307,7 @@ async function main() {
     const allRows = app.querySelectorAll('.list .row');
     if (!q) {
       allRows.forEach(r => { r.style.display = ''; });
-      app.querySelectorAll('h2, .list').forEach(el => { el.style.display = ''; });
+      app.querySelectorAll('h2, .list, p.note').forEach(el => { el.style.display = ''; });
       noMatches.style.display = 'none';
       return;
     }
@@ -320,18 +322,23 @@ async function main() {
       const nextHd = heads[i + 1];
       let cur = hd.nextElementSibling;
       let hasVisible = false;
+      const notes = [];
       while (cur && cur !== nextHd) {
         if (cur.classList && cur.classList.contains('list')) {
           const listVisible = [...cur.querySelectorAll('.row')].some(r => r.style.display !== 'none');
           cur.style.display = listVisible ? '' : 'none';
           if (listVisible) hasVisible = true;
+        } else if (cur.tagName === 'P' && cur.classList.contains('note')) {
+          notes.push(cur);
         }
         cur = cur.nextElementSibling;
       }
       hd.style.display = hasVisible ? '' : 'none';
+      notes.forEach(n => { n.style.display = hasVisible ? '' : 'none'; });
     });
     noMatches.style.display = matchedTotal === 0 ? 'block' : 'none';
   };
+  applyFilter = () => { if (filterInput.value.trim()) onFilter(); };
   filterInput.addEventListener('input', debounce(onFilter, 50));
 
   app.append(
