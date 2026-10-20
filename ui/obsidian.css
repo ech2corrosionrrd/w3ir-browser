@@ -10,6 +10,15 @@
   --font-ui: Inter, "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
 }
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg0: #e2e8f0; --bg1: #f1f5f9; --bg2: #ffffff; --bg3: #e2e8f0; --bg4: #f8fafc;
+    --fg: #0f172a; --fg2: #334155; --dim: #64748b; --accent: #0284c7; --pill: #0369a1; --warn: #dc2626; --shadow: rgba(15,23,42,.18);
+    --cyan: #0284c7; --emerald: #0d9488; --line-soft: rgba(15,23,42,.10);
+    --panel: #ffffff; --line: #cbd5e1; --hover: #f1f5f9; --input: #f8fafc; --btn: #f1f5f9; --link: #0284c7; --danger: #dc2626;
+  }
+}
 html, body { font-family: var(--font-ui); }
 
 /* вкладки: темніша смуга, активна вкладка зливається з панеллю інструментів */

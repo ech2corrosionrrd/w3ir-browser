@@ -46,14 +46,16 @@ async function vaultApi(ctx, entry, name, arg) {
       case 'vault:lock': v.lock(); return { ok: true };
       case 'vault:list': return { ok: true, entries: v.list() };
       case 'vault:reveal':
-      case 'vault:copy': {
+      case 'vault:copy':
+      case 'vault:totp':
+      case 'vault:copyTotp': {
         if (!v.recentlyAuthed() && !(await v.reauth(str(arg.master, 256)))) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
         if (name === 'vault:copy') return { ok: v.copyPassword(arg.id), cleared: 20 };
+        if (name === 'vault:totp') return v.getTotp(str(arg.id, 64));
+        if (name === 'vault:copyTotp') return { ok: v.copyTotp(str(arg.id, 64)), cleared: 20 };
         const e = v.get(arg.id);
         return e ? { ok: true, password: e.password, note: e.note, totp: e.totp || '' } : { ok: false, error: 'Запис не знайдено.' };
       }
-      case 'vault:totp': return v.getTotp(str(arg.id, 64));
-      case 'vault:copyTotp': return { ok: v.copyTotp(str(arg.id, 64)), cleared: 20 };
       case 'vault:save': {
         if (arg.id) {
           v.update(arg.id, { url: arg.url ? str(arg.url) : undefined, username: str(arg.username), password: arg.password ? str(arg.password, 1024) : undefined, note: str(arg.note, 8192), totp: arg.totp !== undefined ? str(arg.totp, 2048) : undefined });
@@ -524,7 +526,10 @@ function registerIpc(resolve) {
       const entry = ctx && ctx.entryFor(e.sender);
       const origin = entry && e.senderFrame === e.sender.mainFrame ? normOrigin(e.senderFrame.url) : null;
       if (ctx) {
-        r.fingerprint = !!(ctx.cfg().fingerprintProtection || ctx.protection() === 'maximum');
+        let host = '';
+        try { host = new URL(e.senderFrame.url).hostname.toLowerCase(); } catch { /* ignore */ }
+        const allowed = host && ctx.adblockAllowed && ctx.adblockAllowed(host);
+        r.fingerprint = !allowed && !!(ctx.cfg().fingerprintProtection || ctx.protection() === 'maximum');
       }
       if (entry && entry.tab && !entry.win.incognito && origin && ctx.wallet.injectEnabled()) {
         r.enabled = true;
@@ -638,6 +643,7 @@ function registerIpc(resolve) {
           if (k === 'protection') {
             if (!protection.LEVELS.includes(v)) continue;
             // режим вмикає потрібні перемикачі приватності; окремі з них можна потім вимкнути вручну
+            if (v !== 'maximum') cfg.fingerprintProtection = false;
             Object.assign(cfg, protection.PRESETS[v]);
             cfg.protection = v;
             ctx.applyProtection();

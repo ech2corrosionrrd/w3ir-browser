@@ -351,9 +351,20 @@ class Vault {
     for (const e of Array.isArray(data.entries) ? data.entries : []) {
       if (!e || typeof e.password !== 'string' || !normOrigin(e.origin)) continue;
       const ex = this.data.entries.find(x => x.origin === e.origin && x.username === String(e.username || ''));
-      if (ex) { if ((e.modified || 0) > ex.modified) { ex.password = e.password; ex.note = String(e.note || ''); ex.modified = e.modified; added++; } }
-      else if (this.data.entries.length < MAX.entries) {
-        this.data.entries.push({ id: crypto.randomUUID(), origin: e.origin, username: String(e.username || '').slice(0, MAX.field), password: e.password.slice(0, MAX.password), note: String(e.note || '').slice(0, MAX.note), created: e.created || Date.now(), modified: e.modified || Date.now() });
+      const cleanTotp = typeof e.totp === 'string' && e.totp.trim() && parseOtpAuth(e.totp.trim()) ? e.totp.trim().slice(0, MAX.totp) : undefined;
+      if (ex) {
+        if ((e.modified || 0) > ex.modified) {
+          ex.password = e.password;
+          ex.note = String(e.note || '');
+          if (cleanTotp !== undefined) ex.totp = cleanTotp;
+          ex.modified = e.modified;
+          added++;
+        }
+      } else if (this.data.entries.length < MAX.entries) {
+        /** @type {VaultEntry} */
+        const imported = { id: crypto.randomUUID(), origin: e.origin, username: String(e.username || '').slice(0, MAX.field), password: e.password.slice(0, MAX.password), note: String(e.note || '').slice(0, MAX.note), created: e.created || Date.now(), modified: e.modified || Date.now() };
+        if (cleanTotp) imported.totp = cleanTotp;
+        this.data.entries.push(imported);
         added++;
       }
     }
@@ -369,12 +380,12 @@ class Vault {
     const head = rows[0].map(x => x.trim().toLowerCase());
     const col = (...names) => head.findIndex(h => names.includes(h));
     const iUrl = col('url', 'login_uri', 'origin', 'website'), iUser = col('username', 'login_username', 'user', 'login');
-    const iPass = col('password', 'login_password'), iNote = col('note', 'notes');
+    const iPass = col('password', 'login_password'), iNote = col('note', 'notes'), iTotp = col('totp', 'login_totp', 'otpauth');
     if (iUrl < 0 || iPass < 0) return { ok: false, error: 'У CSV немає стовпців url та password.' };
     let added = 0, skipped = 0;
     for (const r of rows.slice(1)) {
       try {
-        this.add({ url: r[iUrl], username: iUser >= 0 ? r[iUser] : '', password: r[iPass], note: iNote >= 0 ? r[iNote] : '' });
+        this.add({ url: r[iUrl], username: iUser >= 0 ? r[iUser] : '', password: r[iPass], note: iNote >= 0 ? r[iNote] : '', totp: iTotp >= 0 ? r[iTotp] : '' });
         added++;
       } catch { skipped++; }
     }

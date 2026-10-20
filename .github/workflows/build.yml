@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: cd dist && sha256sum *.exe latest.yml | tee SHA256SUMS.txt
       - name: Підтвердження походження збірок (Build Provenance Attestation)
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/*.exe

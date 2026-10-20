@@ -73,3 +73,44 @@ test('totp: робота з URI та нестандартними періода
   assert.equal(res.remaining, 1);
   assert.equal(res.period, 60);
 });
+
+test('totp: збереження 2FA у Vault під час exportBackup, importBackup та importCsv', async () => {
+  const fs = require('fs');
+  const os = require('os');
+  const { Vault } = require(path.join(__dirname, '..', '..', 'src', 'vault.js'));
+  const dir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'w3ir-totp1-'));
+  const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'w3ir-totp2-'));
+  try {
+    const v1 = new Vault({ dir: dir1, usePepper: false });
+    await v1.create('StrongMasterPass123!');
+    const id = v1.add({ url: 'https://github.com', username: 'alice', password: 'SecretPassword1!', note: 'My note', totp: 'JBSWY3DPEHPK3PXP' });
+    assert.equal(v1.getTotp(id).ok, true);
+    assert.equal(v1.getTotp(id).code.length, 6);
+
+    const backupFile = path.join(dir1, 'backup.w3irvault');
+    const exp = await v1.exportBackup(backupFile, 'BackupPassword123!');
+    assert.equal(exp.ok, true);
+
+    const v2 = new Vault({ dir: dir2, usePepper: false });
+    await v2.create('AnotherMasterPass123!');
+    const imp = await v2.importBackup(backupFile, 'BackupPassword123!');
+    assert.equal(imp.ok, true);
+    assert.equal(imp.added, 1);
+    const list = v2.list();
+    assert.equal(list.length, 1);
+    assert.equal(list[0].hasTotp, true);
+    assert.equal(v2.get(list[0].id).note, 'My note');
+    assert.equal(v2.getTotp(list[0].id).ok, true);
+
+    // Перевірка importCsv із стовпцем totp
+    const csvRes = v2.importCsv('url,username,password,note,totp\nhttps://gitlab.com,bob,Pass123456!,GitLab note,GEZDGNBVGY3TQOJQ');
+    assert.equal(csvRes.ok, true);
+    assert.equal(csvRes.added, 1);
+    const gitlab = v2.list().find(x => x.host === 'gitlab.com');
+    assert.ok(gitlab);
+    assert.equal(gitlab.hasTotp, true);
+  } finally {
+    fs.rmSync(dir1, { recursive: true, force: true });
+    fs.rmSync(dir2, { recursive: true, force: true });
+  }
+});

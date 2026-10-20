@@ -255,6 +255,14 @@ body.pdftools .note[role=status] { margin: 0; flex: 1; }
   --danger: #f87171; --link: #8ed5ff; --ok: #2dd4bf; --warnbg: #2a1f1f; --h1a: #f1f5f9; --h1b: #8ed5ff;
   --glow1: rgba(45,212,191,.07); --glow2: rgba(56,189,248,.09);
 }
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f8fafc; --card: #ffffff; --line: #cbd5e1; --fg: #0f172a; --dim: #64748b; --accent: #0284c7;
+    --danger: #dc2626; --link: #0284c7; --ok: #0d9488; --warnbg: #fef2f2; --h1a: #0f172a; --h1b: #0284c7;
+    --glow1: rgba(13,148,136,.08); --glow2: rgba(2,132,199,.10);
+  }
+}
 html, body { font-family: Inter, "Segoe UI", system-ui, sans-serif; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #04141c; font-weight: 600; }
 button.primary:hover { background: #7dd3fc; }

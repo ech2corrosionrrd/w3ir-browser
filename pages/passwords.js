@@ -70,9 +70,12 @@ async function renderList(st) {
 
   const addEntry = async (entry) => {
     let currentTotp = '';
+    let currentNote = '';
     if (entry) {
       const r = await withAuth((x) => call('vault:reveal', { id: entry.id, ...x }));
-      if (r && r.ok && r.totp) currentTotp = r.totp;
+      if (!r || !r.ok) return;
+      currentTotp = r.totp || '';
+      currentNote = r.note || '';
     }
     const f = [
       { name: 'url', label: 'Адреса сайту (https://…)', value: entry ? entry.origin : 'https://' },
@@ -84,7 +87,7 @@ async function renderList(st) {
           input.type = 'text'; input.value = r.password;
         } }, 'Згенерувати') },
       { name: 'totp', label: 'Ключ 2FA (секрет або otpauth://)', value: currentTotp },
-      { name: 'note', label: 'Нотатка', type: 'textarea', value: '' },
+      { name: 'note', label: 'Нотатка', type: 'textarea', value: currentNote },
     ];
     const v = await ask(entry ? 'Редагувати запис' : 'Новий запис', f, { okText: 'Зберегти' });
     if (!v) return;
@@ -176,15 +179,24 @@ async function renderList(st) {
       const avatar = h('div', { class: 'pw-avatar', title: e.host }, initial);
       const totpBtn = e.hasTotp ? h('button', { class: 'pw-totp', title: 'Натисніть для копіювання коду', onclick: async (ev) => {
         const btn = ev.currentTarget;
-        const r = await call('vault:totp', { id: e.id });
+        const r = await withAuth((x) => call('vault:totp', { id: e.id, ...x }));
         if (r && r.ok) {
+          await call('vault:copyTotp', { id: e.id });
           const formatted = r.code.length === 6 ? `${r.code.slice(0, 3)} ${r.code.slice(3)}` : r.code;
-          btn.textContent = `${formatted} (${r.remaining}s)`;
-          btn.onclick = async () => {
-            await call('vault:copyTotp', { id: e.id });
-            btn.textContent = 'скопійовано (20 с)';
-            setTimeout(() => { load(); }, 2000);
+          let rem = r.remaining;
+          if (btn._totpTimer) clearInterval(btn._totpTimer);
+          const tick = () => {
+            if (!btn.isConnected || rem <= 0) {
+              clearInterval(btn._totpTimer);
+              btn._totpTimer = null;
+              if (btn.isConnected) btn.textContent = t('🔑 2FA код');
+              return;
+            }
+            btn.textContent = `${formatted} (${rem}s) ✓`;
+            rem--;
           };
+          tick();
+          btn._totpTimer = setInterval(tick, 1000);
         } else if (r && r.error) {
           alert(r.error);
         }

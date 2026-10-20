@@ -281,38 +281,75 @@ function installSolana(b) {
   try { window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', { detail: (api) => { try { api.register(wallet); } catch (err) { console.error(err); } } })); } catch { /* ignore */ }
 }
 
+function installFingerprintProtection() {
+  try {
+    const r100 = (n) => Math.max(100, Math.round(Number(n || 0) / 100) * 100);
+    const sp = Screen.prototype;
+    const ow = Object.getOwnPropertyDescriptor(sp, 'width');
+    const oh = Object.getOwnPropertyDescriptor(sp, 'height');
+    if (ow && ow.get) Object.defineProperty(sp, 'width', { get() { return r100(ow.get.call(this)); } });
+    if (oh && oh.get) Object.defineProperty(sp, 'height', { get() { return r100(oh.get.call(this)); } });
+    Object.defineProperty(sp, 'availWidth', { get() { return this.width; } });
+    Object.defineProperty(sp, 'availHeight', { get() { return this.height; } });
+    Object.defineProperty(sp, 'colorDepth', { value: 24, configurable: false });
+    Object.defineProperty(sp, 'pixelDepth', { value: 24, configurable: false });
+    const ww = Object.getOwnPropertyDescriptor(window, 'outerWidth');
+    const wh = Object.getOwnPropertyDescriptor(window, 'outerHeight');
+    if (ww && ww.get) Object.defineProperty(window, 'outerWidth', { get() { return r100(ww.get.call(this)); } });
+    if (wh && wh.get) Object.defineProperty(window, 'outerHeight', { get() { return r100(wh.get.call(this)); } });
+    if ('hardwareConcurrency' in navigator) Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { value: 4, configurable: false });
+    if ('deviceMemory' in navigator) Object.defineProperty(Navigator.prototype, 'deviceMemory', { value: 8, configurable: false });
+  } catch { /* ignore */ }
+  try {
+    const noise = (d) => {
+      if (d && d.length >= 16) {
+        const step = Math.max(4, Math.floor(d.length / 32));
+        for (let i = 0; i < d.length; i += step) d[i] = d[i] ^ 1;
+      }
+    };
+    const origGet = CanvasRenderingContext2D.prototype.getImageData;
+    const origPut = CanvasRenderingContext2D.prototype.putImageData;
+    const origGetCtx = HTMLCanvasElement.prototype.getContext;
+    const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
+    const origToBlob = HTMLCanvasElement.prototype.toBlob;
+    CanvasRenderingContext2D.prototype.getImageData = function (sx, sy, sw, sh, ...rest) {
+      const img = origGet.call(this, sx, sy, sw, sh, ...rest);
+      noise(img.data);
+      return img;
+    };
+    const cloneNoisy = (src) => {
+      if (!src || !(src.width > 0 && src.height > 0 && src.width <= 4096 && src.height <= 4096)) return src;
+      try {
+        const tmp = document.createElement('canvas');
+        tmp.width = src.width;
+        tmp.height = src.height;
+        const tctx = origGetCtx.call(tmp, '2d');
+        if (!tctx) return src;
+        tctx.drawImage(src, 0, 0);
+        const img = origGet.call(tctx, 0, 0, tmp.width, tmp.height);
+        noise(img.data);
+        origPut.call(tctx, img, 0, 0);
+        return tmp;
+      } catch {
+        return src;
+      }
+    };
+    HTMLCanvasElement.prototype.toDataURL = function (...args) {
+      return origToDataURL.apply(cloneNoisy(this), args);
+    };
+    if (origToBlob) {
+      HTMLCanvasElement.prototype.toBlob = function (...args) {
+        return origToBlob.apply(cloneNoisy(this), args);
+      };
+    }
+  } catch { /* ignore */ }
+}
+
 if (secureContext && window === window.top) {
   const init = ipcRenderer.sendSync('wallet:init');
   if (init && init.fingerprint) {
     try {
-      webFrame.executeJavaScript(`(() => {
-        try {
-          const r100 = (n) => Math.max(100, Math.round(Number(n || 0) / 100) * 100);
-          const sp = Screen.prototype;
-          const ow = Object.getOwnPropertyDescriptor(sp, 'width');
-          const oh = Object.getOwnPropertyDescriptor(sp, 'height');
-          if (ow && ow.get) Object.defineProperty(sp, 'width', { get() { return r100(ow.get.call(this)); } });
-          if (oh && oh.get) Object.defineProperty(sp, 'height', { get() { return r100(oh.get.call(this)); } });
-          Object.defineProperty(sp, 'availWidth', { get() { return this.width; } });
-          Object.defineProperty(sp, 'availHeight', { get() { return this.height; } });
-          Object.defineProperty(sp, 'colorDepth', { value: 24, configurable: false });
-          Object.defineProperty(sp, 'pixelDepth', { value: 24, configurable: false });
-          if ('hardwareConcurrency' in navigator) Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { value: 4, configurable: false });
-          if ('deviceMemory' in navigator) Object.defineProperty(Navigator.prototype, 'deviceMemory', { value: 8, configurable: false });
-        } catch {}
-        try {
-          const origGet = CanvasRenderingContext2D.prototype.getImageData;
-          CanvasRenderingContext2D.prototype.getImageData = function(sx, sy, sw, sh, ...rest) {
-            const img = origGet.call(this, sx, sy, sw, sh, ...rest);
-            const d = img.data;
-            if (d && d.length >= 16) {
-              const step = Math.max(4, Math.floor(d.length / 32));
-              for (let i = 0; i < d.length; i += step) d[i] = d[i] ^ 1;
-            }
-            return img;
-          };
-        } catch {}
-      })()`).catch(() => {});
+      contextBridge.executeInMainWorld({ func: installFingerprintProtection, args: [] });
     } catch { /* ignore */ }
   }
   if (init && init.enabled) {

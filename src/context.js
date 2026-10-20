@@ -45,7 +45,7 @@ const DEFAULT_SETTINGS = {
   sleepMinutes: 15, // через скільки хвилин неактивна вкладка засинає (5, 15, 30, 60, 120)
   verticalTabs: false,
   savePasswords: true,
-  theme: 'system',
+  theme: 'dark',
   language: 'auto',
   adblockAllow: [],
   safeBrowsing: true,
