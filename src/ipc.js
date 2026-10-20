@@ -516,14 +516,20 @@ async function syncApi(ctx, entry, name, arg) {
 }
 
 function registerIpc(resolve) {
-  // Провайдер гаманця для сторінок (EIP-1193): синхронна ініціалізація та запити
+  // Провайдер гаманця та параметри приватності для сторінок: синхронна ініціалізація
   ipcMain.on('wallet:init', (e) => {
-    let r = { enabled: false };
+    let r = { enabled: false, fingerprint: false };
     try {
       const ctx = resolve(e.sender);
       const entry = ctx && ctx.entryFor(e.sender);
       const origin = entry && e.senderFrame === e.sender.mainFrame ? normOrigin(e.senderFrame.url) : null;
-      if (entry && entry.tab && !entry.win.incognito && origin && ctx.wallet.injectEnabled()) r = { enabled: true, chainId: hexChain(ctx.wallet.chainOf(origin)) };
+      if (ctx) {
+        r.fingerprint = !!(ctx.cfg().fingerprintProtection || ctx.protection() === 'maximum');
+      }
+      if (entry && entry.tab && !entry.win.incognito && origin && ctx.wallet.injectEnabled()) {
+        r.enabled = true;
+        r.chainId = hexChain(ctx.wallet.chainOf(origin));
+      }
     } catch { /* ignore */ }
     e.returnValue = r;
   });
@@ -587,7 +593,7 @@ function registerIpc(resolve) {
   const SETTING_TYPES = {
     homepage: 'string', searchEngine: 'string', startup: 'string', adblock: 'boolean',
     sendGpc: 'boolean', showBookmarksBar: 'boolean', askDownload: 'boolean', downloadDir: 'string',
-    httpsFirst: 'boolean', stripTracking: 'boolean', protection: 'string', sleepTabs: 'boolean', sleepMinutes: 'number', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean',
+    httpsFirst: 'boolean', stripTracking: 'boolean', protection: 'string', fingerprintProtection: 'boolean', sleepTabs: 'boolean', sleepMinutes: 'number', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean',
   };
 
   ipcMain.handle('internal', async (e, name, arg) => {

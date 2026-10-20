@@ -10,12 +10,25 @@ const LEVELS = ['standard', 'strict', 'maximum'];
 // Перемикачі приватності, які вмикає режим (користувач потім може вимкнути окремі в налаштуваннях)
 const PRESETS = {
   standard: {},
-  strict: { adblock: true, sendGpc: true, httpsFirst: true, stripTracking: true, safeBrowsing: true },
-  maximum: { adblock: true, sendGpc: true, httpsFirst: true, stripTracking: true, safeBrowsing: true },
+  strict: { adblock: true, sendGpc: true, httpsFirst: true, stripTracking: true, safeBrowsing: true, fingerprintProtection: false },
+  maximum: { adblock: true, sendGpc: true, httpsFirst: true, stripTracking: true, safeBrowsing: true, fingerprintProtection: true },
 };
 
 const level = (v) => (LEVELS.includes(v) ? v : 'standard');
 const isStrict = (v) => level(v) !== 'standard';
+
+// Округлення вимірів екрана до найближчих 100 пікселів (screen normalization)
+const roundDimension = (n) => Math.max(100, Math.round(Number(n || 0) / 100) * 100);
+
+// Внесення мікрошуму в Canvas (наймолодший біт окремих пікселів) для руйнування відбитків
+function applyCanvasNoise(uint8Arr) {
+  if (!uint8Arr || uint8Arr.length < 16) return false;
+  const step = Math.max(4, Math.floor(uint8Arr.length / 32));
+  for (let i = 0; i < uint8Arr.length; i += step) {
+    uint8Arr[i] = uint8Arr[i] ^ 1;
+  }
+  return true;
+}
 
 function webrtcPolicy(v) {
   return { standard: 'default', strict: 'default_public_interface_only', maximum: 'disable_non_proxied_udp' }[level(v)];
@@ -47,4 +60,4 @@ const stripSetCookie = (headers) => dropHeader(headers, 'set-cookie');
 // Referer до сторонніх сайтів прибирається повністю (Chromium і так скорочує його до адреси сайту); true, якщо щось змінено
 const dropReferrer = (headers) => dropHeader(headers, 'referer');
 
-module.exports = { LEVELS, PRESETS, level, isStrict, webrtcPolicy, isThirdParty, stripCookieRequest, stripSetCookie, dropReferrer };
+module.exports = { LEVELS, PRESETS, level, isStrict, webrtcPolicy, isThirdParty, stripCookieRequest, stripSetCookie, dropReferrer, roundDimension, applyCanvasNoise };

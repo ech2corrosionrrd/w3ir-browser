@@ -64,6 +64,7 @@ const DEFAULT_SETTINGS = {
   torrentConfirm: true,
   autolockMinutes: 15,
   protection: 'standard', // standard | strict | maximum (src/protection.js)
+  fingerprintProtection: false, // округлення вимірів, маскування процесора, мікрошум Canvas
 };
 
 const ENGINES = {

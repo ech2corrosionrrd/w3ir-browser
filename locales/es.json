@@ -2383,5 +2383,7 @@
   "Натисніть для копіювання коду": "Haga clic para copiar el código",
   "Некоректний секрет TOTP або посилання otpauth://.": "Secreto TOTP o enlace otpauth:// no válido.",
   "Некоректний секрет TOTP.": "Secreto TOTP no válido.",
-  "TOTP не налаштовано для цього запису.": "TOTP no está configurado para esta entrada."
+  "TOTP не налаштовано для цього запису.": "TOTP no está configurado para esta entrada.",
+  "Захист від цифрових відбитків (Canvas, екран)": "Protección contra huellas digitales (Canvas, pantalla)",
+  "Маскування характеристик пристрою, округлення екрана та захист Canvas від зняття відбитків": "Enmascara las especificaciones del dispositivo, redondea la pantalla y protege Canvas contra rastreo"
 }

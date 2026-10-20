@@ -32,6 +32,30 @@ test('protection: пресети вмикають перемикачі прив�
   }
 });
 
+test('protection: округлення вимірів екрана (roundDimension)', () => {
+  assert.equal(p.roundDimension(1920), 1900);
+  assert.equal(p.roundDimension(1080), 1100);
+  assert.equal(p.roundDimension(1440), 1400);
+  assert.equal(p.roundDimension(2560), 2600);
+  assert.equal(p.roundDimension(1366), 1400);
+  assert.equal(p.roundDimension(0), 100);
+});
+
+test('protection: мікрошум Canvas (applyCanvasNoise)', () => {
+  const buf = new Uint8Array(64).fill(128);
+  const copy = new Uint8Array(buf);
+  assert.equal(p.applyCanvasNoise(buf), true);
+  // Значення змінилися в окремих байтах
+  assert.notDeepEqual(buf, copy);
+  // Зміни мінімальні (+1 або -1, тобто інверсія молодшого біта)
+  for (let i = 0; i < buf.length; i++) {
+    assert.ok(Math.abs(buf[i] - copy[i]) <= 1);
+  }
+  // Занадто короткий масив не модифікується
+  assert.equal(p.applyCanvasNoise(new Uint8Array(8)), false);
+  assert.equal(p.applyCanvasNoise(null), false);
+});
+
 test('protection: стороннім вважається запит на інший сайт', () => {
   assert.equal(p.isThirdParty('https://cdn.tracker.net/a.js', 'news.example.com', siteKey), true);
   assert.equal(p.isThirdParty('https://static.example.com/a.js', 'news.example.com', siteKey), false, 'піддомен того ж сайту');

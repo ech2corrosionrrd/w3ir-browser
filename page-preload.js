@@ -283,6 +283,38 @@ function installSolana(b) {
 
 if (secureContext && window === window.top) {
   const init = ipcRenderer.sendSync('wallet:init');
+  if (init && init.fingerprint) {
+    try {
+      webFrame.executeJavaScript(`(() => {
+        try {
+          const r100 = (n) => Math.max(100, Math.round(Number(n || 0) / 100) * 100);
+          const sp = Screen.prototype;
+          const ow = Object.getOwnPropertyDescriptor(sp, 'width');
+          const oh = Object.getOwnPropertyDescriptor(sp, 'height');
+          if (ow && ow.get) Object.defineProperty(sp, 'width', { get() { return r100(ow.get.call(this)); } });
+          if (oh && oh.get) Object.defineProperty(sp, 'height', { get() { return r100(oh.get.call(this)); } });
+          Object.defineProperty(sp, 'availWidth', { get() { return this.width; } });
+          Object.defineProperty(sp, 'availHeight', { get() { return this.height; } });
+          Object.defineProperty(sp, 'colorDepth', { value: 24, configurable: false });
+          Object.defineProperty(sp, 'pixelDepth', { value: 24, configurable: false });
+          if ('hardwareConcurrency' in navigator) Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { value: 4, configurable: false });
+          if ('deviceMemory' in navigator) Object.defineProperty(Navigator.prototype, 'deviceMemory', { value: 8, configurable: false });
+        } catch {}
+        try {
+          const origGet = CanvasRenderingContext2D.prototype.getImageData;
+          CanvasRenderingContext2D.prototype.getImageData = function(sx, sy, sw, sh, ...rest) {
+            const img = origGet.call(this, sx, sy, sw, sh, ...rest);
+            const d = img.data;
+            if (d && d.length >= 16) {
+              const step = Math.max(4, Math.floor(d.length / 32));
+              for (let i = 0; i < d.length; i += step) d[i] = d[i] ^ 1;
+            }
+            return img;
+          };
+        } catch {}
+      })()`).catch(() => {});
+    } catch { /* ignore */ }
+  }
   if (init && init.enabled) {
     const bridge = {
       request: async (args) => {
