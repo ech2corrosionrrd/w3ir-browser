@@ -1,15 +1,15 @@
 'use strict';
-const { BrowserWindow, WebContentsView, Menu, clipboard, shell, dialog, app } = require('electron');
+const { BrowserWindow, WebContentsView, clipboard, shell, dialog, app } = require('electron');
 const { t: tr } = require('./i18n');
-const { normOrigin } = require('./vault');
-const { githubRepo, HTML_URL } = require('./github');
-const { ASK } = require('./context');
+const { HTML_URL } = require('./github');
 const { withTip } = require('./tips');
 const tabGroups = require('./tab-groups');
 const splitView = require('./split-view');
 const aiTabs = require('./ai-tabs');
 const tabSleep = require('./tab-sleep');
 const appCommands = require('./app-commands');
+const appVaultUi = require('./app-vault-ui');
+const appMenus = require('./app-menus');
 const { chromeIdentity } = require('./chrome-identity');
 const fs = require('fs');
 const path = require('path');
@@ -557,177 +557,6 @@ class AppWindow {
     this.push();
   }
 
-  // ---------- менеджер паролів ----------
-  vaultState(curUrl) {
-    const v = this.ctx.vault;
-    const origin = normOrigin(curUrl);
-    const st = v.status();
-    return { status: st, count: st === 'unlocked' && origin ? v.count(origin) : 0, canFill: !!origin };
-  }
-
-  vaultPanel() {
-    const v = this.ctx.vault;
-    const t = this.active();
-    const url = t ? this.tabUrl(t) : '';
-    const origin = normOrigin(url);
-    const st = v.status();
-    let host = '';
-    try { host = new URL(url).host; } catch {}
-    return {
-      status: st, host, canFill: !!origin, secureOnly: !origin && /^http:/.test(url),
-      entries: st === 'unlocked' && origin ? v.list(origin).map(e => ({ id: e.id, username: e.username })) : [],
-    };
-  }
-
-  refreshVaultOverlay() {
-    if (this.overlayType === 'vault') this.overlay.webContents.send('overlay', { type: 'vault', ...this.vaultPanel() });
-  }
-
-  async vaultUnlock(master) {
-    const r = await this.ctx.vault.unlock(String(master || '').slice(0, 256));
-    if (r.ok) { this.refreshVaultOverlay(); this.ctx.flushPending(); }
-    return r;
-  }
-
-  vaultFill(id) {
-    const t = this.active();
-    if (!t || t.sleep) return;
-    let e;
-    try { e = this.ctx.vault.get(id); } catch { return; }
-    const origin = normOrigin(this.tabUrl(t));
-    if (!e || !origin || origin !== e.origin) { this.toast('Адреса сторінки не збігається із записом — заповнення скасовано'); return; }
-    t.view.webContents.send('vault:fill', { origin, username: e.username, password: e.password });
-    this.closeOverlay();
-  }
-
-  offerSave(tab, { username, password }, frameUrl) {
-    const ctx = this.ctx;
-    if (!ctx.cfg().savePasswords || this.incognito) return;
-    const origin = normOrigin(frameUrl);
-    if (!origin || origin !== normOrigin(this.tabUrl(tab))) return;
-    const v = ctx.vault;
-    const st = v.status();
-    let kind = 'new';
-    if (st === 'unlocked') {
-      if (v.isNever(origin)) return;
-      const ex = v.find(origin, username);
-      if (ex && ex.password === password) return;
-      if (ex) kind = 'update';
-    }
-    let host = origin;
-    try { host = new URL(origin).host; } catch {}
-    clearTimeout(this.pendingTimer);
-    this.pendingSave = { origin, host, username, password, kind, confirmed: false };
-    this.pendingTimer = setTimeout(() => this.clearPending(), 5 * 60 * 1000);
-    this.chrome.send('savebar', { kind, host, username, needs: st === 'none' ? 'create' : st === 'locked' ? 'unlock' : null });
-  }
-
-  clearPending() {
-    clearTimeout(this.pendingTimer);
-    this.pendingSave = null;
-    if (!this.win.isDestroyed()) this.chrome.send('savebar', null);
-  }
-
-  // Користувач підтвердив збереження (можливо, ще до розблокування сховища)
-  flushPending() {
-    const p = this.pendingSave;
-    const v = this.ctx.vault;
-    if (!p || !p.confirmed || v.status() !== 'unlocked') return;
-    try {
-      v.add({ url: p.origin, username: p.username, password: p.password });
-      this.toast('Пароль збережено');
-    } catch (e) { this.toast(e.message); }
-    this.clearPending();
-  }
-
-  saveAnswer(action) {
-    const p = this.pendingSave;
-    if (!p) return;
-    const v = this.ctx.vault;
-    if (action === 'dismiss') return this.clearPending();
-    if (action === 'never') {
-      if (v.status() === 'unlocked') { try { v.addNever(p.origin); } catch {} }
-      return this.clearPending();
-    }
-    if (action === 'save') {
-      p.confirmed = true;
-      const st = v.status();
-      if (st === 'unlocked') this.flushPending();
-      else if (st === 'none') this.createTab('w3ir://passwords');
-      else {
-        const [w, h] = this.win.getContentSize();
-        this.chrome.send('savebar', null);
-        this.openOverlay('vault', this.vaultPanel(), { x: 0, y: this.chromeHeight, width: w, height: h - this.chromeHeight });
-      }
-    }
-  }
-
-  // ---------- підтвердження дій гаманця (довіреним вікном, яке сторінка не може підробити) ----------
-  requestApproval(spec) {
-    return new Promise((resolve) => {
-      if (this.approvalQueue.length >= 5) { resolve({ approved: false }); return; }
-      this.approvalQueue.push({ id: require('crypto').randomUUID(), spec, resolve, timer: null });
-      this.showNextApproval();
-    });
-  }
-
-  showNextApproval() {
-    if (this.approval || !this.approvalQueue.length || this.win.isDestroyed()) return;
-    const item = this.approvalQueue.shift();
-    this.approval = item;
-    item.timer = setTimeout(() => this.finishApproval(false), 120000);
-    // пауза перед підтвердженням (великі суми): кнопка «Підтвердити» недоступна, а рішення раніше строку відхиляється й тут
-    const delay = Number(item.spec.delay);
-    item.notBefore = Number.isFinite(delay) && delay > 0 ? Date.now() + Math.min(delay, 30) * 1000 : 0;
-    if (this.win.isMinimized()) this.win.restore();
-    this.win.show();
-    this.openOverlay('approve', this.approvalPayload(item), {});
-    this.push();
-  }
-
-  approvalPayload(item) {
-    const v = this.ctx.vault;
-    const st = v.status();
-    if (item.spec.agent) return { id: item.id, ...item.spec, needsUnlock: false, needsAuth: false }; // підтвердження сайту для ШІ не потребує майстер-пароля
-    return { id: item.id, ...item.spec, needsUnlock: st !== 'unlocked', needsAuth: st === 'unlocked' && !v.recentlyAuthed(this.ctx.wallet.reauthMs()) };
-  }
-
-  finishApproval(approved, choice, choice2) {
-    const item = this.approval;
-    if (!item) return;
-    clearTimeout(item.timer);
-    this.approval = null;
-    if (this.overlayType === 'approve') { this.overlayType = null; try { this.win.contentView.removeChildView(this.overlay); } catch {} }
-    item.resolve({ approved, ...(choice !== undefined ? { choice } : {}), ...(choice2 !== undefined ? { choice2 } : {}) });
-    this.push();
-    this.showNextApproval();
-  }
-
-  async decide(id, approve, master, choice, choice2) {
-    const item = this.approval;
-    if (!item || item.id !== id) return { ok: false, error: 'Запит застарів.' };
-    if (!approve) { this.finishApproval(false); return { ok: true }; }
-    if (item.notBefore && Date.now() < item.notBefore) return { ok: false, error: `Зачекайте ще ${Math.ceil((item.notBefore - Date.now()) / 1000)} с: це велика сума.` };
-    // вибір дозволено лише серед запропонованих у запиті варіантів
-    const opts = (item.spec.choice && item.spec.choice.options) || [];
-    if (choice !== undefined && !(typeof choice === 'string' && opts.some(o => o.value === choice))) return { ok: false, error: 'Некоректний вибір.' };
-    if (choice === undefined && opts.length) choice = item.spec.choice.value;
-    const opts2 = (item.spec.choice2 && item.spec.choice2.options) || [];
-    if (choice2 !== undefined && !(typeof choice2 === 'string' && opts2.some(o => o.value === choice2))) return { ok: false, error: 'Некоректний вибір.' };
-    if (choice2 === undefined && opts2.length) choice2 = item.spec.choice2.value;
-    if (item.spec.agent) { this.finishApproval(true); return { ok: true }; }
-    const v = this.ctx.vault;
-    master = String(master || '').slice(0, 256);
-    if (v.status() !== 'unlocked') {
-      const r = await v.unlock(master);
-      if (!r.ok) return r;
-    } else if (!v.recentlyAuthed(this.ctx.wallet.reauthMs())) {
-      if (!(await v.reauth(master))) return { ok: false, error: 'Хибний майстер-пароль.' };
-    }
-    this.finishApproval(true, choice, choice2);
-    return { ok: true };
-  }
-
   // ---------- режим читання ----------
   async openReader() {
     const t = this.active();
@@ -780,138 +609,6 @@ class AppWindow {
   }
 
   closeSuggest() { if (this.overlayType === 'suggest') this.closeOverlay(); }
-
-  // ---------- інформація про сайт ----------
-  async sitePanelData() {
-    const t = this.active();
-    const url = t ? this.tabUrl(t) : '';
-    let u = null;
-    try { u = new URL(url); } catch { /* немає адреси */ }
-    const web = !!u && /^https?:$/.test(u.protocol);
-    const kind = !u ? 'none' : u.protocol === 'https:' ? 'https' : u.protocol === 'http:' ? 'http' : u.protocol === 'w3ir:' ? 'internal' : u.protocol === 'file:' ? 'file' : 'other';
-    const host = web ? u.hostname : '';
-    let cookies = 0;
-    if (web) { try { cookies = (await this.ctx.siteCookies(this.ses, host)).length; } catch { /* ignore */ } }
-    return {
-      kind, host, incognito: this.incognito,
-      perms: web ? this.ctx.sitePerms(this.ses, u.origin) : null,
-      permLabels: ASK,
-      adblock: { enabled: this.ctx.cfg().adblock !== false, allowed: web ? this.ctx.adblockAllowed(host) : false, blocked: t ? t.blocked : 0 },
-      cookies,
-    };
-  }
-
-  async refreshSiteOverlay() {
-    if (this.overlayType === 'site' && !this.win.isDestroyed()) this.overlay.webContents.send('overlay', { type: 'site', x: this.siteX || 0, ...(await this.sitePanelData()) });
-  }
-
-  siteTarget() {
-    const t = this.active();
-    try { const u = new URL(this.tabUrl(t)); return /^https?:$/.test(u.protocol) ? u : null; } catch { return null; }
-  }
-
-  refreshGithubOverlay() {
-    if (this.overlayType === 'github' && !this.win.isDestroyed()) this.overlay.webContents.send('overlay', { type: 'github', ...this.ctx.github.panel() });
-  }
-
-  // Команди для сторінок репозиторіїв GitHub (з'являються в палітрі Ctrl+K)
-  githubCommands() {
-    const t = this.active();
-    const url = t ? this.tabUrl(t) : '';
-    const gr = githubRepo(url);
-    if (!gr) return [];
-    const base = `https://github.com/${gr.owner}/${gr.repo}`;
-    const name = `${gr.owner}/${gr.repo}`;
-    const cmds = [
-      { label: tr('GitHub: копіювати git clone (HTTPS) — {0}', name), cmd: 'copyText', arg: `git clone ${base}.git` },
-      { label: tr('GitHub: копіювати git clone (SSH) — {0}', name), cmd: 'copyText', arg: `git clone git@github.com:${gr.owner}/${gr.repo}.git` },
-      { label: tr('GitHub: завантажити ZIP — {0}', name), cmd: 'downloadUrl', arg: `${base}/archive/HEAD.zip` },
-      { label: tr('GitHub: відкрити в github.dev (редактор) — {0}', name), cmd: 'newTabUrl', arg: `https://github.dev/${gr.owner}/${gr.repo}` },
-      { label: `GitHub: Issues — ${name}`, cmd: 'newTabUrl', arg: `${base}/issues` },
-      { label: `GitHub: Pull requests — ${name}`, cmd: 'newTabUrl', arg: `${base}/pulls` },
-      { label: `GitHub: Actions — ${name}`, cmd: 'newTabUrl', arg: `${base}/actions` },
-      { label: `GitHub: Releases — ${name}`, cmd: 'newTabUrl', arg: `${base}/releases` },
-      { label: tr('GitHub: відкрити в GitHub Desktop — {0}', name), cmd: 'externalUrl', arg: `x-github-client://openRepo/${base}` },
-      { label: tr('GitHub: відкрити у VS Code — {0}', name), cmd: 'externalUrl', arg: `vscode://vscode.git/clone?url=${encodeURIComponent(base + '.git')}` },
-    ];
-    if (gr.kind === 'blob' && gr.rest.length >= 2) {
-      const [branch, ...file] = gr.rest;
-      cmds.unshift({ label: tr('GitHub: відкрити Raw-файл'), cmd: 'newTabUrl', arg: `https://raw.githubusercontent.com/${gr.owner}/${gr.repo}/${branch}/${file.join('/')}` });
-    }
-    return cmds;
-  }
-
-  // ---------- меню вкладки та контекстне меню ----------
-  tabMenu(id) {
-    const t = this.tabs.find(t => t.id === id);
-    if (!t) return;
-    const i = this.tabs.indexOf(t);
-    Menu.buildFromTemplate([
-      { label: t.pinned ? tr('Відкріпити вкладку') : tr('Закріпити вкладку'), click: () => this.exec('pinTab', id) },
-      { label: t.view.webContents.isAudioMuted() ? tr('Увімкнути звук') : tr('Вимкнути звук'), click: () => this.exec('muteTab', id) },
-      { label: tr('Дублювати'), click: () => this.exec('duplicateTab', id) },
-      { label: tr('Перемістити в нове вікно'), enabled: this.tabs.length > 1 && !this.incognito && !this.agent, click: () => this.exec('tabToWindow', { id }) },
-      { label: tr('Приспати вкладку'), enabled: id !== this.activeId && isWebUrl(this.tabUrl(t)) && !t.sleep, click: () => this.sleepTab(t) },
-      { type: 'separator' },
-      ...(t.pinned ? [] : [...this.tabGroupMenuItems(t), { type: 'separator' }]),
-      ...this.splitMenuItems(t),
-      ...this.aiMenuItems(t),
-      { label: tr('Закрити'), click: () => this.closeTab(id) },
-      { label: tr('Закрити інші'), enabled: this.tabs.length > 1, click: () => this.exec('closeOthers', id) },
-      { label: tr('Закрити вкладки праворуч'), enabled: i < this.tabs.length - 1, click: () => this.exec('closeRight', id) },
-    ]).popup({ window: this.win });
-  }
-
-  contextMenu(tab, p) {
-    const wc = tab.view.webContents;
-    const t = [];
-    const cfg = this.ctx.cfg();
-    const engine = (this.ctx.ENGINES[cfg.searchEngine] || this.ctx.ENGINES.google);
-    if (p.misspelledWord) {
-      for (const s of p.dictionarySuggestions.slice(0, 5)) t.push({ label: s, click: () => wc.replaceMisspelling(s) });
-      if (t.length) t.push({ type: 'separator' });
-    }
-    if (p.linkURL) {
-      t.push({ label: tr('Відкрити посилання в новій вкладці'), click: () => this.createTab(p.linkURL, { activate: false }) });
-      t.push({ label: tr('Відкрити посилання в інкогніто'), click: () => this.ctx.openWindow({ incognito: true, urls: [p.linkURL] }) });
-      t.push({ label: tr('Копіювати адресу посилання'), click: () => clipboard.writeText(p.linkURL) });
-      t.push({ type: 'separator' });
-    }
-    if (p.mediaType === 'image' && p.srcURL) {
-      t.push({ label: tr('Відкрити зображення в новій вкладці'), click: () => this.createTab(p.srcURL, { activate: false }) });
-      t.push({ label: tr('Зберегти зображення як…'), click: () => wc.downloadURL(p.srcURL) });
-      t.push({ label: tr('Копіювати зображення'), click: () => wc.copyImageAt(p.x, p.y) });
-      t.push({ label: tr('Копіювати адресу зображення'), click: () => clipboard.writeText(p.srcURL) });
-      t.push({ type: 'separator' });
-    }
-    if (p.isEditable) {
-      t.push({ role: 'undo', label: tr('Скасувати') }, { role: 'redo', label: tr('Повторити') }, { type: 'separator' });
-      t.push({ role: 'cut', label: tr('Вирізати'), click: () => { wc.cut(); this.ctx.clipGuard.noteSoon(); } }, { role: 'copy', label: tr('Копіювати'), click: () => { wc.copy(); this.ctx.clipGuard.noteSoon(); } }, { role: 'paste', label: tr('Вставити') });
-      t.push({ role: 'selectAll', label: tr('Виділити все') });
-    } else if (p.selectionText) {
-      t.push({ role: 'copy', label: tr('Копіювати'), click: () => { wc.copy(); this.ctx.clipGuard.noteSoon(); } });
-      const sel = p.selectionText.trim();
-      const short = sel.length > 30 ? sel.slice(0, 30) + '…' : sel;
-      t.push({
-        label: tr('Шукати «{0}» ({1})', short, engine.name),
-        click: () => this.createTab(engine.url.replace('%s', encodeURIComponent(sel))),
-      });
-    } else if (!p.linkURL && p.mediaType !== 'image') {
-      t.push({ label: tr('Назад'), enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() });
-      t.push({ label: tr('Вперед'), enabled: wc.navigationHistory.canGoForward(), click: () => wc.navigationHistory.goForward() });
-      t.push({ label: tr('Оновити'), click: () => this.exec('reload') });
-      t.push({ type: 'separator' });
-      t.push({ label: tr('Зберегти як закладку'), click: () => this.exec('bookmark') });
-      t.push({ label: tr('Режим читання'), enabled: isWebUrl(this.tabUrl(tab)), click: () => this.openReader() });
-      t.push({ label: tr('Друк…'), click: () => wc.print() });
-      t.push({ label: tr('Зберегти сторінку як PDF…'), click: () => this.exec('savePdf') });
-      const url = this.tabUrl(tab);
-      if (isWebUrl(url)) t.push({ label: tr('Переглянути код сторінки'), click: () => this.createTab('view-source:' + url) });
-    }
-    t.push({ type: 'separator' });
-    t.push({ label: tr('Дослідити елемент'), click: () => wc.inspectElement(p.x, p.y) });
-    Menu.buildFromTemplate(t).popup({ window: this.win });
-  }
 
   // ---------- гарячі клавіші ----------
   onKey(e, input) {
@@ -1319,6 +1016,6 @@ class AppWindow {
   }
 }
 
-Object.assign(AppWindow.prototype, tabGroups.methods, splitView.methods, aiTabs.methods, tabSleep.methods, appCommands.methods);
+Object.assign(AppWindow.prototype, tabGroups.methods, splitView.methods, aiTabs.methods, tabSleep.methods, appCommands.methods, appVaultUi.methods, appMenus.methods);
 
 module.exports = { AppWindow, SIDEBAR_W };
