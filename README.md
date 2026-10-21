@@ -6,7 +6,7 @@
 
 A privacy-focused, Web3-native desktop browser for Windows built on Chromium (Electron 44). Engineered with built-in multichain wallet security, local AI assistance, decentralized storage (Arweave), and document viewing tools. Operates entirely locally with **zero telemetry** and no developer server dependencies.
 
-- Current Version: **1.39.1** · Downloads: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
+- Current Version: **1.40.0** · Downloads: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
 - Supported Languages: English, Ukrainian, Polish, German, Spanish, French (switchable in settings) · Platform: Windows 10/11 x64
 - Built-in Browser Help: **F1**
 
@@ -17,7 +17,7 @@ A privacy-focused, Web3-native desktop browser for Windows built on Chromium (El
 | **Tabs** | Pinned tabs (distinct pill design, hover close), sleeping tabs (memory saver with configurable timeout & form-input protection), vertical tab layout, **colored tab groups** ("close others in group"), **tear-off tab to new window** (drag outside tab bar), session & closed tab restore, split-screen persistence |
 | **Start Page** | Status bar (protection stats, update status, active/sleeping tabs, wallet state, downloads, Arweave/Irys Web3 gateway pill), quick launch tiles, top sites, recent bookmarks, tips, and keyboard shortcut cheatsheet |
 | **Navigation** | Smart address bar with autocomplete (bookmarks, frecency history), custom search keywords (`gh owner/repo`, `npm …`), command palette **Ctrl+K**, tab search Ctrl+Shift+A, clean Reader Mode |
-| **Privacy & Protection** | 3-tier protection modes ("Standard / Strict / Maximum" controlling 3rd-party cookies, WebRTC IP leakage, and Referer headers), **Anti-Fingerprinting** (screen dimension rounding to 100 px, `hardwareConcurrency`/`deviceMemory` normalization, Canvas `getImageData`/`toDataURL`/`toBlob` LSB noise injection, per-site shield exceptions), ad & tracker blocking via EasyList/EasyPrivacy/uBlock rules with cosmetic filters, HTTPS-first, tracking parameter stripper, DNT/GPC, incognito mode, **Site Information panel** (granular permissions, per-site adblock exceptions, site data clearing) |
+| **Privacy & Protection** | 3-tier protection modes ("Standard / Strict / Maximum" controlling 3rd-party cookies, WebRTC IP leakage, and Referer headers), **Anti-Fingerprinting** (screen dimension rounding to 100 px, `hardwareConcurrency`/`deviceMemory` normalization, Canvas `getImageData`/`toDataURL`/`toBlob` LSB noise injection, per-site shield exceptions), ad & tracker blocking via EasyList/EasyPrivacy/uBlock rules with cosmetic filters, **cookie-banner hiding** (uBlock "annoyances" lists, one-click toggle, hot-swapped without restart), HTTPS-first, tracking parameter stripper, DNT/GPC, incognito mode, **Site Information panel** (granular permissions, per-site adblock exceptions, site data clearing) |
 | **Threat Protection** | Local threat databases from URLhaus + Phishing.Database + MetaMask eth-phishing-detect (~500k domains including Web3 phishing) with binary search heuristics (homoglyphs, brand spoofing, lookalikes) |
 | **Password Manager & 2FA** | Encrypted local vault (AES-256-GCM, scrypt KDF with DPAPI pepper), **built-in 2FA / TOTP authenticator** (RFC 6238 / RFC 4226 with `otpauth://` URI support, live countdown, and 20s clipboard auto-clear), login reuse security audit bar, strict exact-origin autofill triggered only by user action, password generator, backup/restore, CSV import |
 | **Web3 Wallet** | Native **EVM** (EIP-1193 / EIP-6963) and **Solana** (`window.solana`, `wallet-standard`) wallet. **Security:** trusted native overlay confirmation for every action, signature dissection (**SIWE**, **permit/Permit2**, Seaport orders), transaction **simulation** (pre-execution balance changes for EVM and Solana), address poisoning & clipboard hijacking defense, rejection of batch calls and EIP-7702 delegation, caution policies (USD transfer limits, contacts-only mode, site auto-disconnect). **Features:** token transfers (ERC-20, SPL), **NFT gallery** (ERC-721/1155, Metaplex) with lazy loading and Arweave-first storage, active allowance management & revoking, cross-chain USD portfolio, **EVM history** (token/NFT transfers with spam-token collapsing & CSV export), `.sol` SNS domain resolution, compute budget priority fees, address book, ENS, QR code generator, private key import, BIP39 passphrase & Ledger Live/MetaMask derivation paths, watch-only accounts, per-site active account assignment, encrypted backup. *Note: code has not yet undergone an independent third-party audit.* |
@@ -47,7 +47,7 @@ A privacy-focused, Web3-native desktop browser for Windows built on Chromium (El
 Every release built via GitHub Actions includes cryptographic OpenSSF provenance attestations. You can verify that your installer was built unmodified directly from this repository using the GitHub CLI:
 
 ```bash
-gh attestation verify W3IR-Browser-Setup-1.37.0.exe --repo ech2corrosionrrd/w3ir-browser
+gh attestation verify W3IR-Browser-Setup-1.40.0.exe --repo ech2corrosionrrd/w3ir-browser
 ```
 
 Checksums are also available in `SHA256SUMS.txt` accompanying every release.
