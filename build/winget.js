@@ -24,6 +24,7 @@ const installerName = latest.files[0].url;
 const installerPath = path.join(root, 'dist', 'release', installerName);
 const sha256 = crypto.createHash('sha256').update(fs.readFileSync(installerPath)).digest('hex').toUpperCase();
 const releaseDate = new Date(latest.releaseDate).toISOString().slice(0, 10);
+if (/-/.test(version)) { console.error(`Версія ${version} є пре-релізом: у winget публікуються лише стабільні версії.`); process.exit(1); }
 const tag = 'v' + version;
 const url = `https://github.com/${REPO}/releases/download/${tag}/${installerName}`;
 const schema = (t) => `# yaml-language-server: $schema=https://aka.ms/winget-manifest.${t}.${MV}.schema.json\n`;

@@ -92,6 +92,7 @@ async function main() {
       if (r.ok) renderUpd();
     });
     const auto = h('input', { type: 'checkbox', class: 'switch', checked: st.autoUpdate, onchange: () => w3ir.invoke('update:setAuto', { on: auto.checked }) });
+    const betaSw = h('input', { type: 'checkbox', class: 'switch', checked: st.betaChannel, onchange: async () => { await w3ir.invoke('update:setBeta', { on: betaSw.checked }); renderUpd(); } });
     updBox.append(
       h('div', { class: 'row' }, h('div', null, h('div', null, `Версія ${st.current}`), h('div', { class: 'd' }, text + (st.checkedAt ? ` · перевірено ${new Date(st.checkedAt).toLocaleString(LOCALE)}` : '')),
         st.error ? h('div', { class: 'merr' }, st.error) : '', st.notes ? h('div', { class: 'd' }, st.notes) : ''),
@@ -101,6 +102,7 @@ async function main() {
             ? h('button', { class: 'primary', onclick: async () => { await w3ir.invoke('update:download'); renderUpd(); } }, 'Завантажити оновлення')
             : h('button', { class: 'primary', disabled: st.state === 'checking' || st.state === 'downloading', onclick: async () => { await w3ir.invoke('update:check'); renderUpd(); } }, 'Перевірити оновлення')),
       h('div', { class: 'row', title: 'Нова версія завантажується у фоні; встановлюється після вашого підтвердження або при наступному виході з браузера' }, h('div', null, h('div', null, 'Завантажувати оновлення автоматично'), h('div', { class: 'd' }, 'Перевірка кожні 6 годин. Без цього параметра браузер лише повідомляє про нову версію')), auto),
+      h('div', { class: 'row', title: 'Бета-версії виходять раніше за стабільні й можуть містити помилки' }, h('div', null, h('div', null, 'Отримувати бета-версії'), h('div', { class: 'd' }, 'Пробні збірки з новими можливостями приходять раніше за стабільні й можуть працювати нестабільно. Вимкнення не повертає стару версію: наступна стабільна встановиться, коли стане новішою.')), betaSw),
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Джерело оновлень'), h('div', { class: 'd' }, `Залиште порожнім, щоб використовувати офіційне джерело. Лише https або github:власник/репозиторій. Кожне оновлення перевіряється підписом випускача (Ed25519, відбиток ключа: ${st.fingerprint}) — підроблений файл не буде встановлено.`), feed, feedMsg)),
       st.logFile ? h('div', { class: 'row', title: 'У журнал записуються перевірки, завантаження та спроби встановлення' }, h('div', null, h('div', null, 'Журнал оновлень'), h('div', { class: 'd pw', style: 'user-select:text' }, st.logFile))) : '',
       st.packaged ? '' : h('div', { class: 'row' }, 'Режим розробки: оновлення працюють лише в встановленій версії.'));

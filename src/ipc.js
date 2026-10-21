@@ -517,6 +517,7 @@ async function updateApi(ctx, name, arg, entry) {
     }
     case 'update:install': if (entry) entry.win.exec('updateInstall'); return u.status();
     case 'update:download': await u.download(); return u.status();
+    case 'update:setBeta': base.cfg().betaChannel = !!arg.on; base.settingsStore.save(); return { ok: true, ...u.status() };
     case 'update:setAuto': base.cfg().autoUpdate = !!arg.on; base.settingsStore.save(); return { ok: true, ...u.status() };
     default: throw new Error('unknown');
   }

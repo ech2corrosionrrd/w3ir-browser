@@ -52,6 +52,7 @@ const DEFAULT_SETTINGS = {
   safeBrowsing: true,
   safeAllow: [],
   autoUpdate: true,
+  betaChannel: false, // отримувати пре-релізи (теги vX.Y.Z-beta.N на GitHub)
   updateFeed: '',
   keywords: '',
   walletEnabled: false,

@@ -192,6 +192,10 @@ async function updateTests(ctx) {
   ok(r.state === 'idle' && /не налаштовано/.test(r.error), 'update: без джерела оновлення вимкнено з поясненням');
 
   ok(require('../../src/updater').DEFAULT_FEED === 'github:ech2corrosionrrd/w3ir-browser' && !!parseFeed(require('../../src/updater').DEFAULT_FEED), 'update: офіційне джерело за замовчуванням коректне');
+  u.getCfg = () => ({ updateFeed: '', autoUpdate: true });
+  ok(u.status().betaChannel === false, 'update: бета-канал типово вимкнено');
+  u.getCfg = () => ({ updateFeed: '', autoUpdate: true, betaChannel: true });
+  ok(u.status().betaChannel === true, 'update: бета-канал вмикається налаштуванням');
   u.defaultFeed = defFeed;
   srv.close();
   u.publicKey = saved.pub; u.allowInsecure = saved.ins; u.forceDev = saved.dev; u.getCfg = saved.cfg;

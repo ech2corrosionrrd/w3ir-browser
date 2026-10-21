@@ -114,7 +114,7 @@ class Updater {
     const cfg = this.getCfg();
     const f = this.feed();
     return {
-      ...this.state, current: app.getVersion(), autoUpdate: cfg.autoUpdate !== false, feed: cfg.updateFeed || '', defaultFeed: this.defaultFeed, feedValid: !!f,
+      ...this.state, current: app.getVersion(), autoUpdate: cfg.autoUpdate !== false, betaChannel: !!cfg.betaChannel, feed: cfg.updateFeed || '', defaultFeed: this.defaultFeed, feedValid: !!f,
       packaged: app.isPackaged || this.forceDev, fingerprint: fingerprint(this.publicKey), logFile: this.logFile,
     };
   }
@@ -137,6 +137,8 @@ class Updater {
     if (!f) { this.set({ state: 'idle', error: manual ? 'Джерело оновлень не налаштовано.' : '' }); return this.status(); }
     try {
       autoUpdater.setFeedURL(f);
+      // бета-канал: пре-релізи GitHub; нижчу версію (повернення зі «бети» на стабільну) все одно не встановлюємо
+      autoUpdater.allowPrerelease = !!this.getCfg().betaChannel && f.provider === 'github';
       const r = await autoUpdater.checkForUpdates();
       if (r && r.isUpdateAvailable && this.state.state === 'available' && (this.getCfg().autoUpdate !== false || manual)) {
         await this.download();
