@@ -6,7 +6,8 @@ const { Mnemonic } = require('ethers');
 const backup = require('./wallet-backup');
 const { injectionClean } = require('./token-text');
 
-const DEFAULT_POLICY = { contactsOnly: false, confirmUsd: 0, maxUsd: 0, siteDays: 0 };
+const DEFAULT_POLICY = { contactsOnly: false, confirmUsd: 0, maxUsd: 0, dailyUsd: 0, siteDays: 0 };
+const DAY_MS = 24 * 3600 * 1000;
 const DELAY_SEC = 5;
 const QUIZ_TTL = 5 * 60 * 1000;
 const IMP_BASE = 1000;
@@ -33,11 +34,27 @@ function install(Wallet, { RpcError, unauthorized }) {
     if (patch.contactsOnly !== undefined) next.contactsOnly = !!patch.contactsOnly;
     if (patch.confirmUsd !== undefined) next.confirmUsd = num(patch.confirmUsd, 1e9, 'поріг підтвердження');
     if (patch.maxUsd !== undefined) next.maxUsd = num(patch.maxUsd, 1e9, 'ліміт переказу');
+    if (patch.dailyUsd !== undefined) next.dailyUsd = num(patch.dailyUsd, 1e9, 'добовий ліміт');
     if (patch.siteDays !== undefined) next.siteDays = num(patch.siteDays, 365, 'дні до відключення сайтів', true);
     if (next.maxUsd && next.confirmUsd && next.confirmUsd > next.maxUsd) throw new RpcError(-32602, 'Поріг підтвердження не може перевищувати ліміт переказу.');
+    if (next.dailyUsd && next.maxUsd && next.maxUsd > next.dailyUsd) throw new RpcError(-32602, 'Ліміт одного переказу не може перевищувати добовий ліміт.');
     s.policy = next;
     this.vault.persist();
     return next;
+  };
+
+  // Добовий ліміт: сума переказів за ковзні 24 години (у USD за ціною на мить переказу); записується лише після успішного підтвердження
+  proto.spentUsd = function () {
+    const s = this.data();
+    const from = Date.now() - DAY_MS;
+    return ((s && s.spend) || []).filter(x => x.t > from).reduce((a, x) => a + x.usd, 0);
+  };
+  proto.recordSpend = function (usd) {
+    const s = this.data();
+    if (!s || !(usd > 0)) return;
+    const from = Date.now() - DAY_MS;
+    s.spend = [...(s.spend || []).filter(x => x.t > from), { t: Date.now(), usd }];
+    this.vault.persist();
   };
 
   // Вартість переказу в USD за орієнтовними цінами (null, якщо ціни немає)
@@ -55,17 +72,22 @@ function install(Wallet, { RpcError, unauthorized }) {
   // повертає { warnings, delay, danger } для вікна підтвердження. Переказ NFT (nft: true) оцінюється лише за адресою отримувача.
   proto.policyGate = async function ({ to, chain, token, amount, nft }) {
     const p = this.getPolicy();
-    const out = { warnings: [], delay: 0, danger: false };
+    const out = { warnings: [], delay: 0, danger: false, commit: () => {} };
     if (p.contactsOnly) {
       const norm = (a) => (String(a).startsWith('0x') ? String(a).toLowerCase() : String(a));
       const known = new Set([...this.ownEvm(), ...this.ownSol(), ...(this.data().contacts || []).map(c => c.address)].map(norm));
       if (!known.has(norm(to))) throw new RpcError(-32602, 'Увімкнено режим «лише адресна книга»: отримувача немає серед ваших рахунків і контактів. Додайте його в адресну книгу або вимкніть режим у налаштуваннях безпеки.');
     }
-    if (!nft && (p.confirmUsd || p.maxUsd)) {
+    if (!nft && (p.confirmUsd || p.maxUsd || p.dailyUsd)) {
       const usd = await this.usdValue(chain, token, amount);
       if (usd === null) out.warnings.push('Вартість переказу в USD не визначено: ліміти за сумою не перевірено.');
       else {
         if (p.maxUsd && usd > p.maxUsd) throw new RpcError(-32602, `Перевищено ліміт ${p.maxUsd} USD на один переказ (сума ≈ ${usd.toFixed(2)} USD). Змініть ліміт у налаштуваннях безпеки гаманця.`);
+        if (p.dailyUsd) {
+          const spent = this.spentUsd();
+          if (spent + usd > p.dailyUsd) throw new RpcError(-32602, `Перевищено добовий ліміт ${p.dailyUsd} USD: за останні 24 години вже надіслано ≈ ${spent.toFixed(2)} USD, цей переказ ≈ ${usd.toFixed(2)} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.`);
+          out.commit = () => this.recordSpend(usd);
+        }
         if (p.confirmUsd && usd >= p.confirmUsd) {
           out.warnings.push(`Велика сума (≈ ${usd.toFixed(2)} USD): підтвердити можна буде через ${DELAY_SEC} с. Ще раз перевірте отримувача й суму.`);
           out.delay = DELAY_SEC;

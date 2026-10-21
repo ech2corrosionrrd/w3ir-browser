@@ -172,6 +172,7 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
     const net = this.network(chainId);
     const summary = [['Токен', `${info.symbol}${info.name ? ' — ' + info.name : ''} (${tokenAddr})`], ['Кількість', `${formatUnits(raw, info.decimals)} ${info.symbol}`], ['Отримувач', toAddr], ['Мережа токена', `${net.name} (${chainId})`]];
     const hash = await this.sendTransaction(win, 'w3ir://wallet', { from: owner, to: tokenAddr, data: ERC20.encodeFunctionData('transfer', [toAddr, raw]) }, sameTab, { internal: true, warnings, danger, summary, action: `Переказ ${formatUnits(raw, info.decimals)} ${info.symbol}`, token: true, speed, delay: gate.delay });
+    gate.commit();
     this.rememberRecipient(toAddr);
     return hash;
   };

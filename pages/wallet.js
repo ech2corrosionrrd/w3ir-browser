@@ -769,6 +769,7 @@ async function renderDashboard(st) {
   const polContacts = h('input', { type: 'checkbox', class: 'switch', checked: !!pol.contactsOnly });
   const polConfirm = h('input', { type: 'number', min: '0', step: 'any', value: String(pol.confirmUsd || 0), style: 'width:110px;flex:none' });
   const polMax = h('input', { type: 'number', min: '0', step: 'any', value: String(pol.maxUsd || 0), style: 'width:110px;flex:none' });
+  const polDaily = h('input', { type: 'number', min: '0', step: 'any', value: String(pol.dailyUsd || 0), style: 'width:110px;flex:none' });
   const polDays = h('input', { type: 'number', min: '0', max: '365', step: '1', value: String(pol.siteDays || 0), style: 'width:80px;flex:none' });
   const polMsg = h('span', { class: 'note' });
   const polRow = 'display:flex;gap:10px;align-items:center;justify-content:flex-start';
@@ -776,10 +777,12 @@ async function renderDashboard(st) {
     h('label', { style: polRow }, polContacts, h('span', null, 'Надсилати лише на мої рахунки та адреси з адресної книги')),
     h('label', { style: polRow }, polConfirm, h('span', null, 'USD: підтвердження великих сум із паузою 5 с (від; 0 — вимкнено)')),
     h('label', { style: polRow }, polMax, h('span', null, 'USD: забороняти переказ більше за (0 — без ліміту)')),
+    h('label', { style: polRow }, polDaily, h('span', null, 'USD: забороняти переказів більше за добу (за останні 24 години; 0 — без ліміту)')),
+    pol.dailyUsd ? h('div', { class: 'note' }, t('За останні 24 години надіслано ≈ {0} USD.', (info.spentUsd || 0).toFixed(2))) : null,
     h('label', { style: polRow }, polDays, h('span', null, 'Відключати сайти, якими не користувались N днів (0 — ніколи)')),
     h('div', { class: 'bar' }, h('button', { class: 'primary', onclick: async () => {
       polMsg.textContent = '\u2026';
-      const r = await withAuth((x) => call('wallet:setPolicy', { ...x, policy: { contactsOnly: polContacts.checked, confirmUsd: Number(polConfirm.value) || 0, maxUsd: Number(polMax.value) || 0, siteDays: Math.floor(Number(polDays.value) || 0) } }));
+      const r = await withAuth((x) => call('wallet:setPolicy', { ...x, policy: { contactsOnly: polContacts.checked, confirmUsd: Number(polConfirm.value) || 0, maxUsd: Number(polMax.value) || 0, dailyUsd: Number(polDaily.value) || 0, siteDays: Math.floor(Number(polDays.value) || 0) } }));
       if (!r) { polMsg.textContent = ''; return; }
       polMsg.textContent = r.ok ? t('Збережено.') : r.error;
     } }, 'Зберегти'), polMsg));

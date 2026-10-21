@@ -288,7 +288,7 @@ class Wallet {
     return {
       exists: true, accounts: s.addresses, activeChain: s.activeChain,
       networks: this.networks(), connections: Object.entries(s.connections).map(([origin, c]) => ({ origin, accounts: c.accounts, chainId: c.chainId })), dapp: { evm: this.dappIndex('evm'), sol: this.dappIndex('sol') },
-      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(), watch: this.watchAccounts(), policy: this.getPolicy(), backup: this.backupInfo(), derivation: { evmPath: s.evmPath || 'standard', solPath: s.solPath || 'phantom', passphrase: !!s.passphrase },
+      log: s.log.slice(-100).reverse(), sol: this.solInfo(), names: s.addresses.map((_, i) => (s.names || [])[i] || ''), imported: this.importedAccounts(), watch: this.watchAccounts(), policy: this.getPolicy(), spentUsd: this.spentUsd(), backup: this.backupInfo(), derivation: { evmPath: s.evmPath || 'standard', solPath: s.solPath || 'phantom', passphrase: !!s.passphrase },
     };
   }
 
@@ -459,6 +459,7 @@ class Wallet {
       if (code && code !== '0x') warnings.push('Отримувач — смарт-контракт: простий переказ на контракт може бути втрачений безповоротно, якщо він не призначений приймати кошти.');
     } catch { /* RPC недоступний: перевірку пропущено */ }
     const hash = await this.sendTransaction(win, 'w3ir://wallet', { from, to: toAddr, value: '0x' + value.toString(16) }, sameTab, { internal: true, warnings, danger, speed, delay: gate.delay });
+    gate.commit();
     this.rememberRecipient(toAddr);
     return hash;
   }

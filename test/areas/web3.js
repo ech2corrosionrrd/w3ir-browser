@@ -902,6 +902,25 @@ async function walletTests(ctx) {
   ok(early.ok === false && /Зачекайте/.test(early.error) && w.approval && w.approval.id === apLarge.id, 'policy: рішення раніше строку паузи відхиляється самим браузером');
   await w.decide(apLarge.id, false);
   await prLarge;
+  // добовий ліміт: сума за ковзні 24 години, облік лише після успішного підтвердження
+  wal.usdValue = async () => 400;
+  ok(/Некоректне/.test(perr(() => wal.setPolicy({ dailyUsd: -1 }))) && /не може перевищувати добовий/.test(perr(() => wal.setPolicy({ maxUsd: 900, dailyUsd: 500 }))), 'policy: добовий ліміт перевіряється (≥ 0, не менший за ліміт одного переказу)');
+  wal.setPolicy({ maxUsd: 0, confirmUsd: 0, dailyUsd: 1000 });
+  wal.data().spend = [];
+  const prDay = wal.sendNative(w, () => true, { index: 0, to: stranger, amount: '0.01' }).catch(e => e);
+  const apDay = await waitApproval();
+  await w.decide(apDay.id, false);
+  await prDay;
+  ok(wal.spentUsd() === 0, 'policy: скасований переказ не потрапляє в добовий облік');
+  wal.recordSpend(700);
+  ok(Math.round(wal.spentUsd()) === 700 && /Перевищено добовий ліміт 1000 USD/.test(await nativeErr(stranger)) && !w.approval, 'policy: переказ, що перевищує добовий ліміт, відхиляється до підтвердження');
+  wal.data().spend[0].t = Date.now() - 25 * 3600 * 1000;
+  ok(wal.spentUsd() === 0 && (await wal.policyGate({ to: stranger, chain: 'evm', amount: '1' })).warnings.length === 0, 'policy: витрати старші за 24 години не враховуються');
+  const g = await wal.policyGate({ to: stranger, chain: 'evm', amount: '1' });
+  g.commit();
+  ok(Math.round(wal.spentUsd()) === 400, 'policy: commit() записує суму в добовий облік');
+  wal.data().spend = [];
+  wal.setPolicy({ dailyUsd: 0 });
   wal.usdValue = async () => null;
   wal.setPolicy({ maxUsd: 1000, confirmUsd: 100 });
   const prUnk = wal.sendNative(w, () => true, { index: 0, to: stranger, amount: '0.01' }).catch(e => e);

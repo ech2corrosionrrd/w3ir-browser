@@ -302,6 +302,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     const danger = rw0.danger || gate.danger;
     if (!S.isOnCurve(S.b58decode(to))) warnings.push('Ця адреса не має приватного ключа (це адреса програми, PDA): кошти, надіслані на неї, зазвичай неможливо повернути.');
     const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger, delay: gate.delay, ...(fee.micro ? { summary: [['Пріоритетна комісія', `${fee.micro} мікро-лампортів за одиницю, до ≈${S.sol(fee.extra)} SOL понад базову`]] } : {}) });
+    gate.commit();
     this.rememberRecipient(to);
     return r.signature;
   };
@@ -386,6 +387,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     if (fee.micro) summary.push(['Пріоритетна комісія', `${fee.micro} мікро-лампортів за одиницю, до ≈${S.sol(fee.extra)} SOL понад базову`]);
     if (tokenProgram === S.PROGRAMS.TOKEN22) summary.push(['Програма токена', 'Token-2022']);
     const r = await this._solSignTransactions(win, 'w3ir://wallet', { transactions: [S.unsignedWire(message).toString('base64')] }, sameTab, true, { address: from, warnings, danger: rw.danger || gate.danger, summary, action: `Переказ токена ${label}`, delay: gate.delay });
+    gate.commit();
     this.rememberRecipient(to);
     return r.signature;
   };
