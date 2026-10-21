@@ -2422,5 +2422,7 @@
   "Відкрити сторінку гаманця": "Otwórz stronę portfela",
   "Гаманець приховано. Дані збережено в зашифрованому сховищі.": "Portfel jest ukryty. Dane są zachowane w zaszyfrowanym magazynie.",
   "Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.": "Portfel jest ukryty. Kliknij «Pokaż portfel», aby go przywrócić.",
-  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Nie udało się pokazać portfela. Sprawdź hasło główne."
+  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Nie udało się pokazać portfela. Sprawdź hasło główne.",
+  "Приховувати банери cookie": "Ukrywaj banery cookie",
+  "Додаткові списки приховують запити згоди на cookie. Якщо сайт зламався, вимкніть блокувальник для нього в панелі інформації про сайт": "Dodatkowe listy ukrywają prośby o zgodę na cookie. Jeśli strona przestanie działać, wyłącz dla niej blokowanie w panelu informacji o stronie"
 }

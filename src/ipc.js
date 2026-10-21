@@ -619,7 +619,7 @@ function registerIpc(resolve) {
 
   // API внутрішніх сторінок w3ir://
   const SETTING_TYPES = {
-    homepage: 'string', searchEngine: 'string', startup: 'string', adblock: 'boolean',
+    homepage: 'string', searchEngine: 'string', startup: 'string', adblock: 'boolean', cookieBanners: 'boolean',
     sendGpc: 'boolean', showBookmarksBar: 'boolean', askDownload: 'boolean', downloadDir: 'string',
     httpsFirst: 'boolean', stripTracking: 'boolean', protection: 'string', fingerprintProtection: 'boolean', sleepTabs: 'boolean', sleepMinutes: 'number', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean',
   };
@@ -670,6 +670,13 @@ function registerIpc(resolve) {
             Object.assign(cfg, protection.PRESETS[v]);
             cfg.protection = v;
             ctx.applyProtection();
+            continue;
+          }
+          if (k === 'cookieBanners') {
+            // як тема: одне значення на всі профілі, рушій блокувальника підміняється одразу
+            const base = ctx.manager ? ctx.manager.ctx('default') : ctx;
+            base.cfg().cookieBanners = v; base.settingsStore.save();
+            require('./adblock').reloadBlocker(ctx).catch(e => console.error('Adblock reload failed:', e.message));
             continue;
           }
           if (k === 'theme') {

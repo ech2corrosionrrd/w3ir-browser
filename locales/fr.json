@@ -2422,5 +2422,7 @@
   "Відкрити сторінку гаманця": "Ouvrir la page du portefeuille",
   "Гаманець приховано. Дані збережено в зашифрованому сховищі.": "Le portefeuille est masqué. Les données sont conservées dans le coffre chiffré.",
   "Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.": "Le portefeuille est masqué. Cliquez sur « Afficher le portefeuille » pour le restaurer.",
-  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Impossible d'afficher le portefeuille. Vérifiez le mot de passe principal."
+  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Impossible d'afficher le portefeuille. Vérifiez le mot de passe principal.",
+  "Приховувати банери cookie": "Masquer les bannières de cookies",
+  "Додаткові списки приховують запити згоди на cookie. Якщо сайт зламався, вимкніть блокувальник для нього в панелі інформації про сайт": "Des listes de filtres supplémentaires masquent les demandes de consentement aux cookies. Si un site ne fonctionne plus, désactivez le bloqueur pour lui dans le panneau d’informations du site"
 }

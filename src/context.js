@@ -35,6 +35,7 @@ const DEFAULT_SETTINGS = {
   ollamaUrl: '', // локальна адреса Ollama (порожньо = http://127.0.0.1:11434)
   ollamaModel: '',
   adblock: true,
+  cookieBanners: true, // списки «annoyances» (cookie-банери) у блокувальнику; спільне для профілів
   sendGpc: true,
   showBookmarksBar: true,
   askDownload: false,

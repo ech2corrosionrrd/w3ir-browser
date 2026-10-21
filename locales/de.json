@@ -2422,5 +2422,7 @@
   "Відкрити сторінку гаманця": "Wallet-Seite öffnen",
   "Гаманець приховано. Дані збережено в зашифрованому сховищі.": "Wallet ist ausgeblendet. Daten sind im verschlüsselten Tresor gespeichert.",
   "Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.": "Wallet ist ausgeblendet. Klicken Sie auf «Wallet anzeigen», um es wiederherzustellen.",
-  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Wallet konnte nicht angezeigt werden. Master-Passwort prüfen."
+  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Wallet konnte nicht angezeigt werden. Master-Passwort prüfen.",
+  "Приховувати банери cookie": "Cookie-Banner ausblenden",
+  "Додаткові списки приховують запити згоди на cookie. Якщо сайт зламався, вимкніть блокувальник для нього в панелі інформації про сайт": "Zusätzliche Filterlisten blenden Cookie-Einwilligungsabfragen aus. Wenn eine Seite nicht mehr funktioniert, deaktivieren Sie den Blocker dafür im Infofeld der Seite"
 }

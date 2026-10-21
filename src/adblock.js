@@ -9,52 +9,63 @@ const BUILD_TIMEOUT = 120000;
 
 // Будує кеш рушія в окремому процесі (src/adblock-build.js), щоб ≈160 МБ пам'яті побудови не лишалися в головному процесі.
 // Повертає true, якщо файл записано; false (без винятків) при будь-якій невдачі, тоді initBlocker будує рушій сам.
-function buildCacheInChild(file) {
+function buildCacheInChild(file, full) {
   return new Promise((resolve) => {
     let child, done = false;
     const finish = (ok) => { if (done) return; done = true; clearTimeout(timer); try { child && child.kill(); } catch { /* уже завершився */ } resolve(ok); };
     const timer = setTimeout(() => finish(false), BUILD_TIMEOUT);
     try {
-      child = utilityProcess.fork(path.join(__dirname, 'adblock-build.js'), [], { serviceName: 'W3IR adblock build', env: { ...process.env, W3IR_ADBLOCK_OUT: file } });
+      child = utilityProcess.fork(path.join(__dirname, 'adblock-build.js'), [], { serviceName: 'W3IR adblock build', env: { ...process.env, W3IR_ADBLOCK_OUT: file, W3IR_ADBLOCK_FULL: full ? '1' : '' } });
       child.on('message', (m) => finish(!!(m && m.ok)));
       child.on('exit', () => finish(false));
     } catch { finish(false); }
   });
 }
 
-async function initBlocker(ctx) {
+// Рушій без списків cookie-банерів і повний (з «annoyances»): кеш у різних файлах, у пам'яті лише активний
+async function loadEngine(ctx) {
   const { ElectronBlocker } = require('@ghostery/adblocker-electron');
-  const PRELOAD_PATH = require.resolve('@ghostery/adblocker-electron-preload');
-  const file = path.join(app.getPath('userData'), 'adblock-engine.bin');
+  const full = (ctx.manager ? ctx.manager.ctx('default') : ctx).cfg().cookieBanners !== false;
+  const file = path.join(app.getPath('userData'), full ? 'adblock-engine.bin' : 'adblock-engine-base.bin');
 
   let stale = false, exists = false;
   try { exists = true; stale = Date.now() - fs.statSync(file).mtimeMs > MAX_AGE; } catch { exists = false; }
   // немає кешу або він старший за 7 діб: будуємо в окремому процесі й далі лише завантажуємо готовий файл
-  if ((stale || !exists) && await buildCacheInChild(file)) { stale = false; exists = true; }
+  if ((stale || !exists) && await buildCacheInChild(file, full)) { stale = false; exists = true; }
 
   let blocker;
   const cache = { path: file, read: fs.promises.readFile, write: fs.promises.writeFile };
   try {
-    blocker = await ElectronBlocker.fromPrebuiltFull(fetch, stale ? undefined : cache);
+    blocker = await (full ? ElectronBlocker.fromPrebuiltFull : ElectronBlocker.fromPrebuiltAdsAndTracking).call(ElectronBlocker, fetch, stale ? undefined : cache);
     if (stale) await fs.promises.writeFile(file, blocker.serialize());
   } catch (e) {
     if (!exists) throw e;
     blocker = ElectronBlocker.deserialize(await fs.promises.readFile(file));
   }
+  return blocker;
+}
 
-  ctx.blocker = blocker;
+// Перемикання «Відхиляти банери cookie»: підміняє рушій на льоту (кожен запит бере ctx.blocker)
+async function reloadBlocker(ctx) {
+  if (!ctx.blocker) return;
+  ctx.blocker = await loadEngine(ctx);
+}
+
+async function initBlocker(ctx) {
+  const PRELOAD_PATH = require.resolve('@ghostery/adblocker-electron-preload');
+  ctx.blocker = await loadEngine(ctx);
   ctx.blockerPreload = PRELOAD_PATH;
 
   const cfgFor = (e) => ((ctx.manager && ctx.manager.ctxOf(e.sender)) || ctx).cfg();
   ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (e, url, msg) => {
     const c = (ctx.manager && ctx.manager.ctxOf(e.sender)) || ctx;
     if (!cfgFor(e).adblock || !/^https?:/i.test(url || '') || c.adblockAllowed(c.topHost(e.sender.id))) return;
-    return blocker.onInjectCosmeticFilters(e, url, msg);
+    return ctx.blocker.onInjectCosmeticFilters(e, url, msg);
   });
-  ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', (e) => cfgFor(e).adblock && blocker.config.enableMutationObserver);
+  ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', (e) => cfgFor(e).adblock && ctx.blocker.config.enableMutationObserver);
 
   for (const ses of ctx.sessions) attachCosmetic(ctx, ses);
-  return blocker;
+  return ctx.blocker;
 }
 
 function attachCosmetic(ctx, ses) {
@@ -63,4 +74,4 @@ function attachCosmetic(ctx, ses) {
   ses.registerPreloadScript({ type: 'frame', filePath: ctx.blockerPreload });
 }
 
-module.exports = { initBlocker, attachCosmetic };
+module.exports = { initBlocker, reloadBlocker, attachCosmetic };

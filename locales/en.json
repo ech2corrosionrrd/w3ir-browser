@@ -2422,5 +2422,7 @@
   "Відкрити сторінку гаманця": "Open wallet page",
   "Гаманець приховано. Дані збережено в зашифрованому сховищі.": "Wallet is hidden. Data is preserved in encrypted storage.",
   "Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.": "Wallet is hidden. Click «Show wallet» to restore it.",
-  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Failed to show wallet. Check master password."
+  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "Failed to show wallet. Check master password.",
+  "Приховувати банери cookie": "Hide cookie banners",
+  "Додаткові списки приховують запити згоди на cookie. Якщо сайт зламався, вимкніть блокувальник для нього в панелі інформації про сайт": "Extra filter lists hide cookie consent prompts. If a site breaks, turn off the blocker for it in the site info panel"
 }

@@ -2422,5 +2422,7 @@
   "Відкрити сторінку гаманця": "Abrir página de la billetera",
   "Гаманець приховано. Дані збережено в зашифрованому сховищі.": "La billetera está oculta. Los datos se conservan en el almacenamiento cifrado.",
   "Гаманець приховано. Натисніть «Показати гаманець», щоб повернути його.": "La billetera está oculta. Haga clic en «Mostrar billetera» para restaurarla.",
-  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "No se pudo mostrar la billetera. Verifique la contraseña maestra."
+  "Не вдалося показати гаманець. Перевірте майстер-пароль.": "No se pudo mostrar la billetera. Verifique la contraseña maestra.",
+  "Приховувати банери cookie": "Ocultar avisos de cookies",
+  "Додаткові списки приховують запити згоди на cookie. Якщо сайт зламався, вимкніть блокувальник для нього в панелі інформації про сайт": "Listas de filtros adicionales ocultan las solicitudes de consentimiento de cookies. Si un sitio falla, desactive el bloqueador para él en el panel de información del sitio"
 }

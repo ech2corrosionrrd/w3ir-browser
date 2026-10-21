@@ -11,7 +11,7 @@ const fs = require('fs');
     if (!out) throw new Error('output file is not set');
     // @ghostery/adblocker — залежність @ghostery/adblocker-electron; шукаємо відносно неї
     const core = require(require.resolve('@ghostery/adblocker', { paths: [require.resolve('@ghostery/adblocker-electron')] }));
-    const engine = await core.FiltersEngine.fromPrebuiltFull(fetch);
+    const engine = await (process.env.W3IR_ADBLOCK_FULL ? core.FiltersEngine.fromPrebuiltFull(fetch) : core.FiltersEngine.fromPrebuiltAdsAndTracking(fetch));
     const tmp = out + '.tmp';
     fs.writeFileSync(tmp, engine.serialize());
     fs.renameSync(tmp, out);
