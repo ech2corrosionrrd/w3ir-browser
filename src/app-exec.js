@@ -6,6 +6,7 @@ const { HTML_URL } = require('./github');
 const { withTip } = require('./tips');
 const { NEWTAB, EXTERNAL_SCHEME } = require('./util');
 const pdf = require('./pdf');
+const containers = require('./containers');
 
 const methods = {
   // ---------- команди ----------
@@ -64,7 +65,16 @@ const methods = {
         this.focusUrlBar();
         break;
       }
-      case 'reopenClosed': { const u = this.closedStack.pop(); if (u) this.createTab(u); break; }
+      case 'reopenClosed': { const c = this.closedStack.pop(); if (c) this.createTab(c.url, { container: c.container }); break; }
+      case 'newContainerTab': if (!this.incognito && containers.valid(arg)) { const nt = this.createTab(NEWTAB, { container: arg }); if (nt) this.focusUrlBar(); } break;
+      case 'openInContainer': {
+        // той самий адрес у новій вкладці вибраного контейнера (arg.container === null — поза контейнером)
+        const tb = this.tabs.find(x => x.id === (arg && arg.id));
+        const u = tb ? this.tabUrl(tb) : '';
+        if (!u || this.incognito || (arg.container !== null && !containers.valid(arg.container))) break;
+        this.createTab(u, { container: arg.container });
+        break;
+      }
       case 'go': if (t) { this.navigate(t, arg); } break;
       case 'back':
         if (t && t.sleep) this.switchTab(t.id);
@@ -171,7 +181,7 @@ const methods = {
         const b = this.win.getBounds();
         let pos = { x: b.x + 40, y: b.y + 40 };
         if (arg.drag) { const p = require('electron').screen.getCursorScreenPoint(); pos = { x: p.x - 120, y: p.y - 20 }; }
-        ctx.openWindow({ urls: [u], bounds: { x: Math.round(pos.x), y: Math.round(pos.y), width: b.width, height: b.height } });
+        ctx.openWindow({ urls: [u], containers: [tb.container || null], bounds: { x: Math.round(pos.x), y: Math.round(pos.y), width: b.width, height: b.height } });
         this.closeTab(tb.id);
         break;
       }
@@ -260,7 +270,7 @@ const methods = {
       }
       case 'sitePerm': {
         const u = this.siteTarget();
-        if (u && arg && (arg.value === true || arg.value === false || arg.value === null)) this.ctx.setSitePerm(this.ses, u.origin, arg.perm, arg.value);
+        if (u && arg && (arg.value === true || arg.value === false || arg.value === null)) this.ctx.setSitePerm(this.tabSes(this.active()), u.origin, arg.perm, arg.value);
         return this.refreshSiteOverlay();
       }
       case 'siteAdblock': {
@@ -272,7 +282,7 @@ const methods = {
       case 'siteClear': {
         const u = this.siteTarget();
         if (!u) break;
-        return this.ctx.clearSiteData(this.ses, u.hostname).then((n) => { this.toast(n ? `Дані сайту очищено (cookie: ${n})` : 'Дані сайту очищено'); return this.refreshSiteOverlay(); });
+        return this.ctx.clearSiteData(this.tabSes(this.active()), u.hostname).then((n) => { this.toast(n ? `Дані сайту очищено (cookie: ${n})` : 'Дані сайту очищено'); return this.refreshSiteOverlay(); });
       }
       case 'menu':
         if (this.overlayType === 'menu') this.closeOverlay();

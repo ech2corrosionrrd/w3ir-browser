@@ -5,6 +5,7 @@ const { t: tr } = require('./i18n');
 const { githubRepo } = require('./github');
 const { ASK } = require('./context');
 const { isWebUrl } = require('./util');
+const containers = require('./containers');
 
 const methods = {
   // ---------- інформація про сайт ----------
@@ -17,10 +18,11 @@ const methods = {
     const kind = !u ? 'none' : u.protocol === 'https:' ? 'https' : u.protocol === 'http:' ? 'http' : u.protocol === 'w3ir:' ? 'internal' : u.protocol === 'file:' ? 'file' : 'other';
     const host = web ? u.hostname : '';
     let cookies = 0;
-    if (web) { try { cookies = (await this.ctx.siteCookies(this.ses, host)).length; } catch { /* ignore */ } }
+    if (web) { try { cookies = (await this.ctx.siteCookies(this.tabSes(t), host)).length; } catch { /* ignore */ } }
     return {
       kind, host, incognito: this.incognito,
-      perms: web ? this.ctx.sitePerms(this.ses, u.origin) : null,
+      container: t && t.container ? tr('Контейнер «{0}»: cookie й сховище цього сайту окремі від інших вкладок.', tr(containers.info(t.container).name)) : null,
+      perms: web ? this.ctx.sitePerms(this.tabSes(t), u.origin) : null,
       permLabels: ASK,
       adblock: { enabled: this.ctx.cfg().adblock !== false, allowed: web ? this.ctx.adblockAllowed(host) : false, blocked: t ? t.blocked : 0 },
       cookies,
@@ -68,6 +70,14 @@ const methods = {
   },
 
   // ---------- меню вкладки та контекстне меню ----------
+  // Пункти «Відкрити в контейнері»: нова вкладка з тією самою адресою в іншому сховищі cookie (не для приватних вікон)
+  containerMenuItems(t) {
+    if (this.incognito || this.agent || !isWebUrl(this.tabUrl(t))) return [];
+    const items = containers.CONTAINERS.filter(c => c.id !== t.container).map(c => ({ label: tr(c.name), click: () => this.exec('openInContainer', { id: t.id, container: c.id }) }));
+    if (t.container) items.unshift({ label: tr('Без контейнера'), click: () => this.exec('openInContainer', { id: t.id, container: null }) });
+    return [{ label: tr('Відкрити в контейнері'), submenu: items }, { type: 'separator' }];
+  },
+
   tabMenu(id) {
     const t = this.tabs.find(t => t.id === id);
     if (!t) return;
@@ -80,6 +90,7 @@ const methods = {
       { label: tr('Приспати вкладку'), enabled: id !== this.activeId && isWebUrl(this.tabUrl(t)) && !t.sleep, click: () => this.sleepTab(t) },
       { type: 'separator' },
       ...(t.pinned ? [] : [...this.tabGroupMenuItems(t), { type: 'separator' }]),
+      ...this.containerMenuItems(t),
       ...this.splitMenuItems(t),
       ...this.aiMenuItems(t),
       { label: tr('Закрити'), click: () => this.closeTab(id) },
@@ -99,6 +110,7 @@ const methods = {
     }
     if (p.linkURL) {
       t.push({ label: tr('Відкрити посилання в новій вкладці'), click: () => this.createTab(p.linkURL, { activate: false }) });
+      if (!this.incognito && !this.agent && isWebUrl(p.linkURL)) t.push({ label: tr('Відкрити посилання в контейнері'), submenu: containers.CONTAINERS.map(c => ({ label: tr(c.name), click: () => this.createTab(p.linkURL, { container: c.id }) })) });
       t.push({ label: tr('Відкрити посилання в інкогніто'), click: () => this.ctx.openWindow({ incognito: true, urls: [p.linkURL] }) });
       t.push({ label: tr('Копіювати адресу посилання'), click: () => clipboard.writeText(p.linkURL) });
       t.push({ type: 'separator' });

@@ -55,7 +55,7 @@ _Складено за результатами аудитів і аналізу
 - [ ] **macOS збірка** — unit-тести вже йдуть на Linux і macOS у CI; наступний крок: Electron-набір + `electron-builder --mac`.
 - [ ] **Linux збірка** (AppImage / deb / Flatpak) — після macOS.
 - [ ] **Спільнота й маркетинг**: Discord/Telegram, скрінкаст (2 хв демо), публікації (dev.to, Hackernoon, Reddit r/ethereum, r/solana, DOU), Crowdin для перекладів.
-- [ ] **Контейнери вкладок**: окремі cookie й сховище для роботи, соцмереж, гаманця (ідея з Firefox Multi-Account Containers).
+- [x] **Контейнери вкладок**: окремі cookie й сховище для роботи, соцмереж, покупок і фінансів (`src/containers.js`; ідея з Firefox Multi-Account Containers). (2026-10-21)
 - [ ] Політика розкриття вразливостей (`SECURITY.md`) і bug bounty для гаманця (після зовнішнього аудиту).
 - [ ] Passkeys/WebAuthn (оцінка обходу обмеження Electron) і Widevine (оцінка ліцензування).
 

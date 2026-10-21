@@ -60,6 +60,7 @@ function renderSite(p) {
     internal: ['ⓘ', 'Внутрішня сторінка браузера'], file: ['ⓘ', 'Файл на вашому комп’ютері'], none: ['ⓘ', 'Немає адреси'], other: ['ⓘ', 'Особлива сторінка'],
   }[p.kind] || ['ⓘ', ''];
   box.append(el('div', 'sconn' + (p.kind === 'http' ? ' warn' : ''), conn[0] + ' ' + conn[1]));
+  if (p.container) box.append(el('div', 'vtxt', p.container));
   if (p.incognito) box.append(el('div', 'vtxt', 'Приватне вікно: дозволи діють лише до його закриття.'));
 
   if (p.perms) {

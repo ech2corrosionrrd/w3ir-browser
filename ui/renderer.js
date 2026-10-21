@@ -98,7 +98,8 @@ function render(s) {
     if (grp && grp.collapsed) return; // вкладки згорнутої групи не показуємо
     const tab = el('div', 'tab' + (t.id === s.activeId ? ' active' : '') + (t.pinned ? ' pinned' : '') + (t.sleeping ? ' sleeping' : '') + (t.split ? ' split' : ''));
     tab.dataset.id = String(t.id);
-    tab.title = t.title + (t.url ? '\n' + t.url : '') + (t.pinned ? '\n📌 Закріплена вкладка' : '') + (t.sleeping ? '\n💤 Спляча вкладка: оживе при відкритті' : '') +
+    if (t.container) { tab.classList.add('contained'); tab.style.setProperty('--cc', t.container.color); }
+    tab.title = (t.container ? t.container.label + '\n' : '') + t.title + (t.url ? '\n' + t.url : '') + (t.pinned ? '\n📌 Закріплена вкладка' : '') + (t.sleeping ? '\n💤 Спляча вкладка: оживе при відкритті' : '') +
       '\n\nПравий клік — меню вкладки (групи, закріплення…) · Середня кнопка — закрити · Перетягніть — змінити порядок або додати до групи';
     tab.oncontextmenu = (e) => { e.preventDefault(); api.cmd('tabMenu', t.id); };
     tab.draggable = true;

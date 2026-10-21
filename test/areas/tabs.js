@@ -474,4 +474,79 @@ async function tabFeatureTests(ctx) {
   srvT.close();
 }
 
-module.exports = { groupTests, siteTests, splitTests, fullscreenTests, guardTests, tabCloseTests, tabFeatureTests };
+async function containerTests(ctx) {
+  const containers = require('../../src/containers');
+  const { withTip } = require('../../src/tips');
+  const w = ctx.openWindow({});
+  await sleep(2500);
+  const a = w.tabs[0];
+  const work = w.createTab('about:blank', { activate: false, container: 'work' });
+  const social = w.createTab('about:blank', { activate: false, container: 'social' });
+  const bad = w.createTab('about:blank', { activate: false, container: '../evil' });
+  ok(containers.CONTAINERS.length >= 3 && containers.valid('work') && !containers.valid('../evil') && !containers.valid(undefined), 'containers: набір фіксований, невідомий id не приймається');
+  ok(a.ses === ctx.session && work.ses !== ctx.session && work.ses !== social.ses && work.ses === ctx.getContainerSession('work'), 'containers: кожен контейнер має власну постійну сесію, відмінну від основної', work.container);
+  ok(!bad.container && bad.ses === ctx.session, 'containers: недійсний контейнер ігнорується (вкладка в основній сесії)');
+  ok(work.view.webContents.session === work.ses, 'containers: вкладка справді працює в сесії контейнера');
+
+  // cookie одного контейнера не видно в іншому й в основній сесії
+  await work.ses.cookies.set({ url: 'https://example.com/', name: 'w3ir_t', value: '1' });
+  const seen = async (s) => (await s.cookies.get({ name: 'w3ir_t' })).length;
+  ok((await seen(work.ses)) === 1 && (await seen(social.ses)) === 0 && (await seen(ctx.session)) === 0, 'containers: cookie контейнера не видно в інших контейнерах і основній сесії');
+
+  // успадкування: посилання з вкладки контейнера відкривається в тому самому контейнері
+  const child = w.createTab('about:blank', { activate: false, opener: work });
+  const plain = w.createTab('about:blank', { activate: false, opener: a });
+  ok(child.container === 'work' && child.ses === work.ses && !plain.container, 'containers: вкладка від відкривача успадковує його контейнер');
+  const own = w.createTab('about:blank', { activate: false, opener: work, container: null });
+  ok(!own.container, 'containers: явний container: null відкриває поза контейнером навіть із відкривача');
+
+  // стан для інтерфейсу, знімок сеансу, відновлення, дублювання
+  w.sendState();
+  const st = w.tabs.map(t => ({ id: t.id, c: t.container }));
+  ok(st.some(x => x.c === 'work'), 'containers: стан вкладок містить контейнер');
+  const snap = w.snapshot();
+  ok(snap.containers.length === snap.urls.length, 'containers: знімок сеансу не містить порожніх вкладок без запису контейнера');
+  w.exec('duplicateTab', work.id);
+  const dup = w.tabs.find(t => t !== work && t.container === 'work' && t !== child);
+  ok(!!dup, 'containers: дублікат вкладки лишається в тому самому контейнері');
+  const r = ctx.openWindow({ urls: ['https://example.com/a', 'https://example.com/b'], containers: ['social', null] });
+  await sleep(2500);
+  ok(r.tabs[0].container === 'social' && !r.tabs[1].container && r.tabs[0].ses === ctx.getContainerSession('social'), 'containers: сеанс відновлює контейнери вкладок');
+  r.win.destroy();
+
+  // закрита вкладка повертається у свій контейнер
+  const cl = w.createTab('https://example.com/closed', { activate: false, container: 'finance' });
+  await sleep(1200);
+  w.closeTab(cl.id);
+  w.exec('reopenClosed');
+  ok(w.tabs.some(t => t.container === 'finance'), 'containers: відновлена закрита вкладка повертається в контейнер');
+
+  // меню, палітра, підказки
+  const web = w.createTab('https://example.com/', { activate: false, container: 'work' });
+  await sleep(1200);
+  const mi = w.containerMenuItems(web);
+  ok(mi.length === 2 && mi[0].submenu.some(x => x.label === 'Без контейнера') && !mi[0].submenu.some(x => x.label === 'Робота') && mi[0].submenu.length === containers.CONTAINERS.length, 'containers: у підменю немає поточного контейнера, є «Без контейнера»');
+  const cmds = w.commandList().filter(x => x.cmd === 'newContainerTab');
+  ok(cmds.length === containers.CONTAINERS.length && cmds.every(x => withTip(x).tip), 'containers: палітра має «Нова вкладка в контейнері…» з підказками');
+  const before = w.tabs.length;
+  w.exec('newContainerTab', 'shopping');
+  ok(w.tabs.length === before + 1 && w.tabs[w.tabs.length - 1].container === 'shopping', 'containers: команда відкриває порожню вкладку в контейнері');
+  w.exec('newContainerTab', 'nope');
+  ok(w.tabs.length === before + 1, 'containers: невідомий контейнер у команді ігнорується');
+
+  // «Очистити дані» зачіпає й контейнери
+  await ctx.session.cookies.set({ url: 'https://example.com/', name: 'w3ir_p', value: '1' });
+  await social.ses.cookies.set({ url: 'https://example.com/', name: 'w3ir_s', value: '1' });
+  for (const s of [ctx.session, ...ctx.containerSessions.values()]) await s.clearStorageData();
+  ok((await work.ses.cookies.get({})).length === 0 && (await social.ses.cookies.get({})).length === 0, 'containers: очищення даних охоплює сесії контейнерів');
+
+  // приватне вікно: контейнер не діє
+  const inc = ctx.openWindow({ incognito: true, urls: ['about:blank'] });
+  await sleep(2000);
+  const it = inc.createTab('about:blank', { activate: false, container: 'work' });
+  ok(!it.container && it.ses === inc.ses && inc.containerMenuItems(it).length === 0, 'containers: у приватному вікні контейнери вимкнено');
+  ok(['newContainerTab', 'openInContainer'].every(c => withTip({ cmd: c }).tip), 'containers: команди контейнерів мають підказки');
+  inc.win.destroy(); w.win.destroy();
+}
+
+module.exports = { containerTests, groupTests, siteTests, splitTests, fullscreenTests, guardTests, tabCloseTests, tabFeatureTests };

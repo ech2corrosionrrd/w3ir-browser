@@ -2,6 +2,7 @@
 // Команди браузера, списки палітри швидкого пошуку (Ctrl+K) та головного меню.
 const { t: tr } = require('./i18n');
 const { withTip } = require('./tips');
+const containers = require('./containers');
 
 const methods = {
   commandList() {
@@ -10,6 +11,7 @@ const methods = {
     return [
       ...this.githubCommands(),
       { label: tr('Нова вкладка'), hint: 'Ctrl+T', cmd: 'newTab' },
+      ...(this.incognito || this.agent ? [] : containers.CONTAINERS.map(c => ({ label: tr('Нова вкладка в контейнері «{0}»', tr(c.name)), cmd: 'newContainerTab', arg: c.id }))),
       { label: tr('Нове вікно'), hint: 'Ctrl+N', cmd: 'newWindow' },
       { label: tr('Нове вікно інкогніто'), hint: 'Ctrl+Shift+N', cmd: 'newIncognito' },
       ...this.splitCommands(),

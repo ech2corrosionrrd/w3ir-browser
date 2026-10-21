@@ -42,6 +42,8 @@ button:disabled { opacity: .35; cursor: default; }
 body.vertical .tab.pinned:hover .close { position: static; width: 20px; height: 20px; font-size: 11px; background: none; box-shadow: none; }
 body.vertical .tab.pinned::after { top: 50%; transform: translateY(-50%); right: 30px; }
 .tab.split { box-shadow: inset 0 -2px 0 var(--cyan); }
+.tab.contained { position: relative; }
+.tab.contained::before { content: ''; position: absolute; left: 6px; right: 6px; top: 0; height: 3px; border-radius: 0 0 3px 3px; background: var(--cc); pointer-events: none; }
 .tab .splitmark { flex: none; font-size: 13px; color: var(--cyan); }
 .tab .title { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tab .ico { font-size: 12px; flex: none; width: 20px; height: 20px; }

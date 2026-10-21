@@ -76,7 +76,7 @@ class ProfileManager {
       c.vault.lock();
       c.sync.stop();
       c.github.stop();
-      try { await c.session.clearStorageData(); await c.session.clearCache(); } catch { /* ignore */ }
+      try { for (const s of [c.session, ...c.containerSessions.values()]) { await s.clearStorageData(); await s.clearCache(); } } catch { /* ignore */ }
       // зупиняємо відкладений запис, щоб файли не з'явилися знову після видалення
       const stores = [c.settingsStore, c.bookmarksStore, c.windowStore, c.sessionStore, c.permsStore, c.extStore, c.downloads.store, c.sync.state];
       for (const s of stores) { clearTimeout(s.timer); s.timer = null; s.save = () => {}; s.flush = () => {}; }
@@ -115,7 +115,7 @@ class ProfileManager {
       let first;
       saved.forEach((s, i) => {
         if (!s.urls || !s.urls.length) return;
-        const w = c.openWindow({ urls: s.urls, activeIndex: s.activeIndex, pinned: s.pinned, groups: s.groups, groupOf: s.groupOf, split: s.split, bounds: i === 0 ? bounds : undefined, maximized: i === 0 && ws.maximized });
+        const w = c.openWindow({ urls: s.urls, activeIndex: s.activeIndex, pinned: s.pinned, containers: s.containers, groups: s.groups, groupOf: s.groupOf, split: s.split, bounds: i === 0 ? bounds : undefined, maximized: i === 0 && ws.maximized });
         first = first || w;
       });
       if (first) return first;

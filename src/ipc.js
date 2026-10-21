@@ -471,8 +471,9 @@ function registerIpc(resolve) {
       case 'clear': {
         const ses = entry.win.ses;
         if (arg.history) ctx.places.clear();
-        if (arg.cookies) await ses.clearStorageData();
-        if (arg.cache) await ses.clearCache();
+        const all = [ses, ...(entry.win.incognito ? [] : ctx.containerSessions.values())];
+        if (arg.cookies) for (const s of all) await s.clearStorageData();
+        if (arg.cache) for (const s of all) await s.clearCache();
         return true;
       }
       default: throw new Error('unknown');

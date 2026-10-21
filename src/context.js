@@ -110,6 +110,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     windows: new Set(),
     registry: new Map(), // webContents.id -> { win, tab }
     incognitoSessions: new Map(),
+    containerSessions: new Map(), // id контейнера вкладок → постійна сесія (src/containers.js)
     quitting: false,
     ENGINES,
     DEFAULT_SETTINGS,
@@ -365,6 +366,17 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       ses = session.fromPartition('incognito-' + id + '-' + Date.now());
       ctx.incognitoSessions.set(id, ses);
       ctx.setupSession(ses, true);
+    }
+    return ses;
+  };
+
+  // Контейнер вкладок: власні cookie й сховище; сесія створюється при першому використанні, налаштування як в основної
+  ctx.getContainerSession = (cid) => {
+    let ses = ctx.containerSessions.get(cid);
+    if (!ses) {
+      ses = session.fromPartition('persist:container-' + id + '-' + cid);
+      ctx.containerSessions.set(cid, ses);
+      ctx.setupSession(ses, false);
     }
     return ses;
   };

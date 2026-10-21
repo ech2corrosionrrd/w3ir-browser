@@ -31,6 +31,7 @@ const INPUT_GESTURE = /^(mouseDown|mouseUp|rawKeyDown|keyDown|touchStart|touchEn
 const ANCHORED_OVERLAYS = new Set(['menu', 'vault', 'github', 'site']); // панелі під панеллю інструментів
 const { isWebUrl, NEWTAB, EXTERNAL_SCHEME } = require('./util');
 const docview = require('./docview');
+const containers = require('./containers');
 
 class AppWindow {
   constructor(ctx, opts = {}) {
@@ -101,7 +102,7 @@ class AppWindow {
     this.chrome.once('did-finish-load', () => {
       const urls = (opts.urls && opts.urls.length) ? opts.urls : [NEWTAB];
       const gids = this.restoreGroups(opts.groups);
-      urls.forEach((u, i) => this.createTab(u, { activate: i === (opts.activeIndex || 0), pinned: !!(opts.pinned && opts.pinned[i]), group: opts.groupOf && gids[opts.groupOf[i]] ? gids[opts.groupOf[i]] : null }));
+      urls.forEach((u, i) => this.createTab(u, { activate: i === (opts.activeIndex || 0), pinned: !!(opts.pinned && opts.pinned[i]), container: (opts.containers && opts.containers[i]) || null, group: opts.groupOf && gids[opts.groupOf[i]] ? gids[opts.groupOf[i]] : null }));
       // пара розділеного екрана з попереднього сеансу (індекси перевіряються: сеанс міг бути пошкоджений)
       const sp = opts.split;
       if (sp && Number.isInteger(sp.a) && Number.isInteger(sp.b) && sp.a !== sp.b && this.tabs[sp.a] && this.tabs[sp.b]) {
@@ -128,8 +129,9 @@ class AppWindow {
     return isBlankUrl(u) ? '' : u;
   }
   vertical() { return !!this.ctx.cfg().verticalTabs; }
+  tabSes(tab) { return (tab && tab.ses) || this.ses; }
   snapshot() {
-    const urls = [], pinned = [], included = [];
+    const urls = [], pinned = [], containersOf = [], included = [];
     let active = 0;
     this.tabs.forEach(t => {
       const u = this.tabUrl(t);
@@ -137,6 +139,7 @@ class AppWindow {
       if (t.id === this.activeId) active = urls.length;
       urls.push(u);
       pinned.push(!!t.pinned);
+      containersOf.push(t.container || null);
       included.push(t);
     });
     let split = null;
@@ -144,7 +147,7 @@ class AppWindow {
       const ia = included.findIndex(t => t.id === this.split.a), ib = included.findIndex(t => t.id === this.split.b);
       if (ia >= 0 && ib >= 0) split = { a: ia, b: ib, ratio: this.split.ratio };
     }
-    return { urls, activeIndex: active, pinned, ...this.snapshotGroups(included), split };
+    return { urls, activeIndex: active, pinned, containers: containersOf, ...this.snapshotGroups(included), split };
   }
   focusUrlBar() {
     this.chrome.focus();
@@ -219,6 +222,7 @@ class AppWindow {
           pinned: !!t.pinned,
           sleeping: !!sl,
           group: t.group || null,
+          container: t.container ? { id: t.container, label: tr('Контейнер «{0}»', tr(containers.info(t.container).name)), color: containers.info(t.container).color } : null,
           ai: this.aiMode(t),
           split: this.split ? (t.id === this.split.a ? 'L' : t.id === this.split.b ? 'R' : '') : '',
         };
@@ -246,14 +250,18 @@ class AppWindow {
   }
 
   // ---------- вкладки ----------
-  createTab(input, { activate = true, pinned = false, group = null, opener = null } = {}) {
+  // Контейнер вкладки (cookie й сховище окремо): явний параметр, інакше успадковується від відкривача; у приватних вікнах не діє
+  createTab(input, { activate = true, pinned = false, group = null, opener = null, container } = {}) {
+    let cont = container !== undefined ? container : (opener && opener.container) || null;
+    if (this.incognito || !containers.valid(cont)) cont = null;
+    const ses = cont ? this.ctx.getContainerSession(cont) : this.ses;
     const view = new WebContentsView({
       webPreferences: {
-        session: this.ses, sandbox: true, contextIsolation: true, nodeIntegration: false,
+        session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false,
         preload: path.join(ROOT, 'page-preload.js'), spellcheck: true,
       },
     });
-    const tab = { id: this.nextTabId++, view, favicon: '', blocked: 0, errorUrl: '', pinned, sleep: null, lastActive: Date.now(), reader: null, doc: null, group: pinned ? null : group };
+    const tab = { id: this.nextTabId++, view, ses, container: cont, favicon: '', blocked: 0, errorUrl: '', pinned, sleep: null, lastActive: Date.now(), reader: null, doc: null, group: pinned ? null : group };
     if (pinned) this.tabs.splice(this.tabs.filter(t => t.pinned).length, 0, tab);
     else if (opener && opener.group && this.groups.has(opener.group) && this.tabs.includes(opener)) {
       // нова вкладка з посилання відкривається в групі відкривача, одразу після нього
@@ -508,7 +516,7 @@ class AppWindow {
     const tab = this.tabs[i];
     const url = this.tabUrl(tab);
     if (url && !/^w3ir:\/\/(newtab|error|reader|doc)/.test(url) && url !== 'about:blank') {
-      this.closedStack.push(url);
+      this.closedStack.push({ url, container: tab.container });
       if (this.closedStack.length > 25) this.closedStack.shift();
     }
     if (this.tabs.length === 1) { this.win.close(); return; }
@@ -544,7 +552,7 @@ class AppWindow {
   duplicateTab(id) {
     const t = this.tabs.find(t => t.id === id);
     if (!t) return;
-    const nt = this.createTab(this.tabUrl(t) || NEWTAB, { activate: true });
+    const nt = this.createTab(this.tabUrl(t) || NEWTAB, { activate: true, container: t.container });
     const i = this.tabs.indexOf(t), j = this.tabs.indexOf(nt);
     this.tabs.splice(j, 1);
     this.tabs.splice(i + 1, 0, nt);
