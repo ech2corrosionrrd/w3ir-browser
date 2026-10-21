@@ -4,7 +4,7 @@
 
 Браузер для Windows на основі Chromium (Electron 44) з упором на приватність, безпеку й зручність. Усі функції працюють локально, без облікових записів і серверів розробника.
 
-- Поточна версія: **1.40.0** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
+- Поточна версія: **1.41.0** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
 - Мова інтерфейсу: українська, English, Polski, Deutsch, Español, Français (вибір у налаштуваннях) · Платформа: Windows 10/11 x64
 - Довідка в самому браузері: **F1**
 
@@ -47,7 +47,7 @@
 Кожен реліз містить відкритий криптографічний слід GitHub Actions (OpenSSF Provenance). Перевірити оригінальність інсталятора можна командою GitHub CLI:
 
 ```bash
-gh attestation verify W3IR-Browser-Setup-1.40.0.exe --repo ech2corrosionrrd/w3ir-browser
+gh attestation verify W3IR-Browser-Setup-1.41.0.exe --repo ech2corrosionrrd/w3ir-browser
 ```
 
 Контрольні суми SHA-256 також додаються до кожного випуску у файлі `SHA256SUMS.txt`.

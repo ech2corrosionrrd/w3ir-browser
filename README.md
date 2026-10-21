@@ -6,7 +6,7 @@
 
 A privacy-focused, Web3-native desktop browser for Windows built on Chromium (Electron 44). Engineered with built-in multichain wallet security, local AI assistance, decentralized storage (Arweave), and document viewing tools. Operates entirely locally with **zero telemetry** and no developer server dependencies.
 
-- Current Version: **1.40.0** · Downloads: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
+- Current Version: **1.41.0** · Downloads: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
 - Supported Languages: English, Ukrainian, Polish, German, Spanish, French (switchable in settings) · Platform: Windows 10/11 x64
 - Built-in Browser Help: **F1**
 
@@ -47,7 +47,7 @@ A privacy-focused, Web3-native desktop browser for Windows built on Chromium (El
 Every release built via GitHub Actions includes cryptographic OpenSSF provenance attestations. You can verify that your installer was built unmodified directly from this repository using the GitHub CLI:
 
 ```bash
-gh attestation verify W3IR-Browser-Setup-1.40.0.exe --repo ech2corrosionrrd/w3ir-browser
+gh attestation verify W3IR-Browser-Setup-1.41.0.exe --repo ech2corrosionrrd/w3ir-browser
 ```
 
 Checksums are also available in `SHA256SUMS.txt` accompanying every release.
