@@ -22,4 +22,6 @@ const queryMatcher = (q) => {
   };
 };
 
-module.exports = { stripCtl, cleanStrict, isWebUrl, queryMatcher };
+const NEWTAB = 'w3ir://newtab';
+const EXTERNAL_SCHEME = /^(mailto|tel|magnet|x-github-client|vscode|vscode-insiders):/i;
+module.exports = { stripCtl, cleanStrict, isWebUrl, queryMatcher, NEWTAB, EXTERNAL_SCHEME };
