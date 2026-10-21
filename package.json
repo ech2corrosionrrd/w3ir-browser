@@ -24,7 +24,8 @@
     "check:rpc": "node build/check-rpc.js",
     "perf": "node build/perf.js",
     "winget": "node build/winget.js",
-    "winget:submit": "node build/winget.js --submit"
+    "winget:submit": "node build/winget.js --submit",
+    "packages": "node build/packages.js"
   },
   "build": {
     "appId": "com.w3ir.browser",
