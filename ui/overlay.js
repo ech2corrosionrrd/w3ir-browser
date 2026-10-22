@@ -372,6 +372,121 @@ function renderPalette(data) {
   setTimeout(() => input.focus(), 30);
 }
 
+// ---------- деталі захисту W3IR Shield ----------
+function renderShield(p) {
+  root.textContent = '';
+  root.onmousedown = (e) => { if (e.target === root) api.cmd('closeOverlay'); };
+  const box = el('div', 'shld');
+  if (p.right != null) box.style.right = Math.max(8, p.right) + 'px';
+  else box.style.right = '48px';
+
+  const hdr = el('div', 'shld-hdr');
+  const leftHdr = el('div');
+  leftHdr.append(el('div', 'vh', 'W3IR Shield'));
+  leftHdr.append(el('div', 'shld-sub', 'Центр контролю приватності'));
+  hdr.append(leftHdr);
+  if (p.host) {
+    const hostEl = el('div', 'shld-host', p.host);
+    hostEl.title = p.host;
+    hdr.append(hostEl);
+  }
+  box.append(hdr);
+
+  if (p.isWeb) {
+    const mainToggle = el('label', 'shld-main-toggle');
+    const toggleInfo = el('div', 'shld-toggle-info');
+    const toggleTitle = el('div', 'shld-toggle-title', p.adblockActive ? 'Захист W3IR Shield активний' : 'Захист вимкнено для сайту');
+    const toggleSub = el('div', 'shld-toggle-sub', p.adblockActive ? 'Блокування трекерів, реклами та відбитків' : 'Сайт додано до білого списку винятків');
+    toggleInfo.append(toggleTitle, toggleSub);
+
+    const toggleSwitch = el('input');
+    toggleSwitch.type = 'checkbox';
+    toggleSwitch.checked = p.adblockActive;
+    toggleSwitch.title = 'Перемикач захисту для поточного сайту (перезавантажить сторінку)';
+    toggleSwitch.onchange = () => {
+      api.cmd('siteAdblock', { allowed: !toggleSwitch.checked });
+    };
+    mainToggle.append(toggleInfo, toggleSwitch);
+    box.append(mainToggle);
+  } else {
+    box.append(el('div', 'vtxt', 'Внутрішня сторінка або файл: зовнішні трекери відсутні.'));
+  }
+
+  box.append(el('div', 'gsec', 'Стан модулів приватності'));
+  const stats = el('div', 'shld-stats');
+
+  // 1. Блокування трекерів та реклами
+  const trkRow = el('div', 'shld-row');
+  const trkLabel = el('div', 'shld-item-info');
+  trkLabel.append(el('span', 'shld-label-title', '🛡 Реклама й трекери'));
+  trkLabel.append(el('div', 'shld-label-desc', p.adblockEnabled ? 'EasyList + EasyPrivacy' : 'Вимкнено глобально'));
+  const trkBadge = el('span', 'shld-badge' + (p.blockedCount > 0 ? ' active' : ' neutral'), `${p.blockedCount || 0} заблоковано`);
+  trkBadge.title = 'Кількість заблокованих небажаних запитів на активній вкладці';
+  trkRow.append(trkLabel, trkBadge);
+  stats.append(trkRow);
+
+  // 2. Сторонні cookie
+  const ckRow = el('div', 'shld-row');
+  const ckLabel = el('div', 'shld-item-info');
+  ckLabel.append(el('span', 'shld-label-title', '🍪 Сторонні cookie'));
+  const ckBlocked = p.thirdPartyCookiesBlocked;
+  const protName = p.protLevel === 'maximum' ? 'Максимальний' : p.protLevel === 'strict' ? 'Суворий' : 'Стандартний';
+  ckLabel.append(el('div', 'shld-label-desc', ckBlocked ? `Блокуються (режим «${protName}»)` : 'Дозволено (режим «Стандартний»)'));
+  const ckBadge = el('span', 'shld-badge' + (ckBlocked ? ' active' : ' neutral'), ckBlocked ? 'Заблоковано' : 'Дозволено');
+  ckRow.append(ckLabel, ckBadge);
+  stats.append(ckRow);
+
+  // 3. Захист від відбитків (fingerprinting)
+  const fpRow = el('div', 'shld-row');
+  const fpLabel = el('div', 'shld-item-info');
+  fpLabel.append(el('span', 'shld-label-title', '🎭 Захист від відбитків'));
+  fpLabel.append(el('div', 'shld-label-desc', p.fpActive ? 'Шум Canvas + нормалізація розмірів' : 'Вимкнено'));
+  const fpBadge = el('span', 'shld-badge' + (p.fpActive ? ' active' : ' neutral'), p.fpActive ? 'Активно' : 'Вимкнено');
+  fpRow.append(fpLabel, fpBadge);
+  stats.append(fpRow);
+
+  // 4. WebRTC IP
+  const rtcRow = el('div', 'shld-row');
+  const rtcLabel = el('div', 'shld-item-info');
+  rtcLabel.append(el('span', 'shld-label-title', '🌐 WebRTC (захист IP)'));
+  const rtcText = p.webrtc === 'disable_non_proxied_udp' ? 'Без прямого UDP (лише через проксі)' : p.webrtc === 'default_public_interface_only' ? 'Лише публічний інтерфейс' : 'Звичайний (всі інтерфейси)';
+  rtcLabel.append(el('div', 'shld-label-desc', rtcText));
+  const rtcBadge = el('span', 'shld-badge' + (p.webrtc !== 'default' ? ' active' : ' neutral'), p.webrtc !== 'default' ? 'Захищено' : 'Звичайний');
+  rtcRow.append(rtcLabel, rtcBadge);
+  stats.append(rtcRow);
+
+  // 5. Очищення трекінгових параметрів URL
+  const urlRow = el('div', 'shld-row');
+  const urlLabel = el('div', 'shld-item-info');
+  urlLabel.append(el('span', 'shld-label-title', '🧹 Очищення посилань'));
+  urlLabel.append(el('div', 'shld-label-desc', p.stripTracking ? 'Видалення utm_*, fbclid, gclid' : 'Вимкнено'));
+  const urlBadge = el('span', 'shld-badge' + (p.stripTracking ? ' active' : ' neutral'), p.stripTracking ? 'Активно' : 'Вимкнено');
+  urlRow.append(urlLabel, urlBadge);
+  stats.append(urlRow);
+
+  box.append(stats);
+
+  // Bottom buttons
+  const bRow = el('div', 'vrow');
+  const setBtn = el('button', 'vbtn', 'Налаштування захисту…');
+  setBtn.onclick = () => { api.cmd('closeOverlay'); api.cmd('menuRun', { cmd: 'openPage', arg: 'settings' }); };
+  bRow.append(setBtn);
+
+  if (p.isWeb && p.cookies > 0) {
+    const clrBtn = el('button', 'vbtn', `Очистити cookie (${p.cookies})`);
+    clrBtn.title = 'Видалити всі збережені cookie та локальні дані для цього сайту';
+    let armed = false;
+    clrBtn.onclick = () => {
+      if (!armed) { armed = true; clrBtn.textContent = 'Підтвердити?'; clrBtn.classList.add('primary'); setTimeout(() => { armed = false; }, 3500); return; }
+      api.cmd('siteClear');
+    };
+    bRow.append(clrBtn);
+  }
+  box.append(bRow);
+
+  root.append(box);
+}
+
 api.on('overlay', (p) => {
   if (p.type === 'menu') renderMenu(p.items);
   else if (p.type === 'suggest') renderSuggest(p.items, p.selected);
@@ -380,5 +495,6 @@ api.on('overlay', (p) => {
   else if (p.type === 'github') renderGithub(p);
   else if (p.type === 'approve') renderApprove(p);
   else if (p.type === 'site') renderSite(p);
+  else if (p.type === 'shield') renderShield(p);
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') api.cmd('closeOverlay'); });

@@ -90,3 +90,35 @@ test('protection: Referer до сторонніх сайтів прибирає�
   assert.equal(p.dropReferrer({ Accept: '*/*' }), false);
   assert.equal(p.dropReferrer(undefined), false);
 });
+
+test('protection: shieldSummary підсумовує стан захисту для панелі Shield', () => {
+  // Стандартний режим, захист активний
+  const s1 = p.shieldSummary({ adblock: true, siteAllowed: false, protection: 'standard', fingerprintProtection: false });
+  assert.equal(s1.protLevel, 'standard');
+  assert.equal(s1.adblockActive, true);
+  assert.equal(s1.fpActive, false);
+  assert.equal(s1.thirdPartyCookiesBlocked, false);
+  assert.equal(s1.webrtc, 'default');
+
+  // Суворий режим (блокуються сторонні cookie, WebRTC лише публічний інтерфейс)
+  const s2 = p.shieldSummary({ adblock: true, siteAllowed: false, protection: 'strict', fingerprintProtection: true, stripTracking: true, httpsFirst: true });
+  assert.equal(s2.protLevel, 'strict');
+  assert.equal(s2.adblockActive, true);
+  assert.equal(s2.fpActive, true);
+  assert.equal(s2.thirdPartyCookiesBlocked, true);
+  assert.equal(s2.webrtc, 'default_public_interface_only');
+  assert.equal(s2.stripTracking, true);
+  assert.equal(s2.httpsFirst, true);
+
+  // Максимальний режим (відбитки активні автоматично, WebRTC лише через проксі)
+  const s3 = p.shieldSummary({ adblock: true, siteAllowed: false, protection: 'maximum' });
+  assert.equal(s3.protLevel, 'maximum');
+  assert.equal(s3.fpActive, true);
+  assert.equal(s3.webrtc, 'disable_non_proxied_udp');
+
+  // Сайт у списку дозволених (siteAllowed = true) вимикає блокування на цьому сайті
+  const s4 = p.shieldSummary({ adblock: true, siteAllowed: true, protection: 'strict', fingerprintProtection: true });
+  assert.equal(s4.adblockActive, false);
+  assert.equal(s4.fpActive, false);
+  assert.equal(s4.thirdPartyCookiesBlocked, false);
+});

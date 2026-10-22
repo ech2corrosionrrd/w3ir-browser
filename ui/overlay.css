@@ -86,6 +86,24 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 .srow select { height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: inherit; font: inherit; }
 .site .vbtn { width: 100%; margin-top: 10px; }
 
+.shld { position: absolute; top: 4px; width: 350px; padding: 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 28px var(--shadow); }
+.shld-hdr { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 10px; }
+.shld-sub { font-size: 11px; color: var(--dim); margin-top: 1px; }
+.shld-host { font-size: 11px; color: var(--accent); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--input); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); }
+.shld-main-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--input); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; margin-bottom: 10px; }
+.shld-main-toggle input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; }
+.shld-toggle-title { font-weight: 600; font-size: 13px; color: var(--fg); }
+.shld-toggle-sub { font-size: 11px; color: var(--dim); margin-top: 2px; }
+.shld-stats { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 10px; }
+.shld-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 6px; background: color-mix(in srgb, var(--hover) 45%, transparent); border: 1px solid color-mix(in srgb, var(--line) 50%, transparent); }
+.shld-item-info { flex: 1; min-width: 0; }
+.shld-label-title { font-weight: 600; font-size: 12px; color: var(--fg); }
+.shld-label-desc { font-size: 11px; color: var(--dim); margin-top: 2px; }
+.shld-badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
+.shld-badge.active { background: color-mix(in srgb, var(--accent) 25%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); }
+.shld-badge.neutral { background: var(--hover); color: var(--dim); border: 1px solid var(--line); }
+.shld .vbtn { flex: 1; text-align: center; }
+
 /* ===== Фірмовий стиль W3IR ===== */
 .menu, .sg { background-image: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70px); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .menu button:hover, .row.sel { background: color-mix(in srgb, var(--accent) 22%, transparent); }

@@ -5,9 +5,47 @@ const { t: tr } = require('./i18n');
 const { githubRepo } = require('./github');
 const { ASK } = require('./context');
 const { isWebUrl } = require('./util');
+const { shieldSummary } = require('./protection');
 const containers = require('./containers');
 
 const methods = {
+  // ---------- деталі захисту W3IR Shield ----------
+  async shieldPanelData() {
+    const t = this.active();
+    const url = t ? this.tabUrl(t) : '';
+    let u = null;
+    try { u = new URL(url); } catch { /* немає адреси */ }
+    const web = !!u && /^https?:$/.test(u.protocol);
+    const host = web ? u.hostname : '';
+    const cfg = this.ctx.cfg();
+    const siteAllowed = web ? this.ctx.adblockAllowed(host) : false;
+    const summary = shieldSummary({
+      adblock: cfg.adblock !== false,
+      siteAllowed,
+      protection: this.ctx.protection(),
+      fingerprintProtection: !!cfg.fingerprintProtection,
+      stripTracking: !!cfg.stripTracking,
+      httpsFirst: !!cfg.httpsFirst,
+    });
+    let cookies = 0;
+    if (web) { try { cookies = (await this.ctx.siteCookies(this.tabSes(t), host)).length; } catch { /* ignore */ } }
+    return {
+      host: host || (url ? (url.startsWith('w3ir:') ? 'W3IR' : url) : 'Нова вкладка'),
+      isWeb: web,
+      siteAllowed,
+      adblockEnabled: cfg.adblock !== false,
+      blockedCount: t ? (t.blocked || 0) : 0,
+      cookies,
+      ...summary,
+    };
+  },
+
+  async refreshShieldOverlay() {
+    if (this.overlayType === 'shield' && !this.win.isDestroyed()) {
+      this.overlay.webContents.send('overlay', { type: 'shield', right: this.shieldRight || 48, ...(await this.shieldPanelData()) });
+    }
+  },
+
   // ---------- інформація про сайт ----------
   async sitePanelData() {
     const t = this.active();

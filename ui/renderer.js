@@ -208,8 +208,8 @@ function renderShield(count) {
   sh.textContent = '🛡';
   sh.classList.toggle('off', !state.adblock);
   sh.title = state.adblock
-    ? `Блокування реклами: увімкнено${state.engine ? ' (EasyList)' : ''}. Заблоковано на сторінці: ${count}. Клік — вимкнути`
-    : 'Блокування реклами вимкнено. Клік — увімкнути';
+    ? `W3IR Shield: захист приватності (заблоковано: ${count}). Клік — деталі захисту`
+    : 'W3IR Shield вимкнено. Клік — деталі захисту';
   if (state.adblock && count > 0) sh.append(el('span', 'badge', count > 99 ? '99+' : String(count)));
 }
 
@@ -300,7 +300,18 @@ $('gh').onclick = () => api.cmd('githubMenu', Math.round($('toolbar').getBoundin
 $('copilot').onclick = () => api.cmd('openPage', 'assistant');
 $('sleepall').onclick = () => api.cmd('sleepInactive');
 $('vault').onclick = () => api.cmd('vaultMenu', Math.round($('toolbar').getBoundingClientRect().bottom));
-$('shield').onclick = () => api.cmd('toggleAdblock');
+$('shield').onclick = () => {
+  const r = $('shield').getBoundingClientRect();
+  const right = Math.max(8, Math.round(window.innerWidth - r.right));
+  api.cmd('shieldInfo', { bottom: Math.round(r.bottom + 2), right });
+};
+$('shield').onauxclick = (e) => {
+  if (e.button === 1) api.cmd('toggleAdblock');
+};
+$('shield').oncontextmenu = (e) => {
+  e.preventDefault();
+  api.cmd('toggleAdblock');
+};
 $('dl').onclick = () => api.cmd('openPage', 'downloads');
 $('menu').onclick = () => api.cmd('menu', Math.round($('toolbar').getBoundingClientRect().bottom));
 $('tabbar').addEventListener('dblclick', (e) => { if (e.target === $('tabbar')) api.cmd('newTab'); });

@@ -28,7 +28,7 @@ const INTERNAL_PUBLIC = /^w3ir:\/\/(error|warning)(\/|\?|#|$)/i;
 const webToInternal = (from, to) => /^w3ir:/i.test(String(to)) && !/^w3ir:/i.test(String(from || '')) && !INTERNAL_PUBLIC.test(String(to));
 const GESTURE_MS = 2000; // external schemes only open shortly after a real click/key in that tab
 const INPUT_GESTURE = /^(mouseDown|mouseUp|rawKeyDown|keyDown|touchStart|touchEnd|gestureTap)$/;
-const ANCHORED_OVERLAYS = new Set(['menu', 'vault', 'github', 'site']); // панелі під панеллю інструментів
+const ANCHORED_OVERLAYS = new Set(['menu', 'vault', 'github', 'site', 'shield']); // панелі під панеллю інструментів
 const { isWebUrl, NEWTAB, EXTERNAL_SCHEME } = require('./util');
 const docview = require('./docview');
 const containers = require('./containers');

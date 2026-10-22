@@ -104,6 +104,8 @@ const methods = {
         ctx.settingsStore.save();
         if (wc) wc.reload();
         ctx.pushAll();
+        this.refreshSiteOverlay();
+        this.refreshShieldOverlay();
         break;
       case 'toggleVertical':
         ctx.cfg().verticalTabs = !ctx.cfg().verticalTabs;
@@ -262,6 +264,13 @@ const methods = {
         break;
       case 'findStop': if (wc) { wc.stopFindInPage('clearSelection'); wc.focus(); } break;
 
+      case 'shieldInfo': {
+        if (this.overlayType === 'shield') { this.closeOverlay(); break; }
+        const [w, h] = this.win.getContentSize();
+        const y = Math.round(arg && arg.bottom || this.chromeHeight);
+        this.shieldRight = Math.max(8, Math.round(arg && arg.right || 48));
+        return this.shieldPanelData().then((d) => this.openOverlay('shield', { right: this.shieldRight, ...d }, { x: 0, y, width: w, height: h - y }));
+      }
       case 'siteInfo': {
         if (this.overlayType === 'site') { this.closeOverlay(); break; }
         const [w, h] = this.win.getContentSize();
@@ -278,12 +287,17 @@ const methods = {
         const u = this.siteTarget();
         if (u) { this.ctx.setAdblockAllowed(u.hostname, !!(arg && arg.allowed)); const wc2 = this.wc(); if (wc2) wc2.reload(); }
         this.ctx.pushAll();
-        return this.refreshSiteOverlay();
+        this.refreshSiteOverlay();
+        return this.refreshShieldOverlay();
       }
       case 'siteClear': {
         const u = this.siteTarget();
         if (!u) break;
-        return this.ctx.clearSiteData(this.tabSes(this.active()), u.hostname).then((n) => { this.toast(n ? `Дані сайту очищено (cookie: ${n})` : 'Дані сайту очищено'); return this.refreshSiteOverlay(); });
+        return this.ctx.clearSiteData(this.tabSes(this.active()), u.hostname).then((n) => {
+          this.toast(n ? `Дані сайту очищено (cookie: ${n})` : 'Дані сайту очищено');
+          this.refreshSiteOverlay();
+          return this.refreshShieldOverlay();
+        });
       }
       case 'menu':
         if (this.overlayType === 'menu') this.closeOverlay();

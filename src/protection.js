@@ -60,4 +60,22 @@ const stripSetCookie = (headers) => dropHeader(headers, 'set-cookie');
 // Referer до сторонніх сайтів прибирається повністю (Chromium і так скорочує його до адреси сайту); true, якщо щось змінено
 const dropReferrer = (headers) => dropHeader(headers, 'referer');
 
-module.exports = { LEVELS, PRESETS, level, isStrict, webrtcPolicy, isThirdParty, stripCookieRequest, stripSetCookie, dropReferrer, roundDimension, applyCanvasNoise };
+// Підсумок стану захисту для панелі W3IR Shield
+function shieldSummary({ adblock = true, siteAllowed = false, protection = 'standard', fingerprintProtection = false, stripTracking = false, httpsFirst = false } = {}) {
+  const protLevel = level(protection);
+  const adblockActive = !!adblock && !siteAllowed;
+  const fpActive = !siteAllowed && !!(fingerprintProtection || protLevel === 'maximum');
+  const thirdPartyCookiesBlocked = !siteAllowed && protLevel !== 'standard';
+  const webrtc = webrtcPolicy(protLevel);
+  return {
+    protLevel,
+    adblockActive,
+    fpActive,
+    thirdPartyCookiesBlocked,
+    webrtc,
+    stripTracking: !!stripTracking,
+    httpsFirst: !!httpsFirst,
+  };
+}
+
+module.exports = { LEVELS, PRESETS, level, isStrict, webrtcPolicy, isThirdParty, stripCookieRequest, stripSetCookie, dropReferrer, roundDimension, applyCanvasNoise, shieldSummary };
