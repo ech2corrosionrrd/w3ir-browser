@@ -114,12 +114,37 @@ async function benchApp() {
       res.startupMs = ms;
       await sleep(4000); // відкладені фонові завдання (оновлення, списки загроз, блокувальник)
       res.idle = memory(marker);
-      for (let i = 0; i < TABS; i++) { await evalIn(ui, `api.cmd('newTab')`); await sleep(400); await evalIn(ui, `api.cmd('go', ${JSON.stringify(url)})`); await sleep(1500); }
-      await sleep(2500);
-      res.tabs = TABS;
+
+      // Вимірювання пам'яті за етапами (5, 10, 20 вкладок)
+      const tiers = [5, 10, 20];
+      const maxTabs = Math.max(...tiers, TABS);
+      const tabSteps = Array.from(new Set([...tiers.filter(t => t <= maxTabs), maxTabs])).sort((a, b) => a - b);
+      res.tabsTiers = {};
+
+      let currentTabs = 0;
+      for (const targetCount of tabSteps) {
+        while (currentTabs < targetCount) {
+          await evalIn(ui, `api.cmd('newTab')`);
+          await sleep(350);
+          await evalIn(ui, `api.cmd('go', ${JSON.stringify(url)})`);
+          await sleep(1000);
+          currentTabs++;
+        }
+        await sleep(2000);
+        const mem = memory(marker);
+        res.tabsTiers[`tabs_${targetCount}`] = {
+          count: targetCount,
+          wsMb: mem.wsMb,
+          privMb: mem.privMb,
+          perTabPrivMb: +((mem.privMb - res.idle.privMb) / targetCount).toFixed(1),
+          perTabWsMb: +((mem.wsMb - res.idle.wsMb) / targetCount).toFixed(1),
+        };
+      }
+
+      res.tabs = currentTabs;
       res.withTabs = memory(marker);
-      res.perTabPrivMb = +((res.withTabs.privMb - res.idle.privMb) / TABS).toFixed(0);
-      res.perTabWsMb = +((res.withTabs.wsMb - res.idle.wsMb) / TABS).toFixed(0);
+      res.perTabPrivMb = +((res.withTabs.privMb - res.idle.privMb) / currentTabs).toFixed(0);
+      res.perTabWsMb = +((res.withTabs.wsMb - res.idle.wsMb) / currentTabs).toFixed(0);
     });
   } finally {
     srv.close();
