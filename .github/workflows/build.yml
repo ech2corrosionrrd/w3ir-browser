@@ -76,3 +76,38 @@ jobs:
             dist/*.AppImage
             dist/*.deb
             dist/SHA256SUMS-linux.txt
+
+  build-macos:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: npm }
+      - run: npm ci --ignore-scripts
+      - name: Завантажити Electron (скрипти встановлення вимкнено вище)
+        run: node node_modules/electron/install.js
+      - run: npm run lint
+      - run: npm run test:unit
+      - name: Збірка пакунків macOS (dmg, zip)
+        run: npx electron-builder --mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Контрольні суми
+        run: cd dist && shasum -a 256 *.dmg *.zip | tee SHA256SUMS-mac.txt
+      - name: Підтвердження походження збірок (Build Provenance Attestation)
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            dist/*.dmg
+            dist/*.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-macos
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/SHA256SUMS-mac.txt

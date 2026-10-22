@@ -18,6 +18,7 @@
     "pack": "electron-builder --win --dir",
     "dist": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
+    "dist:mac": "electron-builder --mac",
     "keygen": "node build/update-keygen.js",
     "release": "npm run dist && node build/release.js",
     "release:github": "npm run dist && node build/release.js --github",
@@ -63,6 +64,17 @@
       "maintainer": "W3IR <https://github.com/ech2corrosionrrd/w3ir-browser>",
       "icon": "build/brand/icon-512.png",
       "artifactName": "W3IR-Browser-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/brand/icon-512.png",
+      "artifactName": "W3IR-Browser-${version}-${arch}.${ext}",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
     },
     "nsis": {
       "oneClick": false,

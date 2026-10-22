@@ -3,7 +3,8 @@
 const { app } = require('electron');
 const { sleep, stats, cleanup } = require('./lib');
 const { vaultTests, vaultTests2, syncTests, e2eTests, torrentTests, importTests, profileTests } = require('./areas/storage');
-const { githubTests, walletTests } = require('./areas/web3');
+const { githubTests } = require('./areas/github');
+const { walletTests } = require('./areas/web3');
 const { arweaveTests } = require('./areas/arweave');
 const { solanaTests } = require('./areas/solana');
 const { fuzzTests } = require('./areas/fuzz');

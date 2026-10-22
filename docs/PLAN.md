@@ -39,7 +39,7 @@ _Складено за результатами аудитів і аналізу
   2. `app-window.js` (1 431 рядок) → `tab-manager.js` + `navigation.js` + `app-window.js` (ядро)
   3. `ipc.js` (≈730 рядків) → `ipc-wallet.js`, `ipc-tabs.js`, `ipc-ai.js`
   4. `wallet.js` (745 рядків) → відокремити `wallet-evm-core.js` (підписи, nonce, газ)
-  5. `test/areas/web3.js` (1 968 рядків, ≈103 КБ) → 5-6 файлів за доменом
+  5. `test/areas/web3.js` → відокремлено `test/areas/github.js` для тестів інтеграції GitHub та ключових слів (2026-10-22)
 
 **Продуктивність:**
 - [x] **Lazy-load гаманця** — не потрібен (виміряно 2026-10-21): `require('ethers')` ≈ 100 мс при прогрітому кеші диска (≈ 1,5 с лише при першому запуску після встановлення), усі модулі `wallet-*.js` разом ≈ 57 мс, а `ctx.wallet` викликається з кожної сторінки (`injectEnabled`), тож відкладення нічого б не виграло. `WeakRef` для кешів NFT — за потреби.
@@ -53,7 +53,7 @@ _Складено за результатами аудитів і аналізу
 ### Довгостроково
 
 - [ ] **3 опорні напрямки**: приватність (відбитки, контейнери, трекер), Web3 (аудит → swap/мости/апаратні), ШІ-агент (покрокові дозволи, режим безпечного перегляду); решта — підтримка.
-- [ ] **macOS збірка** — unit-тести вже йдуть на Linux і macOS у CI; наступний крок: Electron-набір + `electron-builder --mac`.
+- [x] **macOS збірка** (dmg / zip): додано конфігурацію в package.json та job build-macos у .github/workflows/build.yml з генерацією OpenSSF Build Provenance Attestations (2026-10-22).
 - [x] **Linux збірка** (AppImage / deb): додано конфігурацію в package.json та job build-linux у .github/workflows/build.yml з генерацією AppImage і deb, сольними контрольними сумами й Build Attestations (2026-10-22).
 - [ ] **Спільнота й маркетинг**: Discord/Telegram, скрінкаст (2 хв демо), публікації (dev.to, Hackernoon, Reddit r/ethereum, r/solana, DOU), Crowdin для перекладів.
 - [x] **Контейнери вкладок**: окремі cookie й сховище для роботи, соцмереж, покупок і фінансів (`src/containers.js`; ідея з Firefox Multi-Account Containers). (2026-10-21)
