@@ -2515,5 +2515,17 @@
   "Некоректні параметри.": "Parámetros inválidos.",
   "Отримати просте пояснення від локальної моделі Ollama (100% приватно)": "Obtener una explicación sencilla del modelo local de Ollama (100% privado)",
   "Пояснення ШІ (локально)": "Explicación de IA (local)",
-  "Ollama не запущена.": "Ollama no se está ejecutando."
+  "Ollama не запущена.": "Ollama no se está ejecutando.",
+  "Виведення {0} SOL зі стейку {1} на {2}": "Retirando {0} SOL del stake {1} hacia {2}",
+  "Виведення стейку на чужу адресу: застейкані SOL надійдуть НЕ вам.": "Retiro de stake a una dirección ajena: los SOL en stake NO irán a usted.",
+  "Деактивація стейку {0} (початок періоду виходу)": "Desactivando stake {0} (inicia el período de enfriamiento)",
+  "Делегування стейку {0} валідатору {1}": "Delegando stake {0} al validador {1}",
+  "Зміна повноважень стейку {0}: {1} передається на {2}": "Cambiando autoridad del stake {0}: {1} se transfiere a {2}",
+  "Ініціалізація стейк-акаунта {0} (виведення коштів: {1})": "Inicializando cuenta de stake {0} (retiro: {1})",
+  "керування стейкінгом (Staker)": "gestión de stake (Staker)",
+  "Об’єднання стейк-акаунтів {0} та {1}": "Fusionando cuentas de stake {0} y {1}",
+  "право виведення коштів (Withdrawer)": "autoridad de retiro (Withdrawer)",
+  "Розділення стейку {0}: {1} SOL у новий акаунт {2}": "Dividiendo stake {0}: {1} SOL a nueva cuenta {2}",
+  "УВАГА: Ця дія передає право виведення коштів зі стейку іншій адресі! Це призведе до повної втрати застейканих SOL.": "ATENCIÓN: ¡Esta acción transfiere la autoridad de retiro del stake a otra dirección! Provocará la pérdida total de los SOL en stake.",
+  "Stake Program: інструкція {0}": "Stake Program: instrucción {0}"
 }

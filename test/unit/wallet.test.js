@@ -238,3 +238,39 @@ test('signguard: відхилені методи й делегування EIP-7
   assert.equal(g.delegateOf('0x'), null);
   assert.equal(g.delegateOf('0xef0100' + 'ab'.repeat(19)), null);
 });
+
+test('solana: Stake Program інструкції та виявлення небезпечних змін Withdrawer', () => {
+  const sol = src('solana.js');
+  const myKey = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+  const otherKey = 'CuieVDEDtLo7FypA9SbLM9saXFdb1dsshveFi796umn7';
+  const stakeAcc = '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28';
+  const voteAcc = 'Vote111111111111111111111111111111111111111';
+
+  // 1. Делегування стейку
+  const ixDel = sol.ixStakeDelegate({ stakeAccount: stakeAcc, voteAccount: voteAcc, authorizedPubkey: myKey });
+  const msgDel = sol.compileMessage({ feePayer: myKey, instructions: [ixDel], blockhash: '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28' });
+  const descDel = sol.describe(sol.parseMessage(msgDel), [myKey]);
+  assert.equal(descDel.danger, false);
+  assert.ok(descDel.lines.some(l => l[1].includes('Делегування стейку')));
+
+  // 2. Деактивація стейку
+  const ixDeact = sol.ixStakeDeactivate({ stakeAccount: stakeAcc, authorizedPubkey: myKey });
+  const msgDeact = sol.compileMessage({ feePayer: myKey, instructions: [ixDeact], blockhash: '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28' });
+  const descDeact = sol.describe(sol.parseMessage(msgDeact), [myKey]);
+  assert.equal(descDeact.danger, false);
+  assert.ok(descDeact.lines.some(l => l[1].includes('Деактивація стейку')));
+
+  // 3. Небезпечна передача Withdrawer на чужу адресу (спроба викрадення стейку)
+  const ixAuthBad = sol.ixStakeAuthorize({ stakeAccount: stakeAcc, authorizedPubkey: myKey, newAuthorizedPubkey: otherKey, stakeAuthorizeType: 1 });
+  const msgAuthBad = sol.compileMessage({ feePayer: myKey, instructions: [ixAuthBad], blockhash: '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28' });
+  const descAuthBad = sol.describe(sol.parseMessage(msgAuthBad), [myKey]);
+  assert.equal(descAuthBad.danger, true);
+  assert.ok(descAuthBad.warnings.some(w => w.includes('повної втрати застейканих SOL')));
+
+  // 4. Виведення стейку на чужу адресу
+  const ixWithdrawBad = sol.ixStakeWithdraw({ stakeAccount: stakeAcc, to: otherKey, authorizedPubkey: myKey, lamports: 1000000000n });
+  const msgWithdrawBad = sol.compileMessage({ feePayer: myKey, instructions: [ixWithdrawBad], blockhash: '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28' });
+  const descWithdrawBad = sol.describe(sol.parseMessage(msgWithdrawBad), [myKey]);
+  assert.equal(descWithdrawBad.danger, true);
+  assert.ok(descWithdrawBad.warnings.some(w => w.includes('Виведення стейку на чужу адресу')));
+});

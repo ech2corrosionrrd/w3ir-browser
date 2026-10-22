@@ -322,6 +322,66 @@ const ixCreateAtaIdempotent = ({ payer, owner, mint, tokenProgram = P.TOKEN }) =
   data: Buffer.from([1]),
 });
 
+// Інструкції Stake Program (створення, делегування, деактивація, виведення)
+const SYSVAR_RENT = 'SysvarRent111111111111111111111111111111111';
+const SYSVAR_CLOCK = 'SysvarC1ock11111111111111111111111111111111';
+const SYSVAR_STAKE_HISTORY = 'SysvarStakeHistory1111111111111111111111111';
+const STAKE_CONFIG = 'StakeConfig11111111111111111111111111111111';
+
+const ixStakeInitialize = ({ stakeAccount, staker, withdrawer }) => ({
+  programId: P.STAKE,
+  keys: [
+    { pubkey: stakeAccount, isSigner: false, isWritable: true },
+    { pubkey: SYSVAR_RENT, isSigner: false, isWritable: false },
+  ],
+  data: Buffer.concat([u32(0), b58decode(staker), b58decode(withdrawer), Buffer.alloc(48)]),
+});
+
+const ixStakeDelegate = ({ stakeAccount, voteAccount, authorizedPubkey }) => ({
+  programId: P.STAKE,
+  keys: [
+    { pubkey: stakeAccount, isSigner: false, isWritable: true },
+    { pubkey: voteAccount, isSigner: false, isWritable: false },
+    { pubkey: SYSVAR_CLOCK, isSigner: false, isWritable: false },
+    { pubkey: SYSVAR_STAKE_HISTORY, isSigner: false, isWritable: false },
+    { pubkey: STAKE_CONFIG, isSigner: false, isWritable: false },
+    { pubkey: authorizedPubkey, isSigner: true, isWritable: false },
+  ],
+  data: u32(2),
+});
+
+const ixStakeDeactivate = ({ stakeAccount, authorizedPubkey }) => ({
+  programId: P.STAKE,
+  keys: [
+    { pubkey: stakeAccount, isSigner: false, isWritable: true },
+    { pubkey: SYSVAR_CLOCK, isSigner: false, isWritable: false },
+    { pubkey: authorizedPubkey, isSigner: true, isWritable: false },
+  ],
+  data: u32(5),
+});
+
+const ixStakeWithdraw = ({ stakeAccount, to, authorizedPubkey, lamports }) => ({
+  programId: P.STAKE,
+  keys: [
+    { pubkey: stakeAccount, isSigner: false, isWritable: true },
+    { pubkey: to, isSigner: false, isWritable: true },
+    { pubkey: SYSVAR_CLOCK, isSigner: false, isWritable: false },
+    { pubkey: SYSVAR_STAKE_HISTORY, isSigner: false, isWritable: false },
+    { pubkey: authorizedPubkey, isSigner: true, isWritable: false },
+  ],
+  data: Buffer.concat([u32(4), u64(lamports)]),
+});
+
+const ixStakeAuthorize = ({ stakeAccount, authorizedPubkey, newAuthorizedPubkey, stakeAuthorizeType = 0 }) => ({
+  programId: P.STAKE,
+  keys: [
+    { pubkey: stakeAccount, isSigner: false, isWritable: true },
+    { pubkey: SYSVAR_CLOCK, isSigner: false, isWritable: false },
+    { pubkey: authorizedPubkey, isSigner: true, isWritable: false },
+  ],
+  data: Buffer.concat([u32(1), b58decode(newAuthorizedPubkey), u32(stakeAuthorizeType)]),
+});
+
 // Повідомлення legacy-транзакції: System Program Transfer від from до to
 function buildTransferMessage({ from, to, lamports, blockhash }) {
   if (from === to) throw new Error('Не можна надсилати на той самий рахунок.');
@@ -331,6 +391,7 @@ function buildTransferMessage({ from, to, lamports, blockhash }) {
 // ---------- розшифровка інструкцій ----------
 const P = {
   SYSTEM: '11111111111111111111111111111111',
+  STAKE: 'Stake11111111111111111111111111111111111111',
   TOKEN: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   TOKEN22: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb',
   ATA: 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
@@ -417,6 +478,42 @@ function describe(parsed, ours = []) {
         else lines.push(['Бюджет обчислень', `інструкція ${d[0]}`]);
       } else if (pid === P.MEMO || pid === P.MEMO_OLD) {
         lines.push(['Примітка (Memo)', d.toString('utf8').replace(/[\u0000-\u001f]/g, ' ').slice(0, 200)]);
+      } else if (pid === P.STAKE) {
+        const tag = d.length >= 4 ? d.readUInt32LE(0) : -1;
+        if (tag === 0 && d.length >= 68) {
+          const stakeAcc = key(ins, 0);
+          const withdrawer = b58encode(d.subarray(36, 68));
+          add(`Ініціалізація стейк-акаунта ${short(stakeAcc)} (виведення коштів: ${who(withdrawer)})`);
+        } else if (tag === 2) {
+          const stakeAcc = key(ins, 0);
+          const voteAcc = key(ins, 1);
+          add(`Делегування стейку ${short(stakeAcc)} валідатору ${short(voteAcc)}`);
+        } else if (tag === 5) {
+          const stakeAcc = key(ins, 0);
+          add(`Деактивація стейку ${short(stakeAcc)} (початок періоду виходу)`);
+        } else if (tag === 4 && d.length >= 12) {
+          const amount = d.readBigUInt64LE(4);
+          const stakeAcc = key(ins, 0);
+          const to = key(ins, 1);
+          add(`Виведення ${sol(amount)} SOL зі стейку ${short(stakeAcc)} на ${who(to)}`);
+          if (!mine.has(to)) warn('Виведення стейку на чужу адресу: застейкані SOL надійдуть НЕ вам.', true);
+        } else if (tag === 1 && d.length >= 40) {
+          const stakeAcc = key(ins, 0);
+          const newAuth = b58encode(d.subarray(4, 36));
+          const authType = d.readUInt32LE(36);
+          const role = authType === 1 ? 'право виведення коштів (Withdrawer)' : 'керування стейкінгом (Staker)';
+          add(`Зміна повноважень стейку ${short(stakeAcc)}: ${role} передається на ${who(newAuth)}`);
+          if (authType === 1 && !mine.has(newAuth)) {
+            warn('УВАГА: Ця дія передає право виведення коштів зі стейку іншій адресі! Це призведе до повної втрати застейканих SOL.', true);
+          }
+        } else if (tag === 3 && d.length >= 12) {
+          const amount = d.readBigUInt64LE(4);
+          add(`Розділення стейку ${short(key(ins, 0))}: ${sol(amount)} SOL у новий акаунт ${short(key(ins, 1))}`);
+        } else if (tag === 7) {
+          add(`Об’єднання стейк-акаунтів ${short(key(ins, 0))} та ${short(key(ins, 1))}`);
+        } else {
+          add(`Stake Program: інструкція ${tag}`);
+        }
       } else {
         unknownPrograms.add(pid);
         add(`Виклик програми ${pid} (${ins.accounts.length} акаунтів, ${d.length} байт даних)`);
@@ -433,4 +530,5 @@ function describe(parsed, ours = []) {
 module.exports = {
   b58encode, b58decode, isAddress, parseSol, parseUnits, buildTransferMessage, compileMessage, ixSystemTransfer, ixSetComputeUnitLimit, ixSetComputeUnitPrice, snsAccount, parseNameAccount, NAME_PROGRAM, SOL_TLD, ixTransferChecked, ixCreateAtaIdempotent, ataAddress, u64, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, SOL_PATHS, sign, verify,
   parseMessage, parseTransaction, unsignedWire, signTransaction, encodeShortVec, describe, formatUnits, sol, short, PROGRAMS: P,
+  ixStakeInitialize, ixStakeDelegate, ixStakeDeactivate, ixStakeWithdraw, ixStakeAuthorize, SYSVAR_RENT, SYSVAR_CLOCK, SYSVAR_STAKE_HISTORY, STAKE_CONFIG,
 };
