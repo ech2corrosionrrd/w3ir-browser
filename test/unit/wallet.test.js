@@ -274,3 +274,38 @@ test('solana: Stake Program інструкції та виявлення неб�
   assert.equal(descWithdrawBad.danger, true);
   assert.ok(descWithdrawBad.warnings.some(w => w.includes('Виведення стейку на чужу адресу')));
 });
+
+test('solana: створення стейк-акаунта та генерація ключів (ixSystemCreateAccount, generateKeypair)', () => {
+  const sol = src('solana.js');
+  const myKey = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+  const kp = sol.generateKeypair();
+  assert.ok(kp && kp.secret && kp.address);
+  assert.equal(kp.publicKey.length, 32);
+  assert.ok(sol.isAddress(kp.address));
+
+  const ixCreate = sol.ixSystemCreateAccount({
+    from: myKey,
+    newAccount: kp.address,
+    lamports: 2282880n,
+    space: 200,
+    programId: sol.PROGRAMS.STAKE,
+  });
+  assert.equal(ixCreate.programId, sol.PROGRAMS.SYSTEM);
+  assert.equal(ixCreate.keys.length, 2);
+  assert.equal(ixCreate.keys[0].pubkey, myKey);
+  assert.equal(ixCreate.keys[1].pubkey, kp.address);
+
+  const msg = sol.compileMessage({
+    feePayer: myKey,
+    instructions: [ixCreate],
+    blockhash: '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28',
+  });
+  const desc = sol.describe(sol.parseMessage(msg), [myKey]);
+  assert.equal(desc.danger, false);
+  assert.ok(desc.lines.some(l => l[1].includes('Створення акаунта')));
+
+  const wire0 = sol.unsignedWire(msg);
+  const signed1 = sol.signTransaction(kp.secret, kp.address, wire0);
+  assert.ok(signed1 && signed1.signedWire);
+  assert.equal(signed1.index, 1);
+});

@@ -61,6 +61,10 @@ function keypairFromSeed(seed32) {
   return { secret, publicKey, address: b58encode(publicKey) };
 }
 
+function generateKeypair() {
+  return keypairFromSeed(crypto.randomBytes(32));
+}
+
 // Рахунок №index: m/44'/501'/index'/0' (перший рахунок збігається з Phantom/Solflare для тієї самої фрази)
 // Шляхи Solana: phantom — m/44'/501'/i'/0' (Phantom, Solflare, Backpack); bip44 — m/44'/501'/i' (Ledger Live, старі гаманці)
 const SOL_PATHS = { phantom: (i) => [44, 501, i, 0], bip44: (i) => [44, 501, i] };
@@ -293,6 +297,14 @@ function compileMessage({ feePayer, instructions, blockhash }) {
 
 const u64 = (n) => { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
 const ixSystemTransfer = (from, to, lamports) => ({ programId: P.SYSTEM, keys: [{ pubkey: from, isSigner: true, isWritable: true }, { pubkey: to, isSigner: false, isWritable: true }], data: Buffer.concat([Buffer.from([2, 0, 0, 0]), u64(lamports)]) });
+const ixSystemCreateAccount = ({ from, newAccount, lamports, space, programId }) => ({
+  programId: P.SYSTEM,
+  keys: [
+    { pubkey: from, isSigner: true, isWritable: true },
+    { pubkey: newAccount, isSigner: true, isWritable: true },
+  ],
+  data: Buffer.concat([u32(0), u64(lamports), u64(space), b58decode(programId)]),
+});
 // Бюджет обчислень (програма ComputeBudget): ліміт одиниць (tag 2) і ціна одиниці в мікро-лампортах (tag 3, пріоритетна комісія)
 const u32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32LE(n); return b; };
 const ixSetComputeUnitLimit = (units) => ({ programId: 'ComputeBudget111111111111111111111111111111', keys: [], data: Buffer.concat([Buffer.from([2]), u32(units)]) });
@@ -528,7 +540,7 @@ function describe(parsed, ours = []) {
 }
 
 module.exports = {
-  b58encode, b58decode, isAddress, parseSol, parseUnits, buildTransferMessage, compileMessage, ixSystemTransfer, ixSetComputeUnitLimit, ixSetComputeUnitPrice, snsAccount, parseNameAccount, NAME_PROGRAM, SOL_TLD, ixTransferChecked, ixCreateAtaIdempotent, ataAddress, u64, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, SOL_PATHS, sign, verify,
+  b58encode, b58decode, isAddress, parseSol, parseUnits, buildTransferMessage, compileMessage, ixSystemTransfer, ixSystemCreateAccount, ixSetComputeUnitLimit, ixSetComputeUnitPrice, snsAccount, parseNameAccount, NAME_PROGRAM, SOL_TLD, ixTransferChecked, ixCreateAtaIdempotent, ataAddress, u64, isOnCurve, findProgramAddress, metadataPda, parseMetadata, METADATA_PROGRAM, slip10, keypairFromSeed, deriveAccount, SOL_PATHS, sign, verify,
   parseMessage, parseTransaction, unsignedWire, signTransaction, encodeShortVec, describe, formatUnits, sol, short, PROGRAMS: P,
-  ixStakeInitialize, ixStakeDelegate, ixStakeDeactivate, ixStakeWithdraw, ixStakeAuthorize, SYSVAR_RENT, SYSVAR_CLOCK, SYSVAR_STAKE_HISTORY, STAKE_CONFIG,
+  generateKeypair, ixStakeInitialize, ixStakeDelegate, ixStakeDeactivate, ixStakeWithdraw, ixStakeAuthorize, SYSVAR_RENT, SYSVAR_CLOCK, SYSVAR_STAKE_HISTORY, STAKE_CONFIG,
 };

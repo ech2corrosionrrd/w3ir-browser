@@ -147,6 +147,23 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:setNftAnyHost': ctx.cfg().walletNftAnyHost = !!arg.on; ctx.settingsStore.save(); return { ok: true };
       case 'wallet:solTokens': return { ok: true, ...(await w.solTokens(String(arg.address))) };
       case 'wallet:solBalances': return { ok: true, balances: await w.solBalances() };
+      case 'wallet:solStakeAccounts': return { ok: true, accounts: await w.solStakeAccounts(String(arg.address)) };
+      case 'wallet:solVoteAccounts': return { ok: true, validators: await w.solVoteAccounts() };
+      case 'wallet:solStakeDelegate': {
+        const sameTab = () => entry.win.tabs.includes(entry.tab);
+        const r = await w.solStakeDelegate(entry.win, sameTab, { index: arg.index, votePubkey: String(arg.votePubkey), amount: arg.amount, speed: arg.speed });
+        return { ok: true, ...r };
+      }
+      case 'wallet:solStakeDeactivate': {
+        const sameTab = () => entry.win.tabs.includes(entry.tab);
+        const r = await w.solStakeDeactivate(entry.win, sameTab, { index: arg.index, stakeAccount: String(arg.stakeAccount), speed: arg.speed });
+        return { ok: true, ...r };
+      }
+      case 'wallet:solStakeWithdraw': {
+        const sameTab = () => entry.win.tabs.includes(entry.tab);
+        const r = await w.solStakeWithdraw(entry.win, sameTab, { index: arg.index, stakeAccount: String(arg.stakeAccount), lamports: arg.lamports, speed: arg.speed });
+        return { ok: true, ...r };
+      }
       case 'wallet:solSetCluster': w.setSolCluster(String(arg.id)); return { ok: true };
       case 'wallet:solSetRpc': w.setSolRpc(String(arg.cluster), arg.url); return { ok: true };
       case 'wallet:setChain': w.setChain(Number(arg.id)); return { ok: true };
