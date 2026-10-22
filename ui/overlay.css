@@ -89,3 +89,12 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 /* ===== Фірмовий стиль W3IR ===== */
 .menu, .sg { background-image: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70px); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .menu button:hover, .row.sel { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+.ai-box { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 10%, var(--input)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); font-size: 12px; line-height: 1.45; }
+.ai-box.loading { opacity: 0.7; }
+.ai-box .ai-hdr { font-weight: 600; color: var(--accent); margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
+.ai-box .ai-txt { color: var(--fg); word-break: break-word; user-select: text; white-space: pre-wrap; }
+.ai-box .ai-err { color: var(--danger); }
+.ai-box .ai-model { font-size: 10px; color: var(--dim); }
+.ai-btn { margin-top: 10px; background: none; border: 1px dashed color-mix(in srgb, var(--accent) 50%, var(--line)); color: var(--link); border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; }
+.ai-btn:hover { background: color-mix(in srgb, var(--accent) 15%, transparent); }

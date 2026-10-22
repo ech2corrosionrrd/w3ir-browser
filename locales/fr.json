@@ -2504,5 +2504,16 @@
   "Перевищено добовий ліміт {0} USD: за останні 24 години вже надіслано ≈ {1} USD, цей переказ ≈ {2} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.": "Plafond quotidien de {0} USD dépassé : ≈ {1} USD ont déjà été envoyés au cours des dernières 24 heures, ce transfert représente ≈ {2} USD. Attendez ou modifiez le plafond dans les paramètres de sécurité du portefeuille.",
   "Ліміт одного переказу не може перевищувати добовий ліміт.": "Le plafond par transfert ne peut pas dépasser le plafond quotidien.",
   "У розділі «Безпека»: надсилати лише на свої рахунки та адреси з адресної книги; підтвердження великих сум (від заданої суми в USD) з паузою 5 секунд; заборона переказу понад ліміт у USD; добовий ліміт (сума переказів за останні 24 години, облік гаманець веде лише після підтвердженого переказу); автоматичне відключення сайтів, якими не користувались N днів. Режими діють для переказів зі сторінки гаманця, а не для транзакцій, які пропонують сайти. Ліміти в USD працюють, лише коли ціна відома. Зміна потребує майстер-пароля.": "Dans la section « Sécurité » : envoi uniquement vers vos propres comptes et les adresses du carnet ; confirmation des gros montants (à partir d’une valeur fixée en USD) avec une pause de 5 secondes ; interdiction des transferts au-delà d’un plafond en USD ; plafond quotidien (total des transferts des dernières 24 heures, que le portefeuille n’enregistre qu’après un transfert confirmé) ; déconnexion automatique des sites inutilisés depuis N jours. Les modes s’appliquent aux transferts depuis la page du portefeuille, pas aux transactions proposées par les sites. Les plafonds en USD ne fonctionnent que si le prix est connu. Les modifier nécessite le mot de passe maître.",
-  "добовий ліміт": "plafond quotidien"
+  "добовий ліміт": "plafond quotidien",
+  "🤖 Оновити пояснення ШІ": "🤖 Actualiser l'explication de l'IA",
+  "🤖 Пояснити дію через ШІ": "🤖 Expliquer l'action avec l'IA",
+  "🤖 Спробувати знову": "🤖 Réessayer",
+  "Аналізуємо транзакцію локально…": "Analyse de la transaction localement…",
+  "Запит до локальної моделі…": "Interrogation du modèle local…",
+  "Не вдалося отримати пояснення.": "Impossible d'obtenir l'explication.",
+  "Не знайдено встановлених моделей Ollama.": "Aucun modèle Ollama installé trouvé.",
+  "Некоректні параметри.": "Paramètres invalides.",
+  "Отримати просте пояснення від локальної моделі Ollama (100% приватно)": "Obtenir une explication simple du modèle local Ollama (100 % privé)",
+  "Пояснення ШІ (локально)": "Explication de l'IA (local)",
+  "Ollama не запущена.": "Ollama n'est pas lancé."
 }

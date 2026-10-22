@@ -2504,5 +2504,16 @@
   "Перевищено добовий ліміт {0} USD: за останні 24 години вже надіслано ≈ {1} USD, цей переказ ≈ {2} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.": "Daily limit of {0} USD exceeded: ≈ {1} USD was already sent in the last 24 hours, this transfer is ≈ {2} USD. Wait or change the limit in the wallet security settings.",
   "Ліміт одного переказу не може перевищувати добовий ліміт.": "The single-transfer limit cannot exceed the daily limit.",
   "У розділі «Безпека»: надсилати лише на свої рахунки та адреси з адресної книги; підтвердження великих сум (від заданої суми в USD) з паузою 5 секунд; заборона переказу понад ліміт у USD; добовий ліміт (сума переказів за останні 24 години, облік гаманець веде лише після підтвердженого переказу); автоматичне відключення сайтів, якими не користувались N днів. Режими діють для переказів зі сторінки гаманця, а не для транзакцій, які пропонують сайти. Ліміти в USD працюють, лише коли ціна відома. Зміна потребує майстер-пароля.": "In the “Security” section: send only to your own accounts and address-book entries; confirmation of large amounts (from a set USD value) with a 5-second pause; a ban on transfers above a USD limit; a daily limit (the total of transfers over the last 24 hours, which the wallet records only after a confirmed transfer); automatic disconnection of sites not used for N days. The modes apply to transfers from the wallet page, not to transactions proposed by sites. USD limits work only when the price is known. Changing them requires the master password.",
-  "добовий ліміт": "daily limit"
+  "добовий ліміт": "daily limit",
+  "🤖 Оновити пояснення ШІ": "🤖 Refresh AI explanation",
+  "🤖 Пояснити дію через ШІ": "🤖 Explain action with AI",
+  "🤖 Спробувати знову": "🤖 Try again",
+  "Аналізуємо транзакцію локально…": "Analyzing transaction locally…",
+  "Запит до локальної моделі…": "Querying local model…",
+  "Не вдалося отримати пояснення.": "Failed to get explanation.",
+  "Не знайдено встановлених моделей Ollama.": "No installed Ollama models found.",
+  "Некоректні параметри.": "Invalid parameters.",
+  "Отримати просте пояснення від локальної моделі Ollama (100% приватно)": "Get a simple explanation from a local Ollama model (100% private)",
+  "Пояснення ШІ (локально)": "AI Explanation (local)",
+  "Ollama не запущена.": "Ollama is not running."
 }

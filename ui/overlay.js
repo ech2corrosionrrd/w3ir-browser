@@ -149,6 +149,37 @@ function renderApprove(p) {
     box.append(pass);
   }
   box.append(err);
+  if (p.lines && p.lines.length) {
+    const aiBtn = el('button', 'ai-btn', '🤖 Пояснити дію через ШІ');
+    aiBtn.type = 'button';
+    aiBtn.title = 'Отримати просте пояснення від локальної моделі Ollama (100% приватно)';
+    let aiBox = null;
+    aiBtn.onclick = async () => {
+      aiBtn.disabled = true;
+      aiBtn.textContent = 'Аналізуємо транзакцію локально…';
+      if (!aiBox) {
+        aiBox = el('div', 'ai-box loading');
+        box.insertBefore(aiBox, row);
+      }
+      aiBox.textContent = 'Запит до локальної моделі…';
+      const r = await api.cmd('explainTx', { title: p.title, origin: p.origin, lines: p.lines, warnings: p.warnings });
+      aiBtn.disabled = false;
+      aiBox.classList.remove('loading');
+      aiBox.textContent = '';
+      if (r && r.ok) {
+        aiBtn.textContent = '🤖 Оновити пояснення ШІ';
+        const hdr = el('div', 'ai-hdr');
+        hdr.append(el('span', null, 'Пояснення ШІ (локально)'), el('span', 'ai-model', r.model || ''));
+        const txt = el('div', 'ai-txt', r.text);
+        aiBox.append(hdr, txt);
+      } else {
+        aiBtn.textContent = '🤖 Спробувати знову';
+        const errTxt = el('div', 'ai-err', (r && r.error) || 'Не вдалося отримати пояснення.');
+        aiBox.append(errTxt);
+      }
+    };
+    box.append(aiBtn);
+  }
   const row = el('div', 'vrow');
   const no = el('button', 'vbtn', 'Відхилити');
   const yes = el('button', 'vbtn primary', 'Підтвердити');

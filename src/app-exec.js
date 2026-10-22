@@ -122,6 +122,7 @@ const methods = {
         break;
       }
       case 'walletDecision': return this.decide(arg && arg.id, !!(arg && arg.approve), arg && arg.master, arg && typeof arg.choice === 'string' ? arg.choice : undefined, arg && typeof arg.choice2 === 'string' ? arg.choice2 : undefined);
+      case 'explainTx': return this.explainTx(arg);
       case 'githubMenu':
         if (this.overlayType === 'github') this.closeOverlay();
         else {

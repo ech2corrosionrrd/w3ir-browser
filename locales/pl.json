@@ -2504,5 +2504,16 @@
   "Перевищено добовий ліміт {0} USD: за останні 24 години вже надіслано ≈ {1} USD, цей переказ ≈ {2} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.": "Przekroczono dobowy limit {0} USD: w ciągu ostatnich 24 godzin wysłano już ≈ {1} USD, ten przelew to ≈ {2} USD. Poczekaj lub zmień limit w ustawieniach bezpieczeństwa portfela.",
   "Ліміт одного переказу не може перевищувати добовий ліміт.": "Limit pojedynczego przelewu nie może przekraczać limitu dobowego.",
   "У розділі «Безпека»: надсилати лише на свої рахунки та адреси з адресної книги; підтвердження великих сум (від заданої суми в USD) з паузою 5 секунд; заборона переказу понад ліміт у USD; добовий ліміт (сума переказів за останні 24 години, облік гаманець веде лише після підтвердженого переказу); автоматичне відключення сайтів, якими не користувались N днів. Режими діють для переказів зі сторінки гаманця, а не для транзакцій, які пропонують сайти. Ліміти в USD працюють, лише коли ціна відома. Зміна потребує майстер-пароля.": "W sekcji „Bezpieczeństwo”: wysyłanie tylko na własne konta i adresy z książki adresowej; potwierdzanie dużych kwot (od ustalonej wartości w USD) z 5-sekundową pauzą; blokada przelewów powyżej limitu w USD; limit dobowy (suma przelewów z ostatnich 24 godzin, którą portfel zapisuje tylko po potwierdzonym przelewie); automatyczne odłączanie witryn nieużywanych przez N dni. Tryby dotyczą przelewów ze strony portfela, a nie transakcji proponowanych przez witryny. Limity w USD działają tylko wtedy, gdy znana jest cena. Zmiana wymaga hasła głównego.",
-  "добовий ліміт": "limit dobowy"
+  "добовий ліміт": "limit dobowy",
+  "🤖 Оновити пояснення ШІ": "🤖 Odśwież wyjaśnienie AI",
+  "🤖 Пояснити дію через ШІ": "🤖 Wyjaśnij akcję przez AI",
+  "🤖 Спробувати знову": "🤖 Spróbuj ponownie",
+  "Аналізуємо транзакцію локально…": "Analizowanie transakcji lokalnie…",
+  "Запит до локальної моделі…": "Wysyłanie zapytania do modelu lokalnego…",
+  "Не вдалося отримати пояснення.": "Nie udało się uzyskać wyjaśnienia.",
+  "Не знайдено встановлених моделей Ollama.": "Nie znaleziono zainstalowanych modeli Ollama.",
+  "Некоректні параметри.": "Nieprawidłowe parametry.",
+  "Отримати просте пояснення від локальної моделі Ollama (100% приватно)": "Uzyskaj proste wyjaśnienie z lokalnego modelu Ollama (100% prywatnie)",
+  "Пояснення ШІ (локально)": "Wyjaśnienie AI (lokalnie)",
+  "Ollama не запущена.": "Ollama nie jest uruchomiona."
 }

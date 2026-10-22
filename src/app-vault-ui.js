@@ -173,6 +173,40 @@ const methods = {
     this.finishApproval(true, choice, choice2);
     return { ok: true };
   },
+
+  async explainTx(arg) {
+    if (!arg || typeof arg !== 'object') return { ok: false, error: 'Некоректні параметри.' };
+    const base = this.ctx.manager ? this.ctx.manager.ctx('default') : this.ctx;
+    const cfg = base.cfg();
+    const ollama = require('./ollama');
+    const url = cfg.ollamaUrl || ollama.DEFAULT_URL;
+    let model = cfg.ollamaModel || '';
+    if (!model) {
+      try {
+        const list = await ollama.listModels(url);
+        if (list && list.length) model = list[0].name;
+      } catch (e) {
+        return { ok: false, error: e.message || 'Ollama не запущена.' };
+      }
+    }
+    if (!model) return { ok: false, error: 'Не знайдено встановлених моделей Ollama.' };
+    try {
+      const targetLang = (cfg.lang === 'en' ? 'English' : cfg.lang === 'pl' ? 'Polish' : cfg.lang === 'de' ? 'German' : cfg.lang === 'es' ? 'Spanish' : cfg.lang === 'fr' ? 'French' : 'Ukrainian');
+      const res = await ollama.explainTx(url, {
+        model,
+        tx: {
+          title: String(arg.title || '').slice(0, 100),
+          origin: String(arg.origin || '').slice(0, 120),
+          lines: Array.isArray(arg.lines) ? arg.lines.map(([k, v]) => [String(k || '').slice(0, 50), String(v || '').slice(0, 300)]) : [],
+          warnings: Array.isArray(arg.warnings) ? arg.warnings.map(w => String(w || '').slice(0, 300)) : [],
+        },
+        targetLang,
+      });
+      return { ok: true, text: res.content, model };
+    } catch (err) {
+      return { ok: false, error: String((err && err.message) || 'Помилка').slice(0, 300) };
+    }
+  },
 };
 
 module.exports = { methods };

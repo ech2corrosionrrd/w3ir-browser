@@ -2504,5 +2504,16 @@
   "Перевищено добовий ліміт {0} USD: за останні 24 години вже надіслано ≈ {1} USD, цей переказ ≈ {2} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.": "Tageslimit von {0} USD überschritten: in den letzten 24 Stunden wurden bereits ≈ {1} USD gesendet, diese Überweisung beträgt ≈ {2} USD. Warten Sie oder ändern Sie das Limit in den Wallet-Sicherheitseinstellungen.",
   "Ліміт одного переказу не може перевищувати добовий ліміт.": "Das Limit pro Überweisung darf das Tageslimit nicht überschreiten.",
   "У розділі «Безпека»: надсилати лише на свої рахунки та адреси з адресної книги; підтвердження великих сум (від заданої суми в USD) з паузою 5 секунд; заборона переказу понад ліміт у USD; добовий ліміт (сума переказів за останні 24 години, облік гаманець веде лише після підтвердженого переказу); автоматичне відключення сайтів, якими не користувались N днів. Режими діють для переказів зі сторінки гаманця, а не для транзакцій, які пропонують сайти. Ліміти в USD працюють, лише коли ціна відома. Зміна потребує майстер-пароля.": "Im Bereich „Sicherheit“: nur an eigene Konten und Adressbucheinträge senden; Bestätigung großer Beträge (ab einem festgelegten USD-Wert) mit 5 Sekunden Pause; Sperre von Überweisungen über einem USD-Limit; Tageslimit (Summe der Überweisungen der letzten 24 Stunden, die die Wallet erst nach einer bestätigten Überweisung erfasst); automatisches Trennen von Websites, die N Tage nicht genutzt wurden. Die Modi gelten für Überweisungen von der Wallet-Seite, nicht für von Websites vorgeschlagene Transaktionen. USD-Limits funktionieren nur, wenn der Preis bekannt ist. Änderungen erfordern das Master-Passwort.",
-  "добовий ліміт": "Tageslimit"
+  "добовий ліміт": "Tageslimit",
+  "🤖 Оновити пояснення ШІ": "🤖 KI-Erklärung aktualisieren",
+  "🤖 Пояснити дію через ШІ": "🤖 Aktion mit KI erklären",
+  "🤖 Спробувати знову": "🤖 Erneut versuchen",
+  "Аналізуємо транзакцію локально…": "Transaktion lokal analysieren…",
+  "Запит до локальної моделі…": "Lokales Modell wird abgefragt…",
+  "Не вдалося отримати пояснення.": "Erklärung konnte nicht abgerufen werden.",
+  "Не знайдено встановлених моделей Ollama.": "Keine installierten Ollama-Modelle gefunden.",
+  "Некоректні параметри.": "Ungültige Parameter.",
+  "Отримати просте пояснення від локальної моделі Ollama (100% приватно)": "Einfache Erklärung von lokalem Ollama-Modell erhalten (100% privat)",
+  "Пояснення ШІ (локально)": "KI-Erklärung (lokal)",
+  "Ollama не запущена.": "Ollama läuft nicht."
 }
