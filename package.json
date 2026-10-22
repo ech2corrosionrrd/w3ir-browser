@@ -17,6 +17,7 @@
     "icon": "python build/make-brand.py",
     "pack": "electron-builder --win --dir",
     "dist": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
     "keygen": "node build/update-keygen.js",
     "release": "npm run dist && node build/release.js",
     "release:github": "npm run dist && node build/release.js --github",
@@ -52,6 +53,16 @@
         "portable"
       ],
       "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network;WebBrowser",
+      "maintainer": "W3IR <https://github.com/ech2corrosionrrd/w3ir-browser>",
+      "icon": "build/brand/icon-512.png",
+      "artifactName": "W3IR-Browser-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,

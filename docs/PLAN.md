@@ -54,7 +54,7 @@ _Складено за результатами аудитів і аналізу
 
 - [ ] **3 опорні напрямки**: приватність (відбитки, контейнери, трекер), Web3 (аудит → swap/мости/апаратні), ШІ-агент (покрокові дозволи, режим безпечного перегляду); решта — підтримка.
 - [ ] **macOS збірка** — unit-тести вже йдуть на Linux і macOS у CI; наступний крок: Electron-набір + `electron-builder --mac`.
-- [ ] **Linux збірка** (AppImage / deb / Flatpak) — після macOS.
+- [x] **Linux збірка** (AppImage / deb): додано конфігурацію в package.json та job build-linux у .github/workflows/build.yml з генерацією AppImage і deb, сольними контрольними сумами й Build Attestations (2026-10-22).
 - [ ] **Спільнота й маркетинг**: Discord/Telegram, скрінкаст (2 хв демо), публікації (dev.to, Hackernoon, Reddit r/ethereum, r/solana, DOU), Crowdin для перекладів.
 - [x] **Контейнери вкладок**: окремі cookie й сховище для роботи, соцмереж, покупок і фінансів (`src/containers.js`; ідея з Firefox Multi-Account Containers). (2026-10-21)
 - [ ] Політика розкриття вразливостей (`SECURITY.md`) і bug bounty для гаманця (після зовнішнього аудиту).

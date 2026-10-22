@@ -43,3 +43,36 @@ jobs:
             dist/*.blockmap
             dist/latest.yml
             dist/SHA256SUMS.txt
+
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: npm }
+      - run: npm ci --ignore-scripts
+      - name: Завантажити Electron (скрипти встановлення вимкнено вище)
+        run: node node_modules/electron/install.js
+      - run: npm run lint
+      - run: npm run test:unit
+      - name: Збірка пакунків Linux (AppImage, deb)
+        run: npx electron-builder --linux
+      - name: Контрольні суми
+        run: cd dist && sha256sum *.AppImage *.deb | tee SHA256SUMS-linux.txt
+      - name: Підтвердження походження збірок (Build Provenance Attestation)
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            dist/*.AppImage
+            dist/*.deb
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-linux
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/SHA256SUMS-linux.txt
