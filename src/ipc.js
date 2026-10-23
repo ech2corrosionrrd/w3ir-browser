@@ -201,7 +201,7 @@ function permitted(name, url) {
     return rule === '*' || (Array.isArray(rule) && rule.includes(name));
   }
   const only = PAGE_ONLY[name];
-  return only ? only.includes(page) : true; // невідомі команди відхилить сам перемикач нижче
+  return only ? only.includes(page) : false; // невідомі команди суворо відхиляються (default-deny)
 }
 
 async function agentApi(ctx, name, arg) {

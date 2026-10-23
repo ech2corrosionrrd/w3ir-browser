@@ -133,7 +133,7 @@
   "src/wallet-signguard.js:118"
  ],
  "{0} (у мінімальних одиницях)": [
-  "src/wallet-evm-core.js:92",
+  "src/wallet-evm-core.js:105",
   "src/wallet-signguard.js:118"
  ],
  "{0} {1} для {2}": [
@@ -202,7 +202,7 @@
   "pages/dashboard.js:226"
  ],
  "{0} Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам.": [
-  "src/downloads.js:85"
+  "src/downloads.js:96"
  ],
  "{0} с тому": [
   "pages/dashboard.js:15"
@@ -666,7 +666,7 @@
  ],
  "Більше не питати": [
   "src/app-window.js:444",
-  "src/downloads.js:86"
+  "src/downloads.js:97"
  ],
  "Більше не пропонувати зберігати паролі для цього сайту": [
   "ui/index.html:41"
@@ -881,7 +881,7 @@
   "src/wallet.js:335"
  ],
  "Виберіть зображення підпису": [
-  "src/pdf-tools.js:405"
+  "src/pdf-tools.js:409"
  ],
  "Виберіть модель Ollama.": [
   "src/assistant.js:81",
@@ -903,7 +903,7 @@
   "pages/pdftools.js:72"
  ],
  "Виберіть PDF-файли": [
-  "src/pdf-tools.js:385"
+  "src/pdf-tools.js:389"
  ],
  "Виберіть, що імпортувати.": [
   "pages/import.js:17"
@@ -1024,8 +1024,8 @@
   "src/wallet-simulate.js:112"
  ],
  "Виклик контракту": [
-  "src/wallet-evm-core.js:101",
-  "src/wallet-evm-core.js:138"
+  "src/wallet-evm-core.js:114",
+  "src/wallet-evm-core.js:151"
  ],
  "Виклик програми {0} ({1} акаунтів, {2} байт даних)": [
   "src/solana.js:531"
@@ -1034,7 +1034,7 @@
   "pages/help-data.js:82"
  ],
  "Використання IPFS / Pinata заборонено: медіафайли NFT мають зберігатися на Arweave (ar://).": [
-  "src/arweave.js:292"
+  "src/arweave.js:295"
  ],
  "Використовує списки EasyList, EasyPrivacy та uBlock-фільтри, а також приховує рекламні блоки на сторінці. Число на щиті — скільки запитів заблоковано на поточній сторінці. Клік по щиту вмикає/вимикає блокування (сторінка перезавантажується). Списки оновлюються раз на тиждень; доки вони завантажуються, діє базовий список доменів.": [
   "pages/help-data.js:103"
@@ -1095,7 +1095,7 @@
  ],
  "Від": [
   "src/wallet-dapp.js:305",
-  "src/wallet-evm-core.js:129",
+  "src/wallet-evm-core.js:142",
   "src/wallet-extras.js:110"
  ],
  "від {0}": [
@@ -1184,7 +1184,7 @@
   "src/app-menus.js:116"
  ],
  "Відкрити в торент-клієнті": [
-  "src/downloads.js:84"
+  "src/downloads.js:95"
  ],
  "Відкрити закладки": [
   "pages/newtab.js:171"
@@ -1301,7 +1301,7 @@
   "src/profiles.js:45"
  ],
  "Вкажіть назву NFT.": [
-  "src/arweave.js:289"
+  "src/arweave.js:292"
  ],
  "Вкажіть пароль резервної копії.": [
   "src/wallet-backup.js:25"
@@ -1614,7 +1614,7 @@
   "src/wallet-dapp.js:238"
  ],
  "Дані виклику спотворені й не відповідають відомому формату. Підтверджуйте лише якщо повністю довіряєте сайту.": [
-  "src/wallet-evm-core.js:139"
+  "src/wallet-evm-core.js:152"
  ],
  "Дані на Arweave зберігаються назавжди й публічно: не завантажуйте туди нічого приватного.": [
   "pages/help-data.js:272"
@@ -1642,7 +1642,7 @@
   "pages/import.js:37"
  ],
  "Дати доступ до ВСІХ NFT колекції": [
-  "src/wallet-evm-core.js:119"
+  "src/wallet-evm-core.js:132"
  ],
  "ДАТИ повний доступ до токена": [
   "src/wallet-signguard.js:165"
@@ -1731,8 +1731,8 @@
  ],
  "Дія": [
   "src/wallet-approvals.js:117",
-  "src/wallet-evm-core.js:113",
-  "src/wallet-evm-core.js:119"
+  "src/wallet-evm-core.js:126",
+  "src/wallet-evm-core.js:132"
  ],
  "Дія {0}": [
   "src/solana.js:439"
@@ -1898,7 +1898,7 @@
   "src/solana.js:469"
  ],
  "Дозвіл витрачати токени": [
-  "src/wallet-evm-core.js:113"
+  "src/wallet-evm-core.js:126"
  ],
  "Дозвіл витрачати токени без транзакції (permit)": [
   "src/wallet-signguard.js:164"
@@ -2163,7 +2163,7 @@
   "pages/wallet.js:1097"
  ],
  "Завантаження заблоковано: сайт розповсюджує шкідливе ПЗ або шахрайський": [
-  "src/downloads.js:47"
+  "src/downloads.js:58"
  ],
  "Завантаження оновлення{0}…": [
   "ui/renderer.js:184"
@@ -2178,7 +2178,7 @@
   "src/app-window.js:218"
  ],
  "Завантажено .torrent-файл": [
-  "src/downloads.js:85"
+  "src/downloads.js:96"
  ],
  "Завантажень поки немає": [
   "pages/downloads.js:28"
@@ -2357,7 +2357,7 @@
   "src/ipc.js:95"
  ],
  "Залишити файл": [
-  "src/downloads.js:84"
+  "src/downloads.js:95"
  ],
  "Залишити/переставити сторінки": [
   "pages/pdftools.js:139"
@@ -2439,16 +2439,16 @@
   "main.js:13"
  ],
  "Запуск файлу": [
-  "src/downloads.js:115"
+  "src/downloads.js:126"
  ],
  "Запускайте лише файли з джерел, яким довіряєте: браузер не може перевірити, чи безпечна програма.": [
   "pages/help-data.js:148"
  ],
  "Запускайте лише файли, яким довіряєте і які завантажили з надійного джерела. Шкідливі програми часто видають себе за документи й інсталятори.": [
-  "src/downloads.js:117"
+  "src/downloads.js:128"
  ],
  "Запустити": [
-  "src/downloads.js:115"
+  "src/downloads.js:126"
  ],
  "Захист": [
   "pages/newtab.js:93"
@@ -2570,7 +2570,7 @@
   "pages/wallet.js:573"
  ],
  "Зберегти PDF": [
-  "src/pdf-tools.js:369"
+  "src/pdf-tools.js:373"
  ],
  "Збережених дозволів і винятків немає. Їх можна змінити кліком на замок в адресному рядку.": [
   "pages/settings.js:51"
@@ -2760,7 +2760,7 @@
   "pages/wallet.js:328"
  ],
  "Зображення": [
-  "src/pdf-tools.js:405"
+  "src/pdf-tools.js:409"
  ],
  "Зображення на Arweave (ar:// або txId)": [
   "pages/wallet.js:1144"
@@ -2772,7 +2772,7 @@
   "pages/pdftools.js:13"
  ],
  "Зображення NFT має бути посиланням ar://<txId> або 43-символьним ідентифікатором Arweave.": [
-  "src/arweave.js:302"
+  "src/arweave.js:305"
  ],
  "Зовнішні програми": [
   "pages/help-data.js:145"
@@ -3008,7 +3008,7 @@
   "pages/help-data.js:278"
  ],
  "Кількість": [
-  "src/wallet-evm-core.js:124",
+  "src/wallet-evm-core.js:137",
   "src/wallet-evm-nft.js:251",
   "src/wallet-evm-tokens.js:173"
  ],
@@ -3138,7 +3138,7 @@
  ],
  "Кому": [
   "src/wallet-dapp.js:305",
-  "src/wallet-evm-core.js:129",
+  "src/wallet-evm-core.js:142",
   "src/wallet-extras.js:111"
  ],
  "Кому видано дозвіл": [
@@ -3981,10 +3981,10 @@
   "src/wallet-solana.js:335"
  ],
  "Невідомий виклик контракту: підтверджуйте лише якщо довіряєте сайту.": [
-  "src/wallet-evm-core.js:102"
+  "src/wallet-evm-core.js:115"
  ],
  "невідомий метод {0} ({1} байт даних)": [
-  "src/wallet-evm-core.js:101"
+  "src/wallet-evm-core.js:114"
  ],
  "Невідомий рахунок": [
   "src/wallet-dapp.js:183",
@@ -4167,7 +4167,7 @@
   "src/wallet-solana.js:40"
  ],
  "Некоректне посилання ar:// для зображення.": [
-  "src/arweave.js:297"
+  "src/arweave.js:300"
  ],
  "Некоректне magnet-посилання": [
   "src/app-window.js:425"
@@ -4310,10 +4310,10 @@
   "src/wallet-signguard.js:180"
  ],
  "Необмежений дозвіл: цей адрес зможе витратити ВСІ ваші токени цього типу, доки ви не скасуєте дозвіл.": [
-  "src/wallet-evm-core.js:114"
+  "src/wallet-evm-core.js:127"
  ],
  "НЕОБМЕЖЕНО": [
-  "src/wallet-evm-core.js:113",
+  "src/wallet-evm-core.js:126",
   "src/wallet-extras.js:142",
   "src/wallet-signguard.js:117"
  ],
@@ -4428,7 +4428,7 @@
   "src/wallet-import.js:152"
  ],
  "Нульова сума — це скасування дозволу": [
-  "src/wallet-evm-core.js:115"
+  "src/wallet-evm-core.js:128"
  ],
  "Об’єднання стейк-акаунтів {0} та {1}": [
   "src/solana.js:525"
@@ -4560,10 +4560,10 @@
   "pages/settings.js:70"
  ],
  "Оператор": [
-  "src/wallet-evm-core.js:119"
+  "src/wallet-evm-core.js:132"
  ],
  "Оператор зможе забрати ВСІ ваші NFT цієї колекції. Шахраї часто використовують саме цей виклик.": [
-  "src/wallet-evm-core.js:120"
+  "src/wallet-evm-core.js:133"
  ],
  "Оператор, якому скасовується доступ": [
   "src/wallet-approvals.js:117"
@@ -4630,7 +4630,7 @@
   "pages/settings.js:105"
  ],
  "Отримувач": [
-  "src/wallet-evm-core.js:124",
+  "src/wallet-evm-core.js:137",
   "src/wallet-evm-nft.js:251",
   "src/wallet-evm-tokens.js:173"
  ],
@@ -4650,7 +4650,7 @@
   "src/wallet-evm-nft.js:245"
  ],
  "Отримувач дозволу": [
-  "src/wallet-evm-core.js:113",
+  "src/wallet-evm-core.js:126",
   "src/wallet-signguard.js:164",
   "src/wallet-signguard.js:176"
  ],
@@ -4724,7 +4724,7 @@
   "pages/help-data.js:220"
  ],
  "Папка для частин PDF": [
-  "src/pdf-tools.js:354"
+  "src/pdf-tools.js:358"
  ],
  "Папка завантажень": [
   "pages/settings.js:399"
@@ -4995,10 +4995,10 @@
   "src/wallet-solana.js:389"
  ],
  "Переказ токена/NFT": [
-  "src/wallet-evm-core.js:129"
+  "src/wallet-evm-core.js:142"
  ],
  "Переказ токенів": [
-  "src/wallet-evm-core.js:124"
+  "src/wallet-evm-core.js:137"
  ],
  "Переказ токенів ({0} у мінімальних одиницях): {1} → {2}, підпис {3}": [
   "src/solana.js:465"
@@ -5717,7 +5717,7 @@
   "pages/downloads.js:8"
  ],
  "Примітка": [
-  "src/wallet-evm-core.js:115"
+  "src/wallet-evm-core.js:128"
  ],
  "Примітка (Memo)": [
   "src/solana.js:492"
@@ -6343,7 +6343,7 @@
   "pages/wallet.js:961"
  ],
  "Скасувати доступ до NFT колекції": [
-  "src/wallet-evm-core.js:119"
+  "src/wallet-evm-core.js:132"
  ],
  "Скасувати небезпечні ({0})": [
   "pages/wallet.js:825",
@@ -6478,7 +6478,7 @@
   "pages/settings.js:122"
  ],
  "спотворені дані методу {0}": [
-  "src/wallet-evm-core.js:138"
+  "src/wallet-evm-core.js:151"
  ],
  "Спробувати ще раз": [
   "pages/error.js:29"
@@ -6670,7 +6670,7 @@
   "src/wallet-signguard.js:166"
  ],
  "Сума дозволу": [
-  "src/wallet-evm-core.js:113"
+  "src/wallet-evm-core.js:126"
  ],
  "Сума завелика.": [
   "src/solana.js:261"
@@ -6838,7 +6838,7 @@
   "src/wallet-solana.js:363"
  ],
  "Токен/кількість": [
-  "src/wallet-evm-core.js:129"
+  "src/wallet-evm-core.js:142"
  ],
  "Токен/колекція": [
   "src/wallet-history-evm.js:22"
@@ -7109,7 +7109,7 @@
   "pages/wallet.js:86"
  ],
  "Файл «{0}» може запустити програму на вашому комп’ютері.": [
-  "src/downloads.js:116"
+  "src/downloads.js:127"
  ],
  "Файл завеликий (максимум {0} МБ)": [
   "pages/pdftools.js:10"

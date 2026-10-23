@@ -58,6 +58,8 @@ class RpcError extends Error {
 const rejected = () => new RpcError(4001, 'Користувач відхилив запит');
 const unauthorized = (m) => new RpcError(4100, m || 'Сайт не підключено до гаманця');
 
+const { isPublicIp } = require('./safe-fetch');
+
 const clip = (s, n) => {
   s = String(s);
   return s.length > n ? s.slice(0, n) + '…' : s;
@@ -68,7 +70,18 @@ const hexChain = (id) => '0x' + Number(id).toString(16);
 function isSafeRpc(url) {
   try {
     const u = new URL(url);
-    return u.protocol === 'https:' || (u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1'));
+    if (u.username || u.password) return false;
+    // Локальні вузли розробки на localhost / 127.0.0.1
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1') {
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    }
+    // Зовнішні RPC вимагають суворо https та публічної IP-адреси (захист від SSRF, приватних підмереж та cloud metadata)
+    if (u.protocol !== 'https:') return false;
+    // Якщо hostname є IP-адресою, перевіряємо публічність безпосередньо
+    if (/^(\d+\.){3}\d+$|^\[[0-9a-f:]+\]$/i.test(u.hostname)) {
+      return isPublicIp(u.hostname.replace(/^\[|\]$/g, ''));
+    }
+    return true;
   } catch {
     return false;
   }

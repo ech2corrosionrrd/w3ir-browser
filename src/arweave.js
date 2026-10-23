@@ -96,6 +96,7 @@ async function fetchWithFallback(txId, pathname = '', options = {}, fetchFn = gl
     try {
       const resp = await fetchFn(targetUrl, {
         ...options,
+        redirect: 'error',
         signal: controller ? controller.signal : undefined
       });
       if (timer) clearTimeout(timer);

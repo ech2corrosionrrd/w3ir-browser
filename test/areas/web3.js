@@ -22,7 +22,7 @@ async function walletTests(ctx) {
   ok(describeCall(iface.encodeFunctionData('setApprovalForAll', [spender, true])).warnings.some(w => /ВСІ/.test(w)), 'wallet: setApprovalForAll(true) — попередження про ВСІ NFT');
   ok(describeCall('0x095ea7b3' + 'ff'.repeat(32) + '00'.repeat(32)).warnings.some(w => /спотворені/.test(w)) && describeCall('0xa9059cbb' + 'ab'.repeat(40)).lines.length > 0, 'wallet: спотворені дані виклику (ненульові старші байти адреси) — попередження, а не збій');
   ok(describeCall('0xdeadbeef00').warnings.length === 1, 'wallet: невідомий виклик контракту має попередження');
-  ok(isSafeRpc('https://rpc.example') && isSafeRpc('http://127.0.0.1:8545') && !isSafeRpc('http://evil.example') && !isSafeRpc('javascript:alert(1)'), 'wallet: безпечні/небезпечні RPC-адреси');
+  ok(isSafeRpc('https://rpc.example') && isSafeRpc('http://127.0.0.1:8545') && !isSafeRpc('http://evil.example') && !isSafeRpc('javascript:alert(1)') && !isSafeRpc('https://192.168.1.1:8545') && !isSafeRpc('https://10.0.0.1') && !isSafeRpc('https://169.254.169.254') && !isSafeRpc('https://user:pass@rpc.example'), 'wallet: безпечні/небезпечні RPC-адреси');
 
   // --- ізоляція від реальних даних користувача ---
   const real = { vault: ctx.vault, wallet: ctx.wallet, settings: ctx.settingsStore };
