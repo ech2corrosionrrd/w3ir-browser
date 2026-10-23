@@ -25,7 +25,13 @@ const isBlankUrl = (u) => !u || u === 'about:blank' || /^w3ir:\/\/newtab\/?$/.te
 const SAFE_EXTERNAL = /^[A-Za-z0-9\-._~:\/?#\[\]@!$&()*+,;=%]+$/;
 // web content must not navigate to internal w3ir:// pages (except the error/warning pages); internal -> internal is allowed
 const INTERNAL_PUBLIC = /^w3ir:\/\/(error|warning)(\/|\?|#|$)/i;
-const webToInternal = (from, to) => /^w3ir:/i.test(String(to)) && !/^w3ir:/i.test(String(from || '')) && !INTERNAL_PUBLIC.test(String(to));
+const webToInternal = (from, to) => {
+  const f = String(from || '');
+  const t = String(to || '');
+  if (/^w3ir:/i.test(t) && !/^w3ir:/i.test(f) && !INTERNAL_PUBLIC.test(t)) return true;
+  if (/^file:/i.test(t) && /^https?:/i.test(f)) return true;
+  return false;
+};
 const GESTURE_MS = 2000; // external schemes only open shortly after a real click/key in that tab
 const INPUT_GESTURE = /^(mouseDown|mouseUp|rawKeyDown|keyDown|touchStart|touchEnd|gestureTap)$/;
 const ANCHORED_OVERLAYS = new Set(['menu', 'vault', 'github', 'site', 'shield']); // панелі під панеллю інструментів

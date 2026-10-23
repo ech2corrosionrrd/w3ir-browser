@@ -12,9 +12,9 @@ Only the latest release receives active security patches.
 
 | Version | Supported | Notes |
 |:---|:---:|:---|
-| 1.41.x | :white_check_mark: | Current stable release |
-| 1.40.x | :x: | Upgrade to 1.41.0 or newer |
-| < 1.40 | :x: | End of life |
+| 1.42.x | :white_check_mark: | Current stable release |
+| 1.41.x | :x: | Upgrade to 1.42.0 or newer |
+| < 1.41 | :x: | End of life |
 
 ---
 
@@ -41,7 +41,7 @@ Use GitHub's **Private Vulnerability Reporting**:
 ## Scope
 
 ### In-Scope:
-- **Web3 Wallet & Key Security**: Private key or seed phrase leakage, unauthorized transaction submission, bypass of confirmation dialogs (`wallet-signguard`), signature dissection bypass (SIWE, Permit, Permit2).
+- **Web3 Wallet & Key Security**: Private key or seed phrase leakage, unauthorized transaction submission, bypass of confirmation dialogs (`wallet-signguard`), signature dissection bypass (SIWE, Permit, Permit2), Solana Stake Program drainer evasion, or prompt injection bypass in AI SignGuard.
 - **Password Vault (`vault.js`)**: Cryptographic flaws in AES-256-GCM, DPAPI pepper handling, scrypt key derivation, or master password bypass.
 - **IPC & Sandbox Isolation**: Sandbox escapes, renderer-to-main privilege escalation, unauthorized access to privileged `w3ir://` internal handlers.
 - **Auto-Update Integrity**: Bypassing cryptographic Ed25519 signature checks in `updater.js` / `update-verify.js`.
@@ -84,7 +84,7 @@ Researchers who responsibly discover and report verified security vulnerabilitie
 3. Проєкт гарантує первинну відповідь протягом **48 годин**.
 
 ## Межі уваги (Scope)
-- **Гаманець Web3**: безпека приватних ключів і мнемоніки, підробка вікон підтвердження, обхід симуляції та анатомії підписів (`wallet-signguard`).
+- **Гаманець Web3**: безпека приватних ключів і мнемоніки, підробка вікон підтвердження, обхід симуляції, анатомії підписів (`wallet-signguard`), захист від зловживань авторитетами Solana Stake Program та обхід AI SignGuard.
 - **Сховище паролів (`vault.js`)**: цілісність шифрування AES-256-GCM, DPAPI, scrypt KDF.
 - **Ізоляція та IPC**: обхід пісочниці, підвищення привілеїв через `w3ir://`, доступ недовірених сайтів до внутрішнього API.
 - **Цілісність оновлень**: спроби підміни інсталяторів або обхід перевірки Ed25519.

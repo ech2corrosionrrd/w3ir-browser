@@ -132,11 +132,15 @@ test('update-verify: підпис Ed25519 версії й суми', () => {
   assert.equal(u.fingerprint(pub).length, 16);
 });
 
-test('update-key: вбудований публічний ключ дійсний', () => {
+test('update-key: вбудовані публічні ключі дійсні (первинний і резервний)', () => {
   const u = src('update-verify.js');
-  const key = src('update-key.js');
-  assert.doesNotThrow(() => crypto.createPublicKey(key));
-  assert.match(u.fingerprint(key), /^[0-9a-f]{16}$/);
+  const keys = src('update-key.js');
+  const list = Array.isArray(keys) ? keys : [keys];
+  assert.ok(list.length >= 2, 'має бути принаймні два довірені публічні ключі (первинний + резервний)');
+  for (const k of list) {
+    assert.doesNotThrow(() => crypto.createPublicKey(k));
+    assert.match(u.fingerprint(k), /^[0-9a-f]{16}$/);
+  }
 });
 
 test('injection-guard: невидимі символи, теги Unicode й типові формули', () => {
@@ -158,6 +162,8 @@ test('wallet-history-evm: CSV нейтралізує формули й екра�
   assert.equal(csvCell('=HYPERLINK("x")'), '"\'=HYPERLINK(""x"")"');
   assert.equal(csvCell('+1'), "'+1");
   assert.equal(csvCell('a,b'), '"a,b"');
+  assert.equal(csvCell('   =BAD'), "'   =BAD");
+  assert.equal(csvCell('\0|calc'), "'\0|calc");
   assert.equal(csvCell(null), '');
   assert.equal(csvCell('звичайно'), 'звичайно');
   const csv = toCsv([{ time: 0, dir: 'in', kind: 'erc20', token: '0xT', symbol: '=BAD', amount: '1', peer: '0xP' }], { network: 'Ethereum' });

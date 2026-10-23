@@ -223,7 +223,11 @@ function uniquePath(dir, base) {
   throw fail('write');
 }
 
-const baseOf = (file) => path.basename(file).replace(/\.pdf$/i, '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').trim().slice(0, 60) || 'document';
+const baseOf = (file) => {
+  let clean = path.basename(file).replace(/\.pdf$/i, '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').trim().slice(0, 60) || 'document';
+  if (RESERVED.test(clean)) clean = '_' + clean;
+  return clean;
+};
 
 // ---------- стан вікна й API сторінки ----------
 const STATES = new WeakMap();

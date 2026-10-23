@@ -272,7 +272,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       case 'ghi': return gh('/issues', `https://github.com/search?q=${enc(q)}&type=issues`);
       case 'ghp': return gh('/pulls', `https://github.com/search?q=${enc(q)}&type=pullrequests`);
       case 'gha': return gh('/actions', null);
-      case 'ghc': return `https://github.com/search?q=${enc(q)}&type=code`;
+      case 'ghc': return gh('/commits', `https://github.com/search?q=${enc(q)}&type=code`);
       case 'npm': return `https://www.npmjs.com/search?q=${enc(q)}`;
       case 'mdn': return `https://developer.mozilla.org/search?q=${enc(q)}`;
       case 'yt': return `https://www.youtube.com/results?search_query=${enc(q)}`;

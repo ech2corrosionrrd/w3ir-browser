@@ -16,7 +16,8 @@ _Складено 2026-10-16 за даними GitHub (зірки, ліценз�
 | ✅ Зроблено | Irys-xyz/js-sdk, ArweaveTeam/arweave-standards | Apache-2.0 / MIT | Постійне зберігання NFT-метаданих і медіа на Arweave (`gateway.irys.xyz` + `arweave.net`), нативний протокол `ar://`, маніфести шляхів `arweave/paths` (ANS-105), вибір найшвидшого шлюзу (`probeGateways`) та валідатор Arweave NFT-метаданих у `src/arweave.js` |
 | ✅ Зроблено | anza-xyz/wallet-standard | Apache-2.0 | Офіційний стандарт інжекції гаманця Solana (`window.solana`, `window.phantom.solana`, подія `wallet-standard:register-wallet`) |
 | ✅ Зроблено | ollama/ollama, protectai/rebuff | MIT / Apache-2.0 | Локальний ШІ-помічник (`w3ir://assistant`), локальний переклад статей у Режимі читання (`src/ollama.js`) та захист від непрямого Prompt Injection (`src/injection-guard.js`) |
-| 📋 До реалізації | argotorg/sourcify (API v2) | MIT | Перевірка верифікації смартконтракту перед підписом транзакції (opt-in) |
+| ✅ Зроблено | argotorg/sourcify (API v2) | MIT | Перевірка верифікації смартконтракту перед підписом транзакції (Sourcify API v2) |
+| ✅ Зроблено | solana-labs/solana-program (Stake) | Apache-2.0 | Інструкції Stake Program, створення/делегування/деактивація стейків у Solana та захист від Stake Drainer шахрайств |
 | 📋 До реалізації | cantoo-scribe/pdf-lib (`@cantoo/pdf-lib`) | MIT | Активно підтримуваний форк `pdf-lib` для заміни `pdf-lib@1.17.1` |
 | ⏸ Відкладено | LedgerHQ/ledgerjs, trezor/connect | Apache-2.0 / MIT | Підключення апаратних гаманців через нативний WebHID сесії Electron (відкладено до появи фізичного пристрою для чесної верифікації) |
 | ⏭ Далі | castlabs/electron-releases | MIT | Форк Electron із Widevine (DRM). Потрібні акаунт EVS для підпису VMP і окреме тестування |

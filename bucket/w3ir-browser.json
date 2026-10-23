@@ -1,5 +1,5 @@
 {
-    "version": "1.42.0",
+    "version": "1.42.1",
     "description": "Chromium-based browser with built-in ad blocking, password manager, Web3 wallet, profiles and encrypted bookmark sync",
     "homepage": "https://github.com/ech2corrosionrrd/w3ir-browser",
     "license": "MIT",

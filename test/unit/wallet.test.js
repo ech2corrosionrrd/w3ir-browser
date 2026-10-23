@@ -308,4 +308,21 @@ test('solana: створення стейк-акаунта та генераці
   const signed1 = sol.signTransaction(kp.secret, kp.address, wire0);
   assert.ok(signed1 && signed1.signedWire);
   assert.equal(signed1.index, 1);
+
+  // Перевірка мультипідпису (платник + створений стейк-акаунт як extraSigner)
+  const kp0 = sol.generateKeypair();
+  const msgMulti = sol.compileMessage({
+    feePayer: kp0.address,
+    instructions: [sol.ixSystemCreateAccount({ from: kp0.address, newAccount: kp.address, lamports: 2282880n, space: 200, programId: sol.PROGRAMS.STAKE })],
+    blockhash: '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28',
+  });
+  const wireMulti = sol.unsignedWire(msgMulti);
+  const sFeePayer = sol.signTransaction(kp0.secret, kp0.address, wireMulti);
+  const sFinal = sol.signTransaction(kp.secret, kp.address, sFeePayer.signedWire);
+  const parsedMulti = sol.parseTransaction(sFinal.signedWire);
+  assert.equal(parsedMulti.sigCount, 2);
+  const sig0 = parsedMulti.wire.subarray(parsedMulti.sigOffset, parsedMulti.sigOffset + 64);
+  const sig1 = parsedMulti.wire.subarray(parsedMulti.sigOffset + 64, parsedMulti.sigOffset + 128);
+  assert.ok(sig0.some(b => b !== 0), 'підпис платника комісії присутній');
+  assert.ok(sig1.some(b => b !== 0), 'підпис додаткового підписанта (стейк-акаунта) присутній');
 });

@@ -15,7 +15,7 @@ const SPAM_NAME = /https?:|www\.|\.(com|io|net|org|xyz|app|cc|vip|top|ltd|club|s
 // Клітинка CSV: лапки подвоюються, а початок на = + - @ нейтралізується (назви токенів задають чужі люди: захист від формул у таблицях)
 function csvCell(v) {
   let t = String(v === undefined || v === null ? '' : v);
-  if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+  if (/^[\s\u0000]*[=+\-@\t\r|%]/.test(t)) t = "'" + t;
   return /[",\n\r;]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
 }
 function toCsv(items, { network = '', tr = (x) => x } = {}) {

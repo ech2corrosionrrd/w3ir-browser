@@ -1,21 +1,60 @@
 'use strict';
 // Preload для вкладок (виконується в ізольованому світі, сторінка не бачить цього коду).
-//  * на внутрішніх сторінках w3ir:// — доступ до API браузера;
-//  * на https-сторінках — безпечне автозаповнення та перехоплення форм входу для менеджера паролів.
+// Архітектура модулів із суворими ізольованими межами помилок (Error Boundaries):
+//  1. Внутрішній протокол w3ir:// — доступ до безпечного IPC API браузера.
+//  2. WebAuthn Fallback — миттєве NotAllowedError замість хвилинного таймауту на passkey-запитах.
+//  3. Менеджер паролів — автозаповнення за командою сховища та перехоплення облікових даних.
+//  4. Ін'єкції в основний світ (Main World):
+//     - Anti-fingerprint захист (шум canvas, нормалізація параметрів екрану й процесора).
+//     - EVM-провайдер (window.ethereum, EIP-1193, EIP-6963).
+//     - Solana-провайдер (window.solana, phantom, wallet-standard).
+//  5. Безпечний запуск підсистем: збій в одному модулі ніколи не блокує інші та не ламає сторінку.
+
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
-if (location.protocol === 'w3ir:') {
-  contextBridge.exposeInMainWorld('w3ir', {
-    invoke: (name, arg) => ipcRenderer.invoke('internal', name, arg),
-  });
+// Безпечний виклик підсистеми з ізоляцією винятків
+function safeRun(name, fn) {
+  try {
+    fn();
+  } catch (err) {
+    try { console.warn('[W3IR Preload]', name, err); } catch { /* ignore */ }
+  }
 }
 
-const secureContext = location.protocol === 'https:' || (location.protocol === 'http:' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1'));
+function isTopFrame() {
+  try {
+    return window === window.top;
+  } catch {
+    return false;
+  }
+}
 
-// WebAuthn (passkeys, Windows Hello, ключі безпеки) у цій збірці Electron недоступний: запит без відповіді висів би до таймауту
-// сайту (часто хвилину), а потім завершувався NotAllowedError. Тому відхиляємо одразу (сайт миттєво запропонує пароль)
-// і показуємо підказку. Фонові запити passkey-автозаповнення (mediation: 'conditional') не чіпаємо.
-if (secureContext && window === window.top) {
+function isSecureContext() {
+  const p = location.protocol;
+  const h = location.hostname;
+  return p === 'https:' || (p === 'http:' && (h === 'localhost' || h === '127.0.0.1'));
+}
+
+// ============================================================================
+// 1. ВНУТРІШНІЙ ПРОТОКОЛ W3IR://
+// ============================================================================
+function setupInternalApi() {
+  if (location.protocol === 'w3ir:') {
+    contextBridge.exposeInMainWorld('w3ir', {
+      invoke: (name, arg) => ipcRenderer.invoke('internal', name, arg),
+    });
+  }
+}
+
+// ============================================================================
+// 2. WEBAUTHN FAST-FAIL (PASSKEYS & SECURITY KEYS)
+// ============================================================================
+// WebAuthn у цій збірці Electron недоступний: запит без відповіді висів би до таймауту
+// сайту (часто хвилину), а потім завершувався NotAllowedError. Тому відхиляємо одразу
+// (сайт миттєво запропонує пароль) і показуємо підказку. Фонові запити
+// passkey-автозаповнення (mediation: 'conditional') не чіпаємо.
+function setupWebAuthnShim() {
+  if (!isSecureContext() || !isTopFrame()) return;
   try {
     webFrame.executeJavaScript(`(() => { const c = navigator.credentials; if (!c) return;
       for (const m of ['create', 'get']) { const orig = c[m].bind(c);
@@ -30,9 +69,14 @@ if (secureContext && window === window.top) {
   } catch { /* не критично */ }
 }
 
-if (secureContext && window === window.top) {
+// ============================================================================
+// 3. МЕНЕДЖЕР ПАРОЛІВ (АВТОЗАПОВНЕННЯ ТА ПЕРЕХОПЛЕННЯ)
+// ============================================================================
+function setupPasswordManager() {
+  if (!isSecureContext() || !isTopFrame()) return;
+
   const isVisible = (el) => {
-    if (!el.isConnected || el.disabled || el.type === 'hidden') return false;
+    if (!el || !el.isConnected || el.disabled || el.type === 'hidden') return false;
     const r = el.getBoundingClientRect();
     if (r.width < 4 || r.height < 4) return false;
     const cs = getComputedStyle(el);
@@ -40,17 +84,23 @@ if (secureContext && window === window.top) {
     if (r.right < 0 || r.bottom < 0 || r.left > innerWidth + 50 || r.top > document.documentElement.scrollHeight) return false;
     return true;
   };
+
   const setValue = (el, value) => {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    if (!desc || !desc.set) return;
     el.focus();
-    setter.call(el, value);
+    desc.set.call(el, value);
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   };
-  const textInputs = (root) => [...root.querySelectorAll('input')].filter(i =>
-    ['text', 'email', 'tel', ''].includes((i.getAttribute('type') || '').toLowerCase()) && isVisible(i));
 
-  // ---------- автозаповнення: лише за командою браузера, лише для точного збігу origin ----------
+  const textInputs = (root) => {
+    if (!root || typeof root.querySelectorAll !== 'function') return [];
+    return [...root.querySelectorAll('input')].filter(i =>
+      ['text', 'email', 'tel', ''].includes((i.getAttribute('type') || '').toLowerCase()) && isVisible(i));
+  };
+
+  // Автозаповнення: лише за командою браузера, лише для точного збігу origin
   ipcRenderer.on('vault:fill', (_e, msg) => {
     if (!msg || msg.origin !== location.origin) return;
     const pw = [...document.querySelectorAll('input[type=password]')].find(isVisible);
@@ -60,17 +110,19 @@ if (secureContext && window === window.top) {
       const all = textInputs(scope);
       user = all.filter(i => pw.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_PRECEDING).pop() || all[0] || null;
     } else {
-      // двокрокова форма: спочатку лише логін
+      // Двокрокова форма: спочатку лише логін
       user = textInputs(document).find(i => /user|login|email|name/i.test(i.name + i.id + i.autocomplete)) || textInputs(document)[0] || null;
     }
     if (user && msg.username) setValue(user, String(msg.username));
     if (pw && msg.password) setValue(pw, String(msg.password));
   });
 
-  // ---------- перехоплення входу (лише справжні дії користувача) ----------
+  // Перехоплення входу (лише справжні дії користувача)
   let last = '';
   let lastAt = 0;
+
   const collect = (root) => {
+    if (!root || typeof root.querySelectorAll !== 'function') return null;
     const pws = [...root.querySelectorAll('input[type=password]')].filter(i => isVisible(i) && i.value);
     if (!pws.length || pws.length > 3) return null;
     let password;
@@ -81,6 +133,7 @@ if (secureContext && window === window.top) {
     const username = users.length ? users[users.length - 1].value : '';
     return { username: username.slice(0, 512), password: password.slice(0, 1024) };
   };
+
   const report = (root) => {
     const c = collect(root);
     if (!c) return;
@@ -89,12 +142,17 @@ if (secureContext && window === window.top) {
     last = sig; lastAt = Date.now();
     ipcRenderer.send('vault:captured', c);
   };
-  document.addEventListener('submit', (e) => { if (e.isTrusted && e.target instanceof HTMLFormElement) report(e.target); }, true);
+
+  document.addEventListener('submit', (e) => {
+    if (e.isTrusted && e.target instanceof HTMLFormElement) report(e.target);
+  }, true);
+
   document.addEventListener('keydown', (e) => {
     if (!e.isTrusted || e.key !== 'Enter') return;
     const t = e.target;
     if (t instanceof HTMLInputElement && t.type === 'password') report(t.form || document);
   }, true);
+
   document.addEventListener('click', (e) => {
     if (!e.isTrusted || !(e.target instanceof Element)) return;
     const b = e.target.closest('button:not([type]), button[type=submit], input[type=submit]');
@@ -102,10 +160,13 @@ if (secureContext && window === window.top) {
   }, true);
 }
 
-// ---------- провайдер гаманця (EIP-1193 + EIP-6963) ----------
-// Код провайдера виконується в основному світі сторінки через contextBridge.executeInMainWorld: міст передається
-// аргументом і ніде не лишається в глобальному об'єкті, тому сторінка бачить лише window.ethereum.
-// Функція нижче серіалізується й не може посилатися на змінні зовнішньої області видимості.
+// ============================================================================
+// 4. ІН'ЄКЦІЇ В ОСНОВНИЙ СВІТ (MAIN WORLD)
+// ============================================================================
+// Функції нижче серіалізуються через contextBridge.executeInMainWorld і виконуються
+// в контексті веб-сторінки. Вони НЕ мають доступу до замикань цього файлу.
+
+// --- 4.1. EVM-провайдер (EIP-1193 + EIP-6963) ---
 function installProvider(b) {
   if (!b || window.ethereum) return;
   const listeners = {};
@@ -144,9 +205,7 @@ function installProvider(b) {
   window.dispatchEvent(new Event('ethereum#initialized'));
 }
 
-// ---------- провайдер Solana (window.solana у стилі Phantom + реєстрація за wallet-standard) ----------
-// Як і installProvider, функція виконується в основному світі й не може посилатися на зовнішні змінні.
-// Ключі й підписи — лише в головному процесі; тут тільки перетворення форматів транзакцій.
+// --- 4.2. Solana-провайдер (Phantom compat + Wallet Standard) ---
 function installSolana(b) {
   if (!b) return;
   const listeners = {};
@@ -237,7 +296,7 @@ function installSolana(b) {
 
   const provider = {
     isW3IR: true,
-    isPhantom: true, // сумісність: багато сайтів шукають Solana-гаманець лише за window.solana.isPhantom або window.phantom.solana
+    isPhantom: true, // сумісність: багато dApps шукають Solana-гаманець лише за window.solana.isPhantom або window.phantom.solana
     get publicKey() { return pk; },
     get isConnected() { return !!account; },
     connect, disconnect, signTransaction: (tx) => signTransaction(tx), signAllTransactions, signAndSendTransaction: (tx, o) => signAndSendTransaction(tx, o), signMessage,
@@ -261,7 +320,7 @@ function installSolana(b) {
   if (!window.solana) Object.defineProperty(window, 'solana', { value: provider, writable: false, configurable: false });
   if (!window.phantom) Object.defineProperty(window, 'phantom', { value: Object.freeze({ solana: provider }), writable: false, configurable: false });
 
-  // wallet-standard
+  // wallet-standard інтеграція
   const sameAccount = (a) => { if (!account || !a || a.address !== account.address) throw Object.assign(new Error('Account is not connected'), { code: 4100 }); };
   const firstSig = (wireB64) => sigsOf(fromB64(wireB64))[0];
   const icon = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="14" fill="#5a8dee"/><path d="M14 22h36v24H14z" fill="#fff"/><circle cx="42" cy="34" r="4" fill="#5a8dee"/></svg>');
@@ -281,6 +340,7 @@ function installSolana(b) {
   try { window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', { detail: (api) => { try { api.register(wallet); } catch (err) { console.error(err); } } })); } catch { /* ignore */ }
 }
 
+// --- 4.3. Anti-Fingerprinting (Canvas noise + Screen/Navigator rounding) ---
 function installFingerprintProtection() {
   try {
     const r100 = (n) => Math.max(100, Math.round(Number(n || 0) / 100) * 100);
@@ -345,22 +405,51 @@ function installFingerprintProtection() {
   } catch { /* ignore */ }
 }
 
-if (secureContext && window === window.top) {
-  const init = ipcRenderer.sendSync('wallet:init');
-  if (init && init.fingerprint) {
+// ============================================================================
+// 5. BOOTSTRAP: ІНІЦІАЛІЗАЦІЯ ШИЛДІВ ТА WEB3
+// ============================================================================
+function setupWeb3AndProtection() {
+  if (!isSecureContext() || !isTopFrame()) return;
+
+  let init = null;
+  try {
+    init = ipcRenderer.sendSync('wallet:init');
+  } catch {
+    return;
+  }
+  if (!init) return;
+
+  if (init.fingerprint) {
     try {
       contextBridge.executeInMainWorld({ func: installFingerprintProtection, args: [] });
     } catch { /* ignore */ }
   }
-  if (init && init.enabled) {
+
+  if (init.enabled) {
     const bridge = {
       request: async (args) => {
         if (!args || typeof args.method !== 'string') return { error: { code: -32600, message: 'Invalid request' } };
         return ipcRenderer.invoke('wallet:request', { method: args.method, params: args.params });
       },
-      onEvent: (cb) => { ipcRenderer.on('wallet:event', (_e, ev, data) => { try { cb(ev, data); } catch { /* ignore */ } }); },
+      onEvent: (cb) => {
+        ipcRenderer.on('wallet:event', (_e, ev, data) => {
+          try { cb(ev, data); } catch { /* ignore */ }
+        });
+      },
     };
-    contextBridge.executeInMainWorld({ func: installProvider, args: [{ chainId: init.chainId, ...bridge }] });
-    contextBridge.executeInMainWorld({ func: installSolana, args: [bridge] });
+    try {
+      contextBridge.executeInMainWorld({ func: installProvider, args: [{ chainId: init.chainId, ...bridge }] });
+    } catch { /* ignore */ }
+    try {
+      contextBridge.executeInMainWorld({ func: installSolana, args: [bridge] });
+    } catch { /* ignore */ }
   }
 }
+
+// ============================================================================
+// ЗАПУСК УСІХ ПІДСИСТЕМ З ІЗОЛЯЦІЄЮ ПОМИЛОК
+// ============================================================================
+safeRun('w3ir-internal', setupInternalApi);
+safeRun('webauthn-shim', setupWebAuthnShim);
+safeRun('password-vault', setupPasswordManager);
+safeRun('web3-and-shield', setupWeb3AndProtection);

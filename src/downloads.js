@@ -9,12 +9,23 @@ const pdf = require('./pdf');
 const docview = require('./docview');
 
 // Розширення, що можуть запустити код (програми, скрипти, ярлики, інсталятори, образи дисків)
-const RISKY = /\.(exe|msi|msp|msix|msixbundle|appx|appxbundle|bat|cmd|com|scr|pif|ps1|psm1|vbs|vbe|js|jse|wsf|wsh|hta|jar|lnk|url|reg|dll|cpl|application|gadget|iso|img|vhd|vhdx)$/i;
+const RISKY = /\.(exe|msi|msp|msix|msixbundle|appx|appxbundle|bat|cmd|com|scr|pif|ps1|psm1|vbs|vbe|js|jse|wsf|wsh|hta|jar|lnk|url|reg|dll|cpl|application|gadget|iso|img|vhd|vhdx|msc|inf|diagcab)$/i;
+const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\.|$)/i;
+
+function sanitizeFilename(filename) {
+  let name = path.basename(String(filename || '')).replace(/[\0\r\n\t]/g, '').trim();
+  if (!name || name === '.' || name === '..') name = 'download';
+  const ext = path.extname(name);
+  let base = path.basename(name, ext);
+  if (RESERVED.test(base)) base = '_' + base;
+  return base + ext;
+}
 
 function uniquePath(dir, filename) {
-  const ext = path.extname(filename);
-  const base = path.basename(filename, ext);
-  let p = path.join(dir, filename);
+  const safeName = sanitizeFilename(filename);
+  const ext = path.extname(safeName);
+  const base = path.basename(safeName, ext);
+  let p = path.join(dir, safeName);
   for (let i = 1; fs.existsSync(p); i++) p = path.join(dir, `${base} (${i})${ext}`);
   return p;
 }

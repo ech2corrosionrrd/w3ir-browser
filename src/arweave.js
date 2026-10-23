@@ -150,7 +150,9 @@ async function fetchMetadata(txId, fetchFn = globalThis.fetch) {
   const { response, gateway } = await fetchWithFallback(txId, '', {}, fetchFn);
   const len = Number((response.headers && typeof response.headers.get === 'function' && response.headers.get('content-length')) || 0);
   if (len > 2 * 1024 * 1024) throw new Error('Arweave metadata payload too large');
-  const json = await response.json();
+  const text = await response.text();
+  if (text.length > 2 * 1024 * 1024) throw new Error('Arweave metadata payload too large');
+  const json = JSON.parse(text);
   const normalized = normalizeNftMetadata(json, txId, gateway);
 
   metadataCache.set(txId, normalized);
