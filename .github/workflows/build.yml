@@ -1,7 +1,7 @@
 name: Build
 # Збірка інсталятора й портативної версії на сервері GitHub (прозоро й відтворювано з вихідного коду). Це не випуск: файли лише
 # зберігаються як артефакт. Випуск (підпис оновлення ключем власника й публікація) виконує `npm run release:ci` на комп'ютері власника,
-# бо приватний ключ підпису оновлень не лежить на сервері. Підпис коду видавця (SignPath Foundation) підключається після схвалення заявки.
+# бо приватний ключ підпису оновлень не лежить на сервері. Підпис коду видавця (Authenticode) вмикається, лише якщо задано секрети WIN_CSC_LINK і WIN_CSC_KEY_PASSWORD; без них збірка лишається непідписаною.
 on:
   workflow_dispatch:
   push:
@@ -23,7 +23,30 @@ jobs:
       - name: Завантажити Electron (скрипти встановлення вимкнено вище)
         run: node node_modules/electron/install.js
       - run: npm run lint
+      - name: Підготувати підпис коду (Authenticode)
+        id: sign
+        shell: bash
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          if [ -n "$WIN_CSC_LINK" ] && [ -n "$WIN_CSC_KEY_PASSWORD" ]; then
+            echo "::add-mask::$WIN_CSC_KEY_PASSWORD"
+            echo "CSC_LINK=$WIN_CSC_LINK" >> "$GITHUB_ENV"
+            echo "CSC_KEY_PASSWORD=$WIN_CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Секретів підпису немає: збірка буде непідписаною."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+      # electron-builder підписує інсталятор і портативну версію, а latest.yml рахує вже від підписаних файлів.
       - run: npm run dist
+      - name: Перевірити підпис Authenticode
+        if: steps.sign.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          $bad = Get-ChildItem dist/*.exe | ForEach-Object { Get-AuthenticodeSignature $_.FullName } | Where-Object { $_.Status -ne 'Valid' }
+          if ($bad) { $bad | Format-List Path, Status, StatusMessage; throw 'Підпис Authenticode недійсний.' }
       - name: Контрольні суми
         shell: bash
         run: cd dist && sha256sum *.exe latest.yml | tee SHA256SUMS.txt
