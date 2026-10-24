@@ -405,3 +405,41 @@ test('evm: describeCall для transfer повертає суму й отрим�
   assert.equal(d.spend.amount, 5n);
   assert.equal(describeCall('0x').spend, undefined);
 });
+
+test('solana: TransferWithSeed, CreateAccountWithSeed, довговічний nonce, Token-2022 (комісія, CPI Guard, конфіденційність)', () => {
+  const sol = src('solana.js');
+  const my = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+  const other = 'CuieVDEDtLo7FypA9SbLM9saXFdb1dsshveFi796umn7';
+  const bh = '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28';
+  const acc = (pubkey, isSigner = false) => ({ pubkey, isSigner, isWritable: true });
+  const u32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32LE(n); return b; };
+  const u64 = (n) => { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
+  const run = (ix) => sol.describe(sol.parseMessage(sol.compileMessage({ feePayer: my, instructions: [ix], blockhash: bh })), [my]);
+  const sys = (data, keys) => ({ programId: sol.PROGRAMS.SYSTEM, keys, data });
+
+  const tws = run(sys(Buffer.concat([u32(11), u64(2_000_000_000), u64(0), Buffer.alloc(32)]), [acc(other), acc(my, true), acc(other)]));
+  assert.equal(tws.outgoing, 2_000_000_000n, 'TransferWithSeed з вашим базовим ключем враховується в лімітах');
+  assert.ok(tws.lines.some(l => /2 SOL/.test(l[1])), 'сума TransferWithSeed показана');
+
+  const cws = run(sys(Buffer.concat([u32(3), Buffer.alloc(32), u64(4), Buffer.from('seed'), u64(1_500_000_000), u64(0), Buffer.alloc(32)]), [acc(my, true), acc(other), acc(my, true)]));
+  assert.equal(cws.outgoing, 1_500_000_000n, 'CreateAccountWithSeed фінансується з вашого рахунку');
+
+  const nonce = (authority) => run(sys(u32(4), [acc(other), acc(my), acc(authority, true)]));
+  assert.equal(nonce(other).danger, true, 'довговічний nonce чужого акаунта — небезпека');
+  assert.equal(nonce(my).danger, false);
+  assert.ok(nonce(my).warnings.some(w => /не втрачає чинності/.test(w)), 'навіть свій довговічний nonce має попередження');
+
+  const t22 = (data, keys) => ({ programId: sol.PROGRAMS.TOKEN22, keys, data });
+  const withFee = run(t22(Buffer.concat([Buffer.from([26, 1]), u64(100), Buffer.from([6]), u64(1)]), [acc(other), acc(other), acc(other), acc(my, true)]));
+  assert.equal(withFee.lines[0][0], 'Токени підуть з ваших акаунтів', 'TransferCheckedWithFee видно як вихід токенів');
+  assert.equal(run(t22(Buffer.from([34, 1]), [acc(other), acc(my, true)])).danger, true, 'вимкнення CPI Guard — небезпека');
+  assert.equal(run(t22(Buffer.from([34, 0]), [acc(other), acc(my, true)])).danger, false, 'увімкнення CPI Guard — ні');
+  assert.ok(run(t22(Buffer.from([27, 0]), [acc(other)])).warnings.some(w => /Конфіденційні/.test(w)));
+});
+
+test('evm: describeCall показує кількість для ERC-1155 safeTransferFrom', () => {
+  const { describeCall, IFACE } = src('wallet-evm-core.js');
+  const a = '0x1111111111111111111111111111111111111111', b = '0x2222222222222222222222222222222222222222';
+  const data = IFACE.encodeFunctionData('safeTransferFrom(address,address,uint256,uint256,bytes)', [a, b, 7n, 25n, '0x']);
+  assert.ok(describeCall(data).lines.some(l => l[1] === '#7 × 25'));
+});

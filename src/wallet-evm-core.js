@@ -140,7 +140,7 @@ function describeCall(data, ti) {
       case 'transferFrom':
       case 'safeTransferFrom':
         out.token = parsed.name === 'transferFrom';
-        out.lines.push(['Дія', 'Переказ токена/NFT'], ['Від', getAddress(a[0])], ['Кому', getAddress(a[1])], ['Токен/кількість', ti && parsed.name === 'transferFrom' ? human(a[2]) : a[2].toString()]);
+        out.lines.push(['Дія', 'Переказ токена/NFT'], ['Від', getAddress(a[0])], ['Кому', getAddress(a[1])], ['Токен/кількість', ti && parsed.name === 'transferFrom' ? human(a[2]) : a.length >= 5 ? `#${a[2]} × ${a[3]}` : a[2].toString()]);
         break;
       default:
         break;

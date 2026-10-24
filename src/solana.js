@@ -454,15 +454,27 @@ function describe(parsed, ours = []) {
         } else if (tag === 8 || tag === 9) {
           add(`Виділення місця в акаунті ${who(key(ins, 0))}`);
         } else if (tag === 11 && d.length >= 12) {
-          add(`Переказ SOL (TransferWithSeed): ${who(key(ins, 0))} → ${who(key(ins, 2))}`);
+          const amount = d.readBigUInt64LE(4);
+          add(`Переказ ${sol(amount)} SOL (TransferWithSeed): ${who(key(ins, 0))} → ${who(key(ins, 2))}`);
           warn('Переказ із похідного акаунта (WithSeed): перевірте суму й отримувача.', false);
-        } else if (tag === 4 || tag === 5 || tag === 6 || tag === 7 || tag === 12 || tag === 13) {
+          if (mine.has(key(ins, 1))) outgoing += amount; // базовий ключ — ваш, отже акаунт керується вами
+        } else if (tag === 3 && d.length >= 44) {
+          const seedLen = Number(d.readBigUInt64LE(36));
+          if (seedLen > 32 || d.length < 44 + seedLen + 8) throw new Error('bad seed');
+          const amount = d.readBigUInt64LE(44 + seedLen);
+          add(`Створення акаунта ${short(key(ins, 1))} (CreateAccountWithSeed): ${sol(amount)} SOL`);
+          if (mine.has(key(ins, 0))) outgoing += amount;
+        } else if (tag === 4) {
+          add('Довговічний nonce (AdvanceNonce): транзакція не втрачає чинності');
+          warn('Транзакція з довговічним nonce не втрачає чинності: той, хто її отримає, зможе надіслати її в будь-який момент пізніше. Підписуйте лише на довіреному сайті.', !mine.has(key(ins, 2)));
+        } else if (tag === 5 || tag === 6 || tag === 7 || tag === 12 || tag === 13) {
           add(`Операція з nonce-акаунтом (System ${tag})`);
         } else add(`System Program: інструкція ${tag}`);
       } else if (pid === P.TOKEN || pid === P.TOKEN22) {
         const t = d[0];
         const prog = pid === P.TOKEN22 ? 'Token-2022' : 'SPL Token';
-        if ((t === 3 && d.length >= 9 && mine.has(key(ins, 2))) || (t === 12 && d.length >= 10 && mine.has(key(ins, 3)))) tokensOut++;
+        const withFee = pid === P.TOKEN22 && t === 26 && d[1] === 1 && d.length >= 19; // TransferCheckedWithFee
+        if ((t === 3 && d.length >= 9 && mine.has(key(ins, 2))) || (t === 12 && d.length >= 10 && mine.has(key(ins, 3))) || (withFee && mine.has(key(ins, 3)))) tokensOut++;
         if (t === 3 && d.length >= 9) add(`Переказ токенів (${d.readBigUInt64LE(1)} у мінімальних одиницях): ${short(key(ins, 0))} → ${short(key(ins, 1))}, підпис ${who(key(ins, 2))}`);
         else if (t === 12 && d.length >= 10) add(`Переказ токенів ${formatUnits(d.readBigUInt64LE(1), d[9])} (mint ${short(key(ins, 1))}): ${short(key(ins, 0))} → ${short(key(ins, 2))}, підпис ${who(key(ins, 3))}`);
         else if ((t === 4 && d.length >= 9) || (t === 13 && d.length >= 10)) {
@@ -482,6 +494,14 @@ function describe(parsed, ours = []) {
         else if (t === 7 || t === 14) add(`Випуск токенів (MintTo, ${prog})`);
         else if (t === 1 || t === 16 || t === 18) add(`Ініціалізація токен-акаунта (${prog})`);
         else if (t === 17) add('Синхронізація wSOL (SyncNative)');
+        else if (withFee) add(`Переказ токенів ${formatUnits(d.readBigUInt64LE(2), d[10])} із комісією ${formatUnits(d.readBigUInt64LE(11), d[10])} (mint ${short(key(ins, 1))}): ${short(key(ins, 0))} → ${short(key(ins, 2))}, підпис ${who(key(ins, 3))}`);
+        else if (pid === P.TOKEN22 && t === 34 && d[1] === 1) {
+          add('Вимкнення CPI Guard для токен-акаунта');
+          warn('Інструкція вимикає CPI Guard: захист, що не дає програмам витрачати токени з акаунта без вашого прямого підпису. Підтверджуйте, лише якщо повністю розумієте наслідки.', true);
+        } else if (pid === P.TOKEN22 && t === 27) {
+          add('Конфіденційна операція з токенами (Token-2022)');
+          warn('Конфіденційні операції приховують суми: гаманець не може показати, що саме відбудеться. Підтверджуйте лише на довіреному сайті.', false);
+        }
         else add(`${prog}: інструкція ${t}`);
       } else if (pid === P.ATA) {
         add(`Створення токен-акаунта ${short(key(ins, 1))} для ${who(key(ins, 2))} (mint ${short(key(ins, 3))})`);

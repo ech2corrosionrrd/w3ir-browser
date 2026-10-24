@@ -5,6 +5,7 @@ const { Mnemonic } = require('ethers');
 const S = require('./solana');
 const { t: tr } = require('./i18n');
 const { csvCell } = require('./wallet-history-evm');
+const { truncationWarning } = require('./wallet-signguard');
 
 function solToCsv(items, { cluster = '', tr: translate = (x) => x } = {}) {
   const head = ['Час (UTC)', 'Мережа', 'Статус', 'Зміна SOL', 'Токени SPL', 'Транзакція'];
@@ -521,10 +522,11 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     if (looksLikeTx) throw new RpcError(-32602, 'Дані схожі на транзакцію — підпис як «повідомлення» заборонено (використовуйте signTransaction)');
     let text = null;
     try { const t = new TextDecoder('utf-8', { fatal: true }).decode(bytes); if (/^[\P{C}\n\r\t]*$/u.test(t)) text = t; } catch { /* не текст */ }
+    const cut = text !== null ? truncationWarning(text.length, 1500) : truncationWarning(bytes.length, 150, true);
     await this.approve(win, origin, sameTab, {
-      kind: 'sign', title: tr('Підпис повідомлення'),
+      kind: 'sign', title: tr('Підпис повідомлення'), danger: !!cut,
       lines: [['Рахунок Solana', address], ['Повідомлення', text !== null ? clip(text, 1500) : bytes.toString('hex').slice(0, 300)]],
-      warnings: text === null ? ['Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.'] : [],
+      warnings: [...(text === null ? ['Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.'] : []), ...(cut ? [cut] : [])],
     });
     const kp = this._solKeypair(address);
     const signature = S.sign(kp.secret, bytes);
