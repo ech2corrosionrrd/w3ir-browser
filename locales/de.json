@@ -138,6 +138,7 @@
  "✔ {0} мс · {1} інстр.": "✔ {0} ms · {1} Werkzeuge",
  "✔ Сервер відповідає ({0} мс), інструментів: {1}.": "✔ Server antwortet ({0} ms), Werkzeuge: {1}.",
  "✘ {0} Перевірте порт, файрвол і чи ввімкнено перемикач.": "✘ {0} Prüfen Sie den Port, die Firewall und ob der Schalter eingeschaltet ist.",
+ "✦ Помічник": "✦ Assistent",
  "🌐 WebRTC (захист IP)": "🌐 WebRTC (IP-Schutz)",
  "🍪 Сторонні cookie": "🍪 Drittanbieter-Cookies",
  "🎭 Захист від відбитків": "🎭 Fingerprinting-Schutz",

@@ -61,7 +61,7 @@ button:hover:not(:disabled) { background: rgba(255,255,255,.07); }
 .menu { border-radius: 12px; border-color: var(--line-soft); }
 .menu button:hover { background: var(--hover); }
 
-/* кнопки з макета: «Приспати неактивні» (смарагдова) і Copilot (блакитна) */
+/* кнопки з макета: «Приспати неактивні» (смарагдова) і кнопка помічника (блакитна) */
 #sleepall { margin: 0 8px 3px auto; padding: 0 10px; height: 24px; flex: none; font-size: 12px; font-weight: 500; color: var(--emerald);
   border: 1px solid rgba(45,212,191,.3); background: rgba(45,212,191,.1); white-space: nowrap; }
 #sleepall:hover:not(:disabled) { background: rgba(45,212,191,.2); }
