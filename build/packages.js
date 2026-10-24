@@ -57,6 +57,8 @@ fs.writeFileSync(path.join(choco, 'w3ir-browser.nuspec'), `<?xml version="1.0" e
     <title>W3IR Browser</title>
     <authors>W3IR</authors>
     <owners>ech2corrosionrrd</owners>
+    <copyright>Copyright (c) 2026 W3IR</copyright>
+    <iconUrl>https://raw.githubusercontent.com/${REPO}/e5f32a4e08e23714983a2d8b23cdf4b083957c6f/build/brand/icon-512.png</iconUrl>
     <projectUrl>https://github.com/${REPO}</projectUrl>
     <licenseUrl>https://github.com/${REPO}/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -65,7 +67,7 @@ fs.writeFileSync(path.join(choco, 'w3ir-browser.nuspec'), `<?xml version="1.0" e
     <releaseNotes>https://github.com/${REPO}/blob/main/CHANGELOG.md</releaseNotes>
     <tags>browser chromium privacy adblock web3 wallet password-manager</tags>
     <summary>Chromium-based browser with built-in ad blocking, password manager and Web3 wallet</summary>
-    <description>W3IR Browser is a Windows browser on Chromium/Electron with built-in ad and tracker blocking, a local encrypted password manager with 2FA, a Web3 wallet (EVM and Solana), profiles and encrypted bookmark sync. No telemetry. Installs per user.</description>
+    <description>W3IR Browser is a Windows browser on Chromium/Electron with built-in ad and tracker blocking, a local encrypted password manager with 2FA, a Web3 wallet (EVM and Solana), profiles and encrypted bookmark sync. No telemetry. Installs per user. Note: the installer is not code-signed yet, so Windows SmartScreen may show a warning; verify the SHA-256 checksum published with each release.</description>
   </metadata>
   <files>
     <file src="tools\\**" target="tools" />
