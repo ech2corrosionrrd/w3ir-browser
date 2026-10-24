@@ -43,19 +43,22 @@ if (ci > 0) fetchCiBuild(process.argv[ci + 1] || fail('Вкажіть репоз
 
 const version = require('../package.json').version;
 if (!fs.existsSync(keyFile)) fail('Немає приватного ключа підпису (build/keys/update-private.pem). Запустіть: npm run keygen');
-const latestFile = path.join(dist, 'latest.yml');
-if (!fs.existsSync(latestFile)) fail('dist/latest.yml не знайдено. Спершу виконайте збірку: npm run dist');
+// Для пре-релізу (1.2.3-beta.1) electron-builder пише <канал>.yml (beta.yml), для стабільного — latest.yml
+const channel = /-([a-z]+)/i.exec(version);
+const channelFile = channel ? channel[1].toLowerCase() + '.yml' : 'latest.yml';
+const latestFile = path.join(dist, channelFile);
+if (!fs.existsSync(latestFile)) fail(`dist/${channelFile} не знайдено. Спершу виконайте збірку: npm run dist`);
 
 const info = yaml.load(fs.readFileSync(latestFile, 'utf8'));
-if (info.version !== version) fail(`Версія в latest.yml (${info.version}) не збігається з package.json (${version}). Перезберіть: npm run dist`);
+if (info.version !== version) fail(`Версія в ${channelFile} (${info.version}) не збігається з package.json (${version}). Перезберіть: npm run dist`);
 const entry = (info.files || []).find(f => /\.exe$/i.test(f.url));
-if (!entry) fail('У latest.yml немає .exe');
+if (!entry) fail(`У ${channelFile} немає .exe`);
 const installer = path.join(dist, entry.url);
 if (!fs.existsSync(installer)) fail('Не знайдено інсталятор ' + installer);
 
 (async () => {
   const actual = await sha512File(installer);
-  if (actual !== entry.sha512) fail('SHA-512 інсталятора не збігається з latest.yml — збірку змінено після створення.');
+  if (actual !== entry.sha512) fail('SHA-512 інсталятора не збігається з ' + channelFile + ' — збірку змінено після створення.');
   const signature = sign(fs.readFileSync(keyFile, 'utf8'), version, actual);
   if (!verify(publicPem, version, actual, signature)) fail('Підпис не перевіряється вбудованим публічним ключем: приватний ключ не відповідає src/update-key.js.');
   info.w3irSignature = signature;
@@ -63,7 +66,7 @@ if (!fs.existsSync(installer)) fail('Не знайдено інсталятор 
 
   fs.rmSync(out, { recursive: true, force: true });
   fs.mkdirSync(out, { recursive: true });
-  fs.writeFileSync(path.join(out, 'latest.yml'), yaml.dump(info, { lineWidth: -1 }));
+  fs.writeFileSync(path.join(out, channelFile), yaml.dump(info, { lineWidth: -1 }));
   fs.copyFileSync(installer, path.join(out, entry.url));
   const blockmap = installer + '.blockmap';
   if (fs.existsSync(blockmap)) fs.copyFileSync(blockmap, path.join(out, entry.url + '.blockmap'));
@@ -73,7 +76,7 @@ if (!fs.existsSync(installer)) fail('Не знайдено інсталятор 
   const crypto = require('crypto');
   const sumLines = [];
   for (const f of fs.readdirSync(out)) {
-    if (f.endsWith('.exe') || f === 'latest.yml') {
+    if (f.endsWith('.exe') || f === channelFile) {
       const h = crypto.createHash('sha256').update(fs.readFileSync(path.join(out, f))).digest('hex');
       sumLines.push(`${h}  ${f}`);
     }
