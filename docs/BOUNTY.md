@@ -1,6 +1,6 @@
 # W3IR Browser — Bug Bounty Policy
 
-**Status:** Active  
+**Status:** Active, within the available quarterly budget  
 **Program Contact:** GitHub Private Vulnerability Reporting / Security Advisory  
 **Primary Target:** Native Web3 Wallet, Cryptographic Key Vault, Context Isolation, IPC Security, and Updater Verification.
 
@@ -50,7 +50,37 @@ We offer recognition in our security Hall of Fame (release notes & `SECURITY.md`
 
 ---
 
-## 4. How to Submit
+## 4. Testing Rules
+
+- Test only against your own accounts, wallets and devices. For transactions use test networks (Sepolia, Solana devnet) or your own funds in minimal amounts.
+- Do not access, modify or destroy data belonging to other users.
+- No denial-of-service, social engineering, phishing of users or maintainers, or physical attacks.
+- Do not disclose details before the fix is released or 90 days have passed, whichever comes first by agreement.
+
+## 5. Payout Terms
+
+- A reward is paid only for the first complete report of a vulnerability within scope. Duplicates receive Hall of Fame attribution.
+- Severity is determined by the project team using CVSS v3.1 together with real-world impact. The amounts in the table are indicative, not guaranteed.
+- Payment is made in USDC, SOL or ETH after the fix is released. You provide the wallet address; we do not collect identity documents.
+- You are responsible for any taxes in your own jurisdiction.
+- The program may be changed or suspended at any time; reports already submitted are handled under the terms in force on the submission date.
+
+### Not Considered Vulnerabilities
+- Missing headers or flags with no practical impact.
+- Issues that require an already compromised device or administrator rights.
+- Automated scanner output without a working PoC.
+- Vulnerabilities in third-party dependencies without a demonstrated impact on W3IR.
+
+## 6. Handling Process
+
+1. Receipt through a private GitHub Security Advisory; first response within 48 hours.
+2. Confirmation and severity assessment within 5 business days.
+3. Fix in a private branch, patch release, then publication of the Advisory with credit.
+4. Payment within 14 days after the patch is published.
+
+---
+
+## 7. How to Submit
 
 1. Navigate to the GitHub repository: `https://github.com/ech2corrosionrrd/w3ir-browser/security/advisories/new`
 2. Provide a clear Proof-of-Concept (PoC) with step-by-step reproduction instructions.
