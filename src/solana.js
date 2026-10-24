@@ -427,7 +427,7 @@ const AUTHORITY_TYPES = ['право мінтингу', 'право заморо
 function describe(parsed, ours = []) {
   const mine = new Set(ours);
   const lines = [], warnings = [];
-  let danger = false, outgoing = 0n;
+  let danger = false, outgoing = 0n, tokensOut = 0;
   const warn = (t, isDanger) => { if (!warnings.includes(t)) warnings.push(t); if (isDanger) danger = true; };
   const key = (ins, i) => parsed.keys[ins.accounts[i]];
   const who = (a) => (mine.has(a) ? `${short(a)} (ваш рахунок)` : a || '?');
@@ -462,6 +462,7 @@ function describe(parsed, ours = []) {
       } else if (pid === P.TOKEN || pid === P.TOKEN22) {
         const t = d[0];
         const prog = pid === P.TOKEN22 ? 'Token-2022' : 'SPL Token';
+        if ((t === 3 && d.length >= 9 && mine.has(key(ins, 2))) || (t === 12 && d.length >= 10 && mine.has(key(ins, 3)))) tokensOut++;
         if (t === 3 && d.length >= 9) add(`Переказ токенів (${d.readBigUInt64LE(1)} у мінімальних одиницях): ${short(key(ins, 0))} → ${short(key(ins, 1))}, підпис ${who(key(ins, 2))}`);
         else if (t === 12 && d.length >= 10) add(`Переказ токенів ${formatUnits(d.readBigUInt64LE(1), d[9])} (mint ${short(key(ins, 1))}): ${short(key(ins, 0))} → ${short(key(ins, 2))}, підпис ${who(key(ins, 3))}`);
         else if ((t === 4 && d.length >= 9) || (t === 13 && d.length >= 10)) {
@@ -492,10 +493,22 @@ function describe(parsed, ours = []) {
         lines.push(['Примітка (Memo)', d.toString('utf8').replace(/[\u0000-\u001f]/g, ' ').slice(0, 200)]);
       } else if (pid === P.STAKE) {
         const tag = d.length >= 4 ? d.readUInt32LE(0) : -1;
+        const stakeAuthorize = (stakeAcc, newAuth, authType) => {
+          const role = authType === 1 ? 'право виведення коштів (Withdrawer)' : 'керування стейкінгом (Staker)';
+          add(`Зміна повноважень стейку ${short(stakeAcc)}: ${role} передається на ${who(newAuth)}`);
+          if (authType === 1 && !mine.has(newAuth)) {
+            warn('УВАГА: Ця дія передає право виведення коштів зі стейку іншій адресі! Це призведе до повної втрати застейканих SOL.', true);
+          }
+        };
         if (tag === 0 && d.length >= 68) {
           const stakeAcc = key(ins, 0);
           const withdrawer = b58encode(d.subarray(36, 68));
           add(`Ініціалізація стейк-акаунта ${short(stakeAcc)} (виведення коштів: ${who(withdrawer)})`);
+          if (!mine.has(withdrawer)) warn('УВАГА: Ця дія передає право виведення коштів зі стейку іншій адресі! Це призведе до повної втрати застейканих SOL.', true);
+        } else if (tag === 9) {
+          const withdrawer = key(ins, 3);
+          add(`Ініціалізація стейк-акаунта ${short(key(ins, 0))} (виведення коштів: ${who(withdrawer)})`);
+          if (!mine.has(withdrawer)) warn('УВАГА: Ця дія передає право виведення коштів зі стейку іншій адресі! Це призведе до повної втрати застейканих SOL.', true);
         } else if (tag === 2) {
           const stakeAcc = key(ins, 0);
           const voteAcc = key(ins, 1);
@@ -509,15 +522,11 @@ function describe(parsed, ours = []) {
           const to = key(ins, 1);
           add(`Виведення ${sol(amount)} SOL зі стейку ${short(stakeAcc)} на ${who(to)}`);
           if (!mine.has(to)) warn('Виведення стейку на чужу адресу: застейкані SOL надійдуть НЕ вам.', true);
-        } else if (tag === 1 && d.length >= 40) {
-          const stakeAcc = key(ins, 0);
-          const newAuth = b58encode(d.subarray(4, 36));
-          const authType = d.readUInt32LE(36);
-          const role = authType === 1 ? 'право виведення коштів (Withdrawer)' : 'керування стейкінгом (Staker)';
-          add(`Зміна повноважень стейку ${short(stakeAcc)}: ${role} передається на ${who(newAuth)}`);
-          if (authType === 1 && !mine.has(newAuth)) {
-            warn('УВАГА: Ця дія передає право виведення коштів зі стейку іншій адресі! Це призведе до повної втрати застейканих SOL.', true);
-          }
+        } else if ((tag === 1 || tag === 8) && d.length >= 40) {
+          stakeAuthorize(key(ins, 0), b58encode(d.subarray(4, 36)), d.readUInt32LE(36));
+        } else if ((tag === 10 || tag === 11) && d.length >= 8) {
+          // Checked-варіанти: нова адреса не в даних, а серед акаунтів інструкції (4-й), тип повноваження — у даних
+          stakeAuthorize(key(ins, 0), key(ins, 3), d.readUInt32LE(4));
         } else if (tag === 3 && d.length >= 12) {
           const amount = d.readBigUInt64LE(4);
           add(`Розділення стейку ${short(key(ins, 0))}: ${sol(amount)} SOL у новий акаунт ${short(key(ins, 1))}`);
@@ -536,6 +545,8 @@ function describe(parsed, ours = []) {
   if (unknownPrograms.size) warn(`Транзакція викликає невідомі програми (${[...unknownPrograms].map(short).join(', ')}): їхню дію гаманець не може пояснити. Підтверджуйте лише на довіреному сайті.`, false);
   if (parsed.unresolved > 0) warn(`Транзакція використовує адресні таблиці (${parsed.unresolved} акаунтів): частина адрес прихована від попереднього перегляду.`, false);
   if (outgoing > 0n) lines.unshift(['Спишеться з ваших рахунків', `${sol(outgoing)} SOL (без комісії мережі)`]);
+  // переказ токенів зі своїх акаунтів виносимо нагору, щоб його не заховали серед інших рядків
+  if (tokensOut > 0) lines.unshift(['Токени підуть з ваших акаунтів', `переказів: ${tokensOut} (суми — серед дій нижче)`]);
   return { lines, warnings, danger, outgoing };
 }
 

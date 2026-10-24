@@ -32,6 +32,7 @@ const CLUSTERS = {
   testnet: { name: 'Testnet', chain: 'solana:testnet', rpc: ['https://api.testnet.solana.com'], explorer: 'https://explorer.solana.com?cluster=testnet' },
 };
 const MAX_TXS = 10;
+const MAX_SHOWN_LINES = 40; // скільки рядків дій показує вікно підтвердження; більше — вважаємо підозрілим
 const SIM_TIMEOUT = 9000;
 
 function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
@@ -571,8 +572,12 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       const d = S.describe(tx.parsed, [address]);
       const head = txs.length > 1 ? `[${i + 1}/${txs.length}] ` : '';
       if (txs.length > 1) lines.push([`${head}Транзакція`, `${tx.parsed.instructions.length} інструкцій`]);
-      for (const [k, v] of d.lines.slice(0, 14)) lines.push([head + k, v]);
-      if (d.lines.length > 14) lines.push([head + '…', `ще ${d.lines.length - 14} рядків`]);
+      for (const [k, v] of d.lines.slice(0, MAX_SHOWN_LINES)) lines.push([head + k, v]);
+      if (d.lines.length > MAX_SHOWN_LINES) {
+        lines.push([head + '…', `ще ${d.lines.length - MAX_SHOWN_LINES} рядків`]);
+        warnings.push(head + 'Транзакція надто велика, щоб показати всі дії: частину дій приховано від перегляду. Підтверджуйте лише на довіреному сервісі.');
+        danger = true;
+      }
       d.warnings.forEach(w => warnings.push(head + w));
       if (d.danger) danger = true;
       const sim = sims[i];

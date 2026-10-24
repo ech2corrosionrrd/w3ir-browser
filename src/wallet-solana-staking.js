@@ -89,11 +89,12 @@ function installStaking(proto, { S, RpcError, clip, unauthorized }) {
       }),
       S.ixStakeInitialize({
         stakeAccount: stakeKp.address,
-        authorized: { staker: from, withdrawer: from },
+        staker: from,
+        withdrawer: from,
       }),
       S.ixStakeDelegate({
         stakeAccount: stakeKp.address,
-        votePubkey,
+        voteAccount: votePubkey,
         authorizedPubkey: from,
       }),
     ];

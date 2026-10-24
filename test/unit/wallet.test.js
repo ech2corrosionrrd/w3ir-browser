@@ -326,3 +326,72 @@ test('solana: створення стейк-акаунта та генераці
   assert.ok(sig0.some(b => b !== 0), 'підпис платника комісії присутній');
   assert.ok(sig1.some(b => b !== 0), 'підпис додаткового підписанта (стейк-акаунта) присутній');
 });
+
+test('solana: усі варіанти зміни Withdrawer стейку виявляються (Authorize, WithSeed, Checked, CheckedWithSeed, Initialize)', () => {
+  const sol = src('solana.js');
+  const my = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+  const other = 'CuieVDEDtLo7FypA9SbLM9saXFdb1dsshveFi796umn7';
+  const stake = '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28';
+  const bh = '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28';
+  const u32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32LE(n); return b; };
+  const seed = Buffer.concat([Buffer.alloc(8, 0), Buffer.alloc(32)]); // порожній seed (u64 довжина = 0) + owner
+  const acc = (pubkey, isSigner = false) => ({ pubkey, isSigner, isWritable: true });
+  const describeIx = (ix) => sol.describe(sol.parseMessage(sol.compileMessage({ feePayer: my, instructions: [ix], blockhash: bh })), [my]);
+  const mk = (data, keys) => ({ programId: sol.PROGRAMS.STAKE, keys, data });
+  const pk = (a) => sol.b58decode(a);
+
+  for (const type of [1, 0]) { // 1 = Withdrawer, 0 = Staker
+    for (const target of [other, my]) {
+      const foreignWithdrawer = type === 1 && target === other;
+      const cases = {
+        'AuthorizeWithSeed (8)': mk(Buffer.concat([u32(8), pk(target), u32(type), seed]), [acc(stake), acc(my, true)]),
+        'AuthorizeChecked (10)': mk(Buffer.concat([u32(10), u32(type)]), [acc(stake), acc(my, true), acc(my, true), acc(target, true)]),
+        'AuthorizeCheckedWithSeed (11)': mk(Buffer.concat([u32(11), u32(type), Buffer.alloc(8), Buffer.alloc(32)]), [acc(stake), acc(my, true), acc(my), acc(target, true)]),
+      };
+      for (const [name, ix] of Object.entries(cases)) {
+        const d = describeIx(ix);
+        assert.equal(d.danger, foreignWithdrawer, `${name}, тип ${type}, отримувач ${target === my ? 'свій' : 'чужий'}: danger`);
+        assert.ok(d.lines.some(l => l[1].includes('Зміна повноважень стейку')), `${name}: розпізнано як зміну повноважень`);
+      }
+    }
+  }
+
+  // Initialize / InitializeChecked: чужий Withdrawer — небезпека, свій — ні
+  const init = (w) => sol.ixStakeInitialize({ stakeAccount: stake, staker: my, withdrawer: w });
+  assert.equal(describeIx(init(other)).danger, true);
+  assert.equal(describeIx(init(my)).danger, false);
+  const initChecked = (w) => mk(u32(9), [acc(stake), acc(stake), acc(my), acc(w, true)]);
+  assert.equal(describeIx(initChecked(other)).danger, true);
+  assert.equal(describeIx(initChecked(my)).danger, false);
+});
+
+test('solana: переказ токенів зі свого акаунта виноситься нагору підсумком', () => {
+  const sol = src('solana.js');
+  const my = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+  const other = 'CuieVDEDtLo7FypA9SbLM9saXFdb1dsshveFi796umn7';
+  const bh = '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28';
+  const acc = (pubkey, isSigner = false) => ({ pubkey, isSigner, isWritable: true });
+  const amount = Buffer.alloc(8); amount.writeBigUInt64LE(5n);
+  const transfer = (authority) => ({ programId: sol.PROGRAMS.TOKEN, keys: [acc(other), acc(my), acc(authority, true)], data: Buffer.concat([Buffer.from([3]), amount]) });
+  const memo = { programId: sol.PROGRAMS.MEMO, keys: [], data: Buffer.from('x') };
+  const run = (instructions) => sol.describe(sol.parseMessage(sol.compileMessage({ feePayer: my, instructions, blockhash: bh })), [my]);
+
+  const hidden = run([...Array(30).fill(memo), transfer(my)]);
+  assert.equal(hidden.lines[0][0], 'Токени підуть з ваших акаунтів', 'підсумок — першим рядком, навіть коли дій багато');
+  assert.match(hidden.lines[0][1], /1/);
+  assert.equal(run([transfer(other)]).lines.some(l => l[0] === 'Токени підуть з ваших акаунтів'), false, 'чужий підпис — не ваші токени');
+});
+
+test('solana: створення стейку будується з правильними параметрами', () => {
+  const sol = src('solana.js');
+  const my = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+  const stake = '4Nd1mBQtrMJVYVfKf2PJy9NZ268dFY28nFsJm2BaNw28';
+  const init = sol.ixStakeInitialize({ stakeAccount: stake, staker: my, withdrawer: my });
+  assert.equal(Buffer.from(init.data).subarray(36, 68).equals(Buffer.from(sol.b58decode(my))), true);
+  const del = sol.ixStakeDelegate({ stakeAccount: stake, voteAccount: 'Vote111111111111111111111111111111111111111', authorizedPubkey: my });
+  assert.equal(del.keys[1].pubkey, 'Vote111111111111111111111111111111111111111');
+  // сигнатури, якими користується wallet-solana-staking.js
+  const src_ = require('fs').readFileSync(path.join(__dirname, '..', '..', 'src', 'wallet-solana-staking.js'), 'utf8');
+  assert.match(src_, /ixStakeInitialize\(\{\s*stakeAccount: stakeKp\.address,\s*staker: from,\s*withdrawer: from,/);
+  assert.match(src_, /voteAccount: votePubkey/);
+});
