@@ -2033,6 +2033,7 @@
  "Сертифікат сайту недійсний за датою": "The site certificate is not valid for the date",
  "Сесія дуже довга (понад 30 днів).": "The session is very long (over 30 days).",
  "Символ": "Symbol",
+ "Симуляцію не виконано: вузол RPC її не підтримує або не відповів. Наслідки цієї дії невідомі, підтверджуйте лише якщо довіряєте сайту й розумієте виклик.": "Simulation was not run: the RPC node does not support it or did not respond. The effects of this action are unknown; confirm only if you trust the site and understand the call.",
  "Симуляція": "Simulation",
  "Симуляція показала, що транзакція завершиться помилкою — гроші можуть бути втрачені на комісію.": "The simulation showed that the transaction will fail — you may lose the fee.",
  "Симуляція показує, що транзакція завершиться помилкою: газ буде витрачено даремно. Не підтверджуйте, якщо не розумієте причини.": "The simulation shows that the transaction will fail: gas will be wasted. Do not confirm if you do not understand the reason.",

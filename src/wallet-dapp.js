@@ -289,7 +289,7 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
           timed(provider.getCode(from), 4000).then(c => guard.delegateOf(c), () => null), // RPC недоступний: перевірку пропущено
           this._prepareTx(provider, signer, req),
           desc.token && to && !opts.summary ? this.tokenInfo(chain, to).catch(() => null) : null, // не схоже на ERC-20 або RPC недоступний
-          to && data !== '0x' ? this.simulateEvm(chain, { from, to, value, data }).then(r => this.describeSimulation(chain, r, { symbol: net.symbol }), () => null) : null,
+          to && data !== '0x' ? this.simulateEvm(chain, { from, to, value, data }).then(r => this.describeSimulation(chain, r, { symbol: net.symbol })).catch(() => this.describeSimulation(chain, null, { symbol: net.symbol })) : null,
           timed(this.priceInfo({ chain, tokens: [] }), 1500).catch(() => null), // ціна лише для показу; повільний сервіс не затримує вікно
         ]);
         populated = pop; delegate = del; ti = tokenData; if (sim) simInfo = sim;

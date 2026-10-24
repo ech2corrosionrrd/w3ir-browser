@@ -91,7 +91,7 @@ async function simulateTests() {
   const wDead = new FakeWallet([url + '/a']);
   const s3 = await wDead.simulateEvm(1, { from: owner, to: spender, value: 0n, data: '0x1234' });
   const d3 = await wDead.describeSimulation(1, s3, { symbol: 'ETH' });
-  ok(s3 === null && d3.danger === false && d3.warnings.length === 0 && d3.lines.some(l => l[0] === 'Симуляція' && /недоступна/.test(l[1])), 'sim: жоден вузол не підтримує метод — «недоступна» без блокування і без небезпеки');
+  ok(s3 === null && d3.danger === false && d3.warnings.length === 1 && /Симуляцію не виконано/.test(d3.warnings[0]) && d3.lines.some(l => l[0] === 'Симуляція' && /недоступна/.test(l[1])), 'sim: жоден вузол не підтримує метод — «недоступна» з попередженням, без блокування і без небезпеки');
   const noOut = await w.describeSimulation(1, { ok: true, out: [{ kind: 'native', value: 5n }], inn: [], approvals: [], gasUsed: null }, { symbol: 'ETH' });
   ok(noOut.warnings.some(x => /нічого не прийде/.test(x)), 'sim: якщо активи йдуть, а нічого не повертається — попередження');
   const none = await w.describeSimulation(1, { ok: true, out: [], inn: [], approvals: [], gasUsed: null }, { symbol: 'ETH' });

@@ -127,7 +127,7 @@
   "src/solana.js:433"
  ],
  "{0} (токен {1})": [
-  "src/wallet-simulate.js:103"
+  "src/wallet-simulate.js:106"
  ],
  "{0} (у мінімальних одиницях; {1}, {2} знаків)": [
   "src/wallet-signguard.js:119"
@@ -137,7 +137,7 @@
   "src/wallet-signguard.js:119"
  ],
  "{0} {1} для {2}": [
-  "src/wallet-simulate.js:124"
+  "src/wallet-simulate.js:127"
  ],
  "{0} {1} Клік — відкрити · Правий клік — видалити закладку": [
   "ui/renderer.js:197"
@@ -1024,7 +1024,7 @@
   "src/app-commands.js:93"
  ],
  "виклик виконується успішно": [
-  "src/wallet-simulate.js:112"
+  "src/wallet-simulate.js:115"
  ],
  "Виклик контракту": [
   "src/wallet-evm-core.js:114",
@@ -1891,8 +1891,8 @@
  ],
  "Дозвіл": [
   "src/wallet-signguard.js:166",
-  "src/wallet-simulate.js:119",
-  "src/wallet-simulate.js:124"
+  "src/wallet-simulate.js:122",
+  "src/wallet-simulate.js:127"
  ],
  "Дозвіл (approve)": [
   "pages/help-data.js:306"
@@ -1994,7 +1994,7 @@
   "src/wallet-approvals.js:92"
  ],
  "ДОСТУП до ВСІХ NFT колекції {0} для {1}": [
-  "src/wallet-simulate.js:119"
+  "src/wallet-simulate.js:122"
  ],
  "доступ до публічної адреси Solana та право пропонувати підписи": [
   "src/wallet-solana.js:498"
@@ -2072,7 +2072,7 @@
   "pages/help-data.js:140"
  ],
  "З вашого рахунку піде": [
-  "src/wallet-simulate.js:113"
+  "src/wallet-simulate.js:116"
  ],
  "з початку сеансу ({0})": [
   "pages/dashboard.js:135"
@@ -2099,7 +2099,7 @@
   "pages/wallet.js:781"
  ],
  "За симуляцією з вашого рахунку підуть активи, а нічого не прийде. Підтверджуйте лише якщо це продаж, пожертва чи інша дія, яку ви свідомо робите.": [
-  "src/wallet-simulate.js:116"
+  "src/wallet-simulate.js:119"
  ],
  "Забагато адресних таблиць": [
   "src/solana.js:130"
@@ -3507,7 +3507,7 @@
   "pages/pdftools.js:80"
  ],
  "На ваш рахунок прийде": [
-  "src/wallet-simulate.js:114"
+  "src/wallet-simulate.js:117"
  ],
  "На весь екран": [
   "src/app-commands.js:50",
@@ -3890,7 +3890,7 @@
   "pages/pdftools.js:16"
  ],
  "не виявлено (за журналами подій)": [
-  "src/wallet-simulate.js:115"
+  "src/wallet-simulate.js:118"
  ],
  "Не відстежувати": [
   "pages/help-data.js:141"
@@ -4048,7 +4048,7 @@
   "src/wallet-evm-nft.js:238"
  ],
  "недоступна на цьому вузлі RPC: перевіряйте дані самі": [
-  "src/wallet-simulate.js:99"
+  "src/wallet-simulate.js:101"
  ],
  "недоступний": [
   "pages/wallet.js:1138"
@@ -5458,7 +5458,7 @@
   "pages/import.js:25"
  ],
  "ПОМИЛКА: виклик не вдасться{0}": [
-  "src/wallet-simulate.js:108"
+  "src/wallet-simulate.js:111"
  ],
  "Помилки завантаження": [
   "pages/help-data.js:35"
@@ -6103,7 +6103,7 @@
   "pages/settings.js:456"
  ],
  "Рух активів": [
-  "src/wallet-simulate.js:115"
+  "src/wallet-simulate.js:118"
  ],
  "Рушій": [
   "pages/dashboard.js:181"
@@ -6252,16 +6252,19 @@
   "src/wallet-dapp.js:56",
   "src/wallet-history-evm.js:22"
  ],
+ "Симуляцію не виконано: вузол RPC її не підтримує або не відповів. Наслідки цієї дії невідомі, підтверджуйте лише якщо довіряєте сайту й розумієте виклик.": [
+  "src/wallet-simulate.js:100"
+ ],
  "Симуляція": [
-  "src/wallet-simulate.js:99",
-  "src/wallet-simulate.js:108",
-  "src/wallet-simulate.js:112"
+  "src/wallet-simulate.js:101",
+  "src/wallet-simulate.js:111",
+  "src/wallet-simulate.js:115"
  ],
  "Симуляція показала, що транзакція завершиться помилкою — гроші можуть бути втрачені на комісію.": [
   "src/wallet-solana.js:595"
  ],
  "Симуляція показує, що транзакція завершиться помилкою: газ буде витрачено даремно. Не підтверджуйте, якщо не розумієте причини.": [
-  "src/wallet-simulate.js:109"
+  "src/wallet-simulate.js:112"
  ],
  "Симуляція транзакцій EVM": [
   "pages/help-data.js:260"
@@ -6326,7 +6329,7 @@
   "src/wallet-approvals.js:118"
  ],
  "скасування доступу до NFT колекції {0}": [
-  "src/wallet-simulate.js:119"
+  "src/wallet-simulate.js:122"
  ],
  "Скасування надіслано: {0}": [
   "pages/wallet.js:838"
@@ -6880,7 +6883,7 @@
   "pages/help-data.js:263"
  ],
  "токенів": [
-  "src/wallet-simulate.js:124"
+  "src/wallet-simulate.js:127"
  ],
  "Токенів і NFT на цьому рахунку немає.": [
   "pages/wallet.js:386"
@@ -7405,10 +7408,10 @@
   "src/assistant.js:102"
  ],
  "Ця транзакція видає необмежений дозвіл витрачати ваші токени.": [
-  "src/wallet-simulate.js:125"
+  "src/wallet-simulate.js:128"
  ],
  "Ця транзакція дає доступ до ВСІХ ваших NFT колекції: оператор зможе їх забрати.": [
-  "src/wallet-simulate.js:120"
+  "src/wallet-simulate.js:123"
  ],
  "Ця транзакція не потребує підпису вашого рахунку": [
   "src/wallet-solana.js:563"

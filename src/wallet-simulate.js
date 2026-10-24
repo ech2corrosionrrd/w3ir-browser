@@ -96,7 +96,10 @@ function install(Wallet, { clip }) {
   proto.describeSimulation = async function (chainId, sim, { symbol }) {
     const lines = [], warnings = [];
     let danger = false;
-    if (!sim) return { lines: [['Симуляція', 'недоступна на цьому вузлі RPC: перевіряйте дані самі']], warnings, danger };
+    if (!sim) {
+      warnings.push('Симуляцію не виконано: вузол RPC її не підтримує або не відповів. Наслідки цієї дії невідомі, підтверджуйте лише якщо довіряєте сайту й розумієте виклик.');
+      return { lines: [['Симуляція', 'недоступна на цьому вузлі RPC: перевіряйте дані самі']], warnings, danger };
+    }
     const tokenOf = async (a) => { try { return await timed(this.tokenInfo(chainId, a), 5000); } catch { return null; } };
     const fmt = async (it) => {
       if (it.kind === 'native') return `${formatEther(it.value)} ${symbol}`;

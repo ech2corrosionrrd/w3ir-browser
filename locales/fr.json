@@ -2033,6 +2033,7 @@
  "Сертифікат сайту недійсний за датою": "Le certificat du site n'est pas valide à cette date",
  "Сесія дуже довга (понад 30 днів).": "La session est très longue (plus de 30 jours).",
  "Символ": "Symbole",
+ "Симуляцію не виконано: вузол RPC її не підтримує або не відповів. Наслідки цієї дії невідомі, підтверджуйте лише якщо довіряєте сайту й розумієте виклик.": "La simulation n'a pas été exécutée : le nœud RPC ne la prend pas en charge ou n'a pas répondu. Les effets de cette action sont inconnus ; ne confirmez que si vous faites confiance au site et comprenez l'appel.",
  "Симуляція": "Simulation",
  "Симуляція показала, що транзакція завершиться помилкою — гроші можуть бути втрачені на комісію.": "La simulation a montré que la transaction échouera — vous pourriez perdre les frais.",
  "Симуляція показує, що транзакція завершиться помилкою: газ буде витрачено даремно. Не підтверджуйте, якщо не розумієте причини.": "La simulation montre que la transaction échouera : le gaz sera gaspillé. Ne confirmez pas si vous n’en comprenez pas la raison.",
