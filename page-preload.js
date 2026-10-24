@@ -296,7 +296,7 @@ function installSolana(b) {
 
   const provider = {
     isW3IR: true,
-    isPhantom: true, // сумісність: багато dApps шукають Solana-гаманець лише за window.solana.isPhantom або window.phantom.solana
+    isPhantom: true, // лише сумісність: багато dApps шукають Solana-гаманець за window.solana.isPhantom або window.phantom.solana; це не заява про афіліацію (див. THIRD-PARTY-NOTICES.md)
     get publicKey() { return pk; },
     get isConnected() { return !!account; },
     connect, disconnect, signTransaction: (tx) => signTransaction(tx), signAllTransactions, signAndSendTransaction: (tx, o) => signAndSendTransaction(tx, o), signMessage,
