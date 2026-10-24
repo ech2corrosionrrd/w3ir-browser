@@ -70,7 +70,7 @@ if (!fs.existsSync(installer)) fail('Не знайдено інсталятор 
   fs.copyFileSync(installer, path.join(out, entry.url));
   const blockmap = installer + '.blockmap';
   if (fs.existsSync(blockmap)) fs.copyFileSync(blockmap, path.join(out, entry.url + '.blockmap'));
-  const portable = fs.readdirSync(dist).find(f => /portable|^W3IR-Browser-\d.*\.exe$/i.test(f) && f !== entry.url && f.includes(version));
+  const portable = fs.readdirSync(dist).find(f => f === `W3IR-Browser-${version}-portable.exe`);
   if (portable) fs.copyFileSync(path.join(dist, portable), path.join(out, portable));
 
   const crypto = require('crypto');
