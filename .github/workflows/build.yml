@@ -49,13 +49,15 @@ jobs:
           if ($bad) { $bad | Format-List Path, Status, StatusMessage; throw 'Підпис Authenticode недійсний.' }
       - name: Контрольні суми
         shell: bash
-        run: cd dist && sha256sum *.exe latest.yml | tee SHA256SUMS.txt
+        # манифест оновлення: latest.yml для стабільних версій, beta.yml для пре-релізів (v*-beta.*)
+        run: cd dist && sha256sum *.exe $(ls latest.yml beta.yml 2>/dev/null) | tee SHA256SUMS.txt
       - name: Підтвердження походження збірок (Build Provenance Attestation)
         uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/*.exe
             dist/latest.yml
+            dist/beta.yml
       - uses: actions/upload-artifact@v7
         with:
           name: dist
@@ -65,6 +67,7 @@ jobs:
             dist/*.exe
             dist/*.blockmap
             dist/latest.yml
+            dist/beta.yml
             dist/SHA256SUMS.txt
 
   build-linux:
