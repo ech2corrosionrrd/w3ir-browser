@@ -2,7 +2,7 @@
 
 [Українська версія нижче](#політика-безпеки-українською)
 
-The W3IR project prioritizes the security and privacy of our users above all else. We welcome security researchers and community members who help us keep the browser and built-in Web3 wallet secure.
+W3IR Browser is a personal open-source project maintained by one person for their own needs. It is provided **"as is", without warranty or liability** (see [LICENSE](LICENSE)); use it, including the built-in wallet, at your own risk. It has had no independent security audit. Security researchers who help keep it safe are welcome, but there is no bug bounty and no guaranteed response time.
 
 ---
 
@@ -12,9 +12,8 @@ Only the latest release receives active security patches.
 
 | Version | Supported | Notes |
 |:---|:---:|:---|
-| 1.42.x | :white_check_mark: | Current stable release |
-| 1.41.x | :x: | Upgrade to 1.42.0 or newer |
-| < 1.41 | :x: | End of life |
+| 1.43.x | :white_check_mark: | Current stable release |
+| < 1.43 | :x: | Upgrade to the latest release |
 
 ---
 
@@ -31,10 +30,9 @@ Use GitHub's **Private Vulnerability Reporting**:
    - Threat assessment: impacted components, potential attacker capabilities, and user risk.
    - Any suggested remediations or patches.
 
-### Response SLA & Timeline
-- **Initial Acknowledgement**: Within 48 hours of receipt.
-- **Triage & Assessment**: Within 5 business days.
-- **Coordinated Disclosure**: We adhere to a 90-day coordinated disclosure policy, aiming to release patches much faster for critical issues.
+### Response & Timeline
+- Reports are handled on a **best-effort basis**; there are no guaranteed response times.
+- **Coordinated Disclosure**: please allow reasonable time (we suggest up to 90 days) before publishing technical details.
 
 ---
 
@@ -66,13 +64,13 @@ We consider security research conducted in good faith to be authorized. We will 
 
 ## Recognition & Hall of Fame
 
-Researchers who responsibly discover and report verified security vulnerabilities will be publicly acknowledged in the corresponding release notes, `CHANGELOG.md`, and GitHub Security Advisory credits (unless anonymity is requested).
+No monetary rewards are offered (see [docs/BOUNTY.md](docs/BOUNTY.md)). Researchers who responsibly discover and report verified security vulnerabilities will be publicly acknowledged in the corresponding release notes, `CHANGELOG.md`, and GitHub Security Advisory credits (unless anonymity is requested).
 
 ---
 
 # Політика безпеки (Українською)
 
-Безпека та приватність користувачів є фундаментальними принципами проєкту W3IR Browser.
+W3IR Browser — особистий відкритий проєкт, який створено для власних потреб. Його надано «як є», без гарантій і без відповідальності автора (див. [LICENSE](LICENSE)); використання, зокрема вбудованого гаманця, — на ваш власний ризик. Незалежного аудиту безпеки не проводилось. Нагороди за знайдені вразливості (bug bounty) не передбачені.
 
 ## Повідомлення про вразливості
 
@@ -81,7 +79,8 @@ Researchers who responsibly discover and report verified security vulnerabilitie
 Скористайтеся конфіденційним приватним каналом GitHub:
 1. Перейдіть на вкладку **Security → Report a vulnerability** у цьому репозиторії ([Security Advisories](https://github.com/ech2corrosionrrd/w3ir-browser/security/advisories)).
 2. Вкажіть версію браузера (`w3ir://settings`), докладні кроки відтворення (PoC) та оцінку наслідків.
-3. Проєкт гарантує первинну відповідь протягом **48 годин**.
+3. Відповідь надається за можливості, без гарантованих термінів. Просимо дати розумний час (орієнтовно до 90 днів) до публікації подробиць.
+4. Подяка вказується в нотатках випуску й Security Advisory; грошових виплат немає.
 
 ## Межі уваги (Scope)
 - **Гаманець Web3**: безпека приватних ключів і мнемоніки, підробка вікон підтвердження, обхід симуляції, анатомії підписів (`wallet-signguard`), захист від зловживань авторитетами Solana Stake Program та обхід AI SignGuard.

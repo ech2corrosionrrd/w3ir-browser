@@ -97,6 +97,10 @@ Code signing via Authenticode is being established. Integrity is currently verif
 - **Scope:** Only binaries compiled from this repository are signed.
 - **Privacy Guarantee:** W3IR Browser **does not collect, track, or transmit any telemetry, usage metrics, or browsing data**. Network requests initiated by the browser are strictly limited to user-configured actions: checking GitHub Releases for updates, downloading public threat blocklists, and querying public blockchain RPC endpoints (which can be customized or disabled in settings).
 
+## Disclaimer
+
+W3IR Browser is a personal project created for the author's own needs and shared as open source. It is provided **"as is", without warranty of any kind**, and the author accepts no responsibility for how it is used by others or for any loss, including loss of funds held in the built-in wallet. The code has had no independent security audit. Use it at your own risk; only binaries from this repository's GitHub Releases are official.
+
 ## License
 
 Licensed under the [MIT License](LICENSE). Vulnerabilities should be reported responsibly according to [SECURITY.md](SECURITY.md). Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).

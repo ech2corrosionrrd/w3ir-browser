@@ -50,7 +50,7 @@
 > We'd love for developers and security researchers to review the codebase, test it out, and share feedback!
 >
 > 📦 GitHub (MIT): https://github.com/ech2corrosionrrd/w3ir-browser  
-> 🛡 Security & Bug Bounty: https://github.com/ech2corrosionrrd/w3ir-browser/blob/main/docs/BOUNTY.md
+> 🛡 Security policy (no bounty): https://github.com/ech2corrosionrrd/w3ir-browser/blob/main/docs/BOUNTY.md
 
 ---
 
