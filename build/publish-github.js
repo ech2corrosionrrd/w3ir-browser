@@ -10,12 +10,12 @@ function gh(args, opts = {}) {
   return { ok: r.status === 0, out: (r.stdout || '').trim(), err: (r.stderr || '').trim() };
 }
 
-async function publishDraft({ repo, tag, dir, title, notes, prerelease = false, log = console.log }) {
+async function publishDraft({ repo, tag, dir, title, notes, prerelease = false, manifest = 'latest.yml', log = console.log }) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) throw new Error('Вкажіть репозиторій у форматі owner/repo');
   const names = fs.readdirSync(dir);
-  if (!names.includes('latest.yml')) throw new Error('У теці релізу немає latest.yml');
-  const others = names.filter(n => n !== 'latest.yml').map(n => path.join(dir, n));
-  const ymlPath = path.join(dir, 'latest.yml');
+  if (!names.includes(manifest)) throw new Error(`У теці релізу немає ${manifest}`);
+  const others = names.filter(n => n !== manifest).map(n => path.join(dir, n));
+  const ymlPath = path.join(dir, manifest);
 
   if (gh(['release', 'view', tag, '--repo', repo]).ok) {
     throw new Error(`Реліз ${tag} уже існує. Опублікований реліз змінювати не можна (хеші, підписи та маніфест winget вже використані) — збільште версію.`);
@@ -27,9 +27,9 @@ async function publishDraft({ repo, tag, dir, title, notes, prerelease = false, 
 
   const abort = (msg) => { throw new Error(msg + `\nЧернетка ${tag} лишилася неопублікованою (клієнти її не бачать). Видалити: gh release delete ${tag} --repo ${repo} --cleanup-tag --yes`); };
 
-  log('2/6 Вивантажуємо latest.yml (останнім)…');
+  log(`2/6 Вивантажуємо ${manifest} (останнім)…`);
   const up = gh(['release', 'upload', tag, ymlPath, '--repo', repo]);
-  if (!up.ok) abort('Не вдалося вивантажити latest.yml: ' + up.err);
+  if (!up.ok) abort(`Не вдалося вивантажити ${manifest}: ` + up.err);
 
   log('3/6 Перевіряємо, що всі файли на місці й розміри збігаються…');
   const view = gh(['release', 'view', tag, '--repo', repo, '--json', 'assets,isDraft']);
@@ -47,7 +47,7 @@ async function publishDraft({ repo, tag, dir, title, notes, prerelease = false, 
   if (!pub.ok) abort('Не вдалося опублікувати: ' + pub.err);
 
   log('5/6 Контрольна перевірка публічної адреси…');
-  const url = `https://github.com/${repo}/releases/download/${tag}/latest.yml`;
+  const url = `https://github.com/${repo}/releases/download/${tag}/${manifest}`;
   let ok = false, reason = '';
   for (let i = 0; i < 6 && !ok; i++) {
     try {
@@ -60,7 +60,7 @@ async function publishDraft({ repo, tag, dir, title, notes, prerelease = false, 
   }
   if (!ok) {
     gh(['release', 'edit', tag, '--repo', repo, '--draft=true']); // повертаємо в чернетку, щоб клієнти не побачили зламаний реліз
-    throw new Error('Публічна перевірка latest.yml не пройшла (' + reason + '). Реліз повернуто в чернетку.');
+    throw new Error('Публічна перевірка ' + manifest + ' не пройшла (' + reason + '). Реліз повернуто в чернетку.');
   }
   // GitHub кешує адресу «останнього релізу» ще кілька хвилин: чекаємо, поки клієнти почнуть бачити нову версію (не критично)
   if (!prerelease) {

@@ -97,7 +97,7 @@ if (!fs.existsSync(installer)) fail('Не знайдено інсталятор 
     }).join('\n');
     try {
       const url = await publishDraft({
-        repo, tag: 'v' + version, dir: out, title: 'W3IR Browser ' + version, prerelease: /-/.test(version),
+        repo, tag: 'v' + version, dir: out, title: 'W3IR Browser ' + version, prerelease: /-/.test(version), manifest: channelFile,
         notes: `W3IR Browser ${version}\n\nПідпис випускача: \`${info.w3irKeyId}\`\n\n### Контрольні суми SHA-256:\n${sha256List}\n\nБраузер працює повністю локально та не збирає жодної телеметрії.\nПеревірка походження збірки: \`gh attestation verify <інсталятор> --repo ${repo}\``,
       });
       console.log('GitHub Release опубліковано:', url);
