@@ -395,3 +395,13 @@ test('solana: створення стейку будується з правил
   assert.match(src_, /ixStakeInitialize\(\{\s*stakeAccount: stakeKp\.address,\s*staker: from,\s*withdrawer: from,/);
   assert.match(src_, /voteAccount: votePubkey/);
 });
+
+test('evm: describeCall для transfer повертає суму й отримувача для перевірки лімітів', () => {
+  const { describeCall } = src('wallet-evm-core.js');
+  const to = '0x2222222222222222222222222222222222222222';
+  const data = '0xa9059cbb' + to.slice(2).padStart(64, '0') + (5n).toString(16).padStart(64, '0');
+  const d = describeCall(data);
+  assert.equal(d.spend.to, to);
+  assert.equal(d.spend.amount, 5n);
+  assert.equal(describeCall('0x').spend, undefined);
+});

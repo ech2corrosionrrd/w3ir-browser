@@ -248,3 +248,16 @@ test('wallet-safety: backupExport та backupImport повний цикл збе
   assert.ok(w2.backupInfo().confirmed);
 });
 
+
+test('wallet-safety: policyGate для транзакцій сайтів не вимагає адресної книги, але діє за сумою', async () => {
+  const w = createMockWallet();
+  w.setPolicy({ contactsOnly: true, maxUsd: 5000 });
+  const router = '0x9999999999999999999999999999999999999999';
+  // контракт сервісу не в адресній книзі, але для сайту це нормально
+  const ok = await w.policyGate({ to: router, chain: 1, amount: '0.1', contacts: false });
+  assert.equal(ok.danger, false);
+  // ліміт за сумою діє й для сайту
+  await assert.rejects(() => w.policyGate({ to: router, chain: 1, amount: '3', contacts: false }), /Перевищено ліміт 5000 USD/);
+  // без contacts: false (переказ зі сторінки гаманця) адресна книга перевіряється, як і раніше
+  await assert.rejects(() => w.policyGate({ to: router, chain: 1, amount: '0.1' }), /лише адресна книга/);
+});

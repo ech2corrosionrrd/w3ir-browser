@@ -4,7 +4,7 @@
 const { t: tr } = require('./i18n');
 const guard = require('./wallet-signguard');
 const {
-  formatEther, getAddress, isAddress, isHexString, hexlify, getBytes, TypedDataEncoder, toUtf8String, Wallet: EthWallet,
+  formatEther, formatUnits, getAddress, isAddress, isHexString, hexlify, getBytes, TypedDataEncoder, toUtf8String, Wallet: EthWallet,
 } = require('ethers');
 
 function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isSafeRpc, READ_METHODS, describeCall }) {
@@ -197,10 +197,11 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
       let text = null;
       try { const t = toUtf8String(bytes); if (/^[\P{C}\n\r\t]*$/u.test(t)) text = t; } catch { /* не текст */ }
       const siwe = text !== null ? guard.checkSiwe(text, { origin, account: a, chainId: this.chainOf(origin) }) : null;
+      const cutMsg = text !== null ? guard.truncationWarning(text.length, 1500) : guard.truncationWarning(bytes.length, 150, true);
       await this.approve(win, origin, sameTab, {
-        kind: 'sign', title: siwe ? tr('Вхід через Ethereum (SIWE)') : tr('Підпис повідомлення'), danger: !!(siwe && siwe.danger),
+        kind: 'sign', title: siwe ? tr('Вхід через Ethereum (SIWE)') : tr('Підпис повідомлення'), danger: !!(siwe && siwe.danger) || !!cutMsg,
         lines: [['Рахунок', a], ...(siwe ? siwe.lines : []), ['Повідомлення', text !== null ? clip(text, 1500) : hexlify(bytes).slice(0, 300)]],
-        warnings: [...(text === null ? ['Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.'] : []), ...(siwe ? siwe.warnings : [])],
+        warnings: [...(text === null ? ['Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.'] : []), ...(cutMsg ? [cutMsg] : []), ...(siwe ? siwe.warnings : [])],
       });
       const sig = await this.signerFor(a).signMessage(bytes);
       this.log({ origin, action: 'Підпис повідомлення' });
@@ -233,6 +234,10 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
       } catch { /* RPC недоступний: розшифровка без перевірки отримувача */ }
       const g = guard.describeTyped({ ...td, types }, { account: a, isContract, tokens });
       if (g) warnings.push(...g.warnings);
+      warnings.push(...guard.typedExtras(td, !!g));
+      const dataText = JSON.stringify(td.message, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 1);
+      const cut = guard.truncationWarning(dataText.length, 2500);
+      if (cut) warnings.push(cut);
       await this.approve(win, origin, sameTab, {
         kind: 'typed', title: tr('Підпис структурованих даних'), danger: warnings.length > 0 || !!(g && g.danger),
         lines: [['Рахунок', a], ...(g ? g.lines : []), ['Тип', clip(td.primaryType, 80)], ['Контракт (verifyingContract)', clip(td.domain.verifyingContract || '—', 60)], ['Мережа', String(chain)], ['Дані', clip(JSON.stringify(td.message, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 1), 2500)]],
@@ -294,6 +299,13 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
       this.applySpeed(populated, opts.speed);
       const fee = (populated.maxFeePerGas || populated.gasPrice || 0n) * (populated.gasLimit || 0n);
       if (ti) desc = describeCall(data, ti);
+      // Ліміти політики (сума, добовий ліміт, пауза) діють і на транзакції від сайтів, якщо вони передають кошти: нативну валюту чи токен
+      let gate = { commit: () => {} };
+      const tokenSpend = !opts.internal && value === 0n && desc.spend && ti ? desc.spend : null;
+      if (!opts.internal && (value > 0n || tokenSpend)) {
+        gate = await this.policyGate({ to: tokenSpend ? tokenSpend.to : to, chain: 'evm', token: tokenSpend ? to : undefined, amount: tokenSpend ? formatUnits(tokenSpend.amount, ti.decimals) : formatEther(value), contacts: !!tokenSpend });
+        opts = { ...opts, danger: opts.danger || gate.danger, warnings: [...(opts.warnings || []), ...gate.warnings], ...(gate.delay ? { delay: gate.delay } : {}) };
+      }
       const warnings = [...desc.warnings, ...(opts.warnings || [])];
       if (!to) warnings.push('Створення нового контракту.');
       if (fee > 10n ** 18n) warnings.push('Дуже висока комісія за газ.');
@@ -317,6 +329,7 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
         const signed = await signer.signTransaction(populated);
         hash = (await signer.provider.broadcastTransaction(signed)).hash;
       } catch (e) { throw new RpcError(-32000, `Не вдалося надіслати транзакцію: ${clip(e.shortMessage || e.message, 200)}`); }
+      gate.commit();
       this.trackPending(hash, chain, populated);
       if (to && this.rememberRecipient) this.rememberRecipient(to);
       this.log({ origin, action: opts.action || `Транзакція ${formatEther(value)} ${net.symbol}`, hash, chainId: chain });

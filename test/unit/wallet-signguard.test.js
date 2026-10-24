@@ -217,3 +217,42 @@ test('signguard: describeTyped для Seaport OrderComponents (захист ві
   }, { now, account: ALICE });
   assert.ok(resKnown.lines.some(l => l[0] === 'Отримувач дозволу' && l[1].includes('Uniswap Universal Router')));
 });
+
+test('signguard: невідомий тип даних і відсутній chainId отримують попередження', () => {
+  assert.equal(guard.typedExtras({ domain: { chainId: 1 } }, true).length, 0);
+  const unknown = guard.typedExtras({ domain: { chainId: 1 } }, false);
+  assert.equal(unknown.length, 1);
+  assert.match(unknown[0], /не розпізнано/);
+  const noChain = guard.typedExtras({ domain: { name: 'X' } }, true);
+  assert.equal(noChain.length, 1);
+  assert.match(noChain[0], /chainId/);
+  assert.equal(guard.typedExtras({}, false).length, 2);
+});
+
+test('signguard: довге повідомлення позначається як урізане', () => {
+  assert.equal(guard.truncationWarning(100, 1500), null);
+  assert.equal(guard.truncationWarning(1500, 1500), null);
+  assert.match(guard.truncationWarning(1501, 1500), /показано лише початок \(1500 із 1501 символів\)/);
+  assert.match(guard.truncationWarning(400, 150, true), /\(150 із 400 байт\)/);
+});
+
+test('signguard: майже безкоштовний ордер Seaport і майже необмежений Permit2 теж позначаються', () => {
+  const item = (itemType, amount, recipient) => ({ itemType, token: TOKEN_WETH, identifierOrCriteria: '1', startAmount: amount, endAmount: amount, recipient });
+  const order = (consideration) => ({
+    types: {}, domain: {}, primaryType: 'OrderComponents',
+    message: { offerer: ALICE, offer: [item(2, '1', ALICE)], consideration },
+  });
+  assert.equal(guard.describeTyped(order([item(0, '1', ALICE)])).danger, true, '1 wei — майже нічого');
+  assert.equal(guard.describeTyped(order([item(0, '99999999999999', ALICE)])).danger, true, 'менше порогу');
+  assert.equal(guard.describeTyped(order([item(0, '1000000000000000000', ALICE)])).danger, false, '1 монета — нормальна ціна');
+  assert.equal(guard.describeTyped(order([item(1, '5', ALICE)])).danger, false, 'ви отримуєте інший токен');
+
+  const permit2 = (amount) => ({
+    types: {}, domain: { verifyingContract: guard.PERMIT2 }, primaryType: 'PermitSingle',
+    message: { spender: BOB, sigDeadline: '9999999999', details: { token: TOKEN_USDC, amount, expiration: '9999999999', nonce: '0' } },
+  });
+  const max160 = (1n << 160n) - 1n;
+  assert.equal(guard.describeTyped(permit2(max160.toString())).warnings.some(w => /Необмежений/.test(w)), true);
+  assert.equal(guard.describeTyped(permit2((max160 - 1n).toString())).warnings.some(w => /Необмежений/.test(w)), true, 'на одиницю менше — теж необмежено');
+  assert.equal(guard.describeTyped(permit2('1000000')).warnings.some(w => /Необмежений/.test(w)), false);
+});

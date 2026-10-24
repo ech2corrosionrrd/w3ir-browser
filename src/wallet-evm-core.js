@@ -135,6 +135,7 @@ function describeCall(data, ti) {
       case 'transfer':
         out.token = true;
         out.lines.push(['Дія', 'Переказ токенів'], ['Отримувач', getAddress(a[0])], ['Кількість', human(a[1])]);
+        out.spend = { to: getAddress(a[0]), amount: a[1] };
         break;
       case 'transferFrom':
       case 'safeTransferFrom':

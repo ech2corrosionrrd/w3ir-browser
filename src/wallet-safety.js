@@ -70,10 +70,11 @@ function install(Wallet, { RpcError, unauthorized }) {
 
   // Перевірка переказу зі сторінки гаманця за режимами обережності: кидає помилку, якщо переказ заборонено;
   // повертає { warnings, delay, danger } для вікна підтвердження. Переказ NFT (nft: true) оцінюється лише за адресою отримувача.
-  proto.policyGate = async function ({ to, chain, token, amount, nft }) {
+  // contacts: false — не перевіряти адресну книгу (транзакція від сайту: отримувач — контракт сервісу, а не людина)
+  proto.policyGate = async function ({ to, chain, token, amount, nft, contacts = true }) {
     const p = this.getPolicy();
     const out = { warnings: [], delay: 0, danger: false, commit: () => {} };
-    if (p.contactsOnly) {
+    if (p.contactsOnly && contacts) {
       const norm = (a) => (String(a).startsWith('0x') ? String(a).toLowerCase() : String(a));
       const known = new Set([...this.ownEvm(), ...this.ownSol(), ...(this.data().contacts || []).map(c => c.address)].map(norm));
       if (!known.has(norm(to))) throw new RpcError(-32602, 'Увімкнено режим «лише адресна книга»: отримувача немає серед ваших рахунків і контактів. Додайте його в адресну книгу або вимкніть режим у налаштуваннях безпеки.');

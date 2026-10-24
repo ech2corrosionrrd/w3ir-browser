@@ -564,6 +564,15 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       return tx;
     });
     const sims = await Promise.all(txs.map(tx => this._solSimulate(cluster, tx, address)));
+    // Ліміти політики діють і на транзакції від сайтів: сума SOL, що спишеться зі свого рахунку за явними інструкціями
+    let gate = { commit: () => {} };
+    if (!opts.address) {
+      const outgoing = txs.reduce((s, tx) => s + S.describe(tx.parsed, [address]).outgoing, 0n);
+      if (outgoing > 0n) {
+        gate = await this.policyGate({ chain: 'sol', amount: S.sol(outgoing), contacts: false });
+        opts = { ...opts, danger: opts.danger || gate.danger, warnings: [...(opts.warnings || []), ...gate.warnings], ...(gate.delay ? { delay: gate.delay } : {}) };
+      }
+    }
 
     const lines = [...(opts.summary || []), ['Мережа', CLUSTERS[cluster].name], ['Рахунок Solana', address]];
     const warnings = [...(opts.warnings || [])];
@@ -593,6 +602,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       kind: 'tx', title: send ? tr('Підтвердження транзакції') : tr('Підпис транзакції'), danger, lines, warnings, ...(opts.delay ? { delay: opts.delay } : {}),
     });
 
+    gate.commit();
     const kp = this._solKeypair(address);
     const signed = txs.map((tx) => {
       const s = S.signTransaction(kp.secret, address, tx.wire);

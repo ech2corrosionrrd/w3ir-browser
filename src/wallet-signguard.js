@@ -30,9 +30,10 @@ const fmtSpender = (sp, raw) => {
   const lbl = spenderLabel(sp);
   return lbl ? `${lbl} (${sp})` : sp;
 };
-const UINT160_MAX = (1n << 160n) - 1n;
+const UINT160_MAX = 1n << 159n; // «необмежено» для uint160 (Permit2): від половини діапазону, а не лише точне максимальне значення
 const UNLIMITED_2612 = 1n << 255n;
 const YEAR = 365 * 24 * 3600;
+const NEAR_ZERO_NATIVE = 10n ** 14n; // 0,0001 нативної монети
 const MAX_SANE_TS = 253402300799n; // 9999-12-31
 
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLowerCase() === b.toLowerCase();
@@ -201,10 +202,29 @@ function describeTyped(td, ctx = {}) {
     const offerer = addr(m.offerer);
     const receives = m.consideration.filter(c => same(c.recipient, offerer)).reduce((s, c) => s + (big(c.startAmount) || 0n), 0n);
     lines.push(['Дія', 'Ордер маркетплейсу (Seaport): продаж чи обмін ваших активів'], ['Віддаєте (позицій)', String(m.offer.length)], ['Ви отримаєте (позицій)', String(m.consideration.filter(c => same(c.recipient, offerer)).length)]);
-    if (m.offer.length && receives === 0n) bad('Ордер віддає ваші активи, а вам нічого не дає: це типова крадіжка. Не підписуйте.');
+    // майже нульова ціна: вам платять лише символічну суму нативної монети (менше 0,0001), без жодного іншого активу
+    const toOfferer = m.consideration.filter(c => same(c.recipient, offerer));
+    const nativeOnly = toOfferer.length > 0 && toOfferer.every(c => Number(c.itemType) === 0);
+    if (m.offer.length && (receives === 0n || (nativeOnly && receives < NEAR_ZERO_NATIVE))) bad('Ордер віддає ваші активи, а вам нічого (або майже нічого) не дає: це типова крадіжка. Не підписуйте.');
     ownerCheck(offerer);
   } else return null;
   return { lines, warnings, danger, kind: p };
+}
+
+// Додаткові попередження до типізованих даних: невідомий тип і відсутній chainId (підпис може діяти в кількох мережах)
+function typedExtras(td, recognized) {
+  const out = [];
+  if (!recognized) out.push('Тип даних не розпізнано: гаманець не може пояснити, що саме ви підписуєте. Підписуйте лише на довіреному сайті.');
+  if (!td || !td.domain || td.domain.chainId === undefined) out.push('У даних немає chainId: підпис може бути дійсним одразу в кількох мережах.');
+  return out;
+}
+
+// Підпис охоплює все повідомлення, а вікно показує лише початок: про це треба сказати прямо
+function truncationWarning(total, shown, bytes = false) {
+  if (total <= shown) return null;
+  return bytes
+    ? `Повідомлення довге: показано лише початок (${shown} із ${total} байт), а підписується все. Підписуйте лише на довіреному сайті.`
+    : `Повідомлення довге: показано лише початок (${shown} із ${total} символів), а підписується все. Підписуйте лише на довіреному сайті.`;
 }
 
 // ---------- EIP-7702 ----------
@@ -228,4 +248,4 @@ function delegateOf(code) {
   return m ? getAddress('0x' + m[1]) : null;
 }
 
-module.exports = { checkSiwe, parseSiwe, describeTyped, permitSpenders, permitTokens, rejectReason, hasDelegation, delegateOf, PERMIT2, KNOWN_SPENDERS, spenderLabel, REJECT_METHODS };
+module.exports = { typedExtras, truncationWarning, checkSiwe, parseSiwe, describeTyped, permitSpenders, permitTokens, rejectReason, hasDelegation, delegateOf, PERMIT2, KNOWN_SPENDERS, spenderLabel, REJECT_METHODS };
