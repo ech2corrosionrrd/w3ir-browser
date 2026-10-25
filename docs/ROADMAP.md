@@ -1,10 +1,10 @@
 # Дорожня карта й поточний стан
 
-_Оновлено: 2026-10-25, версія 1.44.0._
+_Оновлено: 2026-10-25, версія 1.44.1._
 
 ## Де ми зараз
 
-- Випущено **v1.44.0**: Glance, Tab Stash, ШІ-дії з виділеним текстом, посайтові перемикачі Shield (No-JS, сторонні кадри), провайдер Arweave Wallet, комісії Solana за завантаженістю.
+- Випущено **v1.44.1** (довідка, документація і тести на базі 1.44.0): Glance, Tab Stash, ШІ-дії з виділеним текстом, посайтові перемикачі Shield (No-JS, сторонні кадри), провайдер Arweave Wallet, комісії Solana за завантаженістю.
 - Основу 1.4x заклав **v1.43.0** (GitHub Releases `ech2corrosionrrd/w3ir-browser`; зараз Electron 44.9.3 / Chromium 152). Повний реліз функціоналу: центр контролю приватності **W3IR Shield Privacy Center**, нативний стейкінг Solana та захист від дрейнерів (Issue #7), AI SignGuard (100% локальне пояснення транзакцій через Ollama для EVM і Solana), архітектурний рефакторинг `wallet-evm-core.js` та `wallet-solana-staking.js`, SSRF-захист custom RPC, default-deny політика IPC, резервний Ed25519-ключ оновлень, захист від LFI/CSV, ізоляція підсистем preload через `safeRun`, кросплатформні збірки Linux/macOS у CI з OpenSSF Attestations.
 - **1387 автоматичних перевірок** (`npm test`), 137 unit-тестів без Electron (`npm run test:unit`), 0 помилок лінтера `npm run lint`. `npm audit --omit=dev` — 0 вразливостей.
 
