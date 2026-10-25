@@ -152,8 +152,29 @@ async function main() {
       h('div', { class: 'n' }, s.title.length > 24 ? host : s.title));
   }) : h('div', { class: 'empty-s' }, 'Тут з’являться сайти, які ви відвідуєте найчастіше.'));
 
+  // Відкладені набори вкладок (Ctrl+Shift+S): відновити весь набір, відкрити окрему вкладку або видалити набір
+  const stashes = await w3ir.invoke('stash:list', { limit: 8 }).catch(() => []);
+  const stashBox = Array.isArray(stashes) && stashes.length ? h('div', { class: 'stashes' }, stashes.map((st) => {
+    const row = h('div', { class: 'stash' });
+    const msg = h('span', { class: 'sm' });
+    const restore = h('button', { class: 'link', type: 'button', onclick: async () => {
+      restore.disabled = true;
+      const ok = await w3ir.invoke('stash:restore', { id: st.id }).catch(() => false);
+      msg.textContent = ok ? t('Відновлено у фонових вкладках') : t('Не вдалося відновити');
+      restore.disabled = false;
+    } }, t('Відновити всі'));
+    const del = h('button', { class: 'link', type: 'button', onclick: async () => { await w3ir.invoke('stash:delete', { id: st.id }).catch(() => null); row.remove(); } }, t('Видалити'));
+    row.append(
+      h('div', { class: 'sh' }, h('span', { class: 'st', title: st.title }, st.title), h('span', { class: 'sa' }, restore, del)),
+      h('details', null, h('summary', null, t('Вкладок: {0}', st.tabs.length)),
+        st.tabs.slice(0, 50).map(tab => h('a', { href: tab.url, title: tab.url }, tab.title || hostOf(tab.url)))),
+      msg);
+    return row;
+  })) : null;
+
   const main = h('div', { class: 'col-main' },
     h('h2', null, 'Швидкий доступ'), launchers(info && info.wallet === 'hidden'),
+    ...(stashBox ? [h('h2', null, 'Відкладені вкладки'), stashBox] : []),
     h('h2', null, 'Мої сайти'), tiles);
 
   // бокова колонка: закладки, порада, гарячі клавіші

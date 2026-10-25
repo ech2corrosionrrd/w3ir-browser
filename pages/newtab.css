@@ -50,6 +50,14 @@ kbd { font: 600 10.5px "Segoe UI", system-ui, sans-serif; padding: 2px 7px; bord
 
 /* мої сайти */
 .col-main .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.stash { background: var(--nt-card); border: 1px solid var(--nt-line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+.stash .sh { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.stash .st { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stash .sa { display: flex; gap: 12px; flex-shrink: 0; }
+.stash .sa button.link, .stash .sm { font-size: 12px; color: #c4b5fd; }
+.stash .sm { color: var(--nt-dim); }
+.stash details { margin-top: 6px; font-size: 13px; color: var(--nt-dim); }
+.stash details a { display: block; padding: 3px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #8ed5ff; }
 .empty-s { color: var(--nt-dim); font-size: 13px; padding: 10px 2px; line-height: 1.5; }
 
 /* бокова колонка */

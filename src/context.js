@@ -312,6 +312,8 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       case 'pypi': return `https://pypi.org/search/?q=${enc(q)}`;
       case 'ipfs': return ipfs.parseIpfsUrl(`ipfs://${q}`) ? `ipfs://${q}` : null;
       case 'ipns': return ipfs.parseIpfsUrl(`ipns://${q}`) ? `ipns://${q}` : null;
+      case 'eth': return /^0x[0-9a-fA-F]{64}$/.test(q) ? `https://etherscan.io/tx/${q}` : /^0x[0-9a-fA-F]{40}$/.test(q) ? `https://etherscan.io/address/${q}` : `https://etherscan.io/search?q=${enc(q)}`;
+      case 'sol': return /^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(q) ? `https://solscan.io/tx/${q}` : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(q) ? `https://solscan.io/account/${q}` : null;
       case 'ar': return arweave.isValidTxId(q) ? `ar://${q}` : `https://viewblock.io/arweave/search?q=${enc(q)}`;
     }
     for (const line of String(ctx.cfg().keywords || '').split('\n').slice(0, 100)) {

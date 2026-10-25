@@ -571,6 +571,28 @@ async function productivityTests(ctx) {
     // Tab Stash закрив і початкові вкладки: лишаємо одну, інакше закриється останнє вікно й застосунок завершиться
     const keep = w.createTab('w3ir://newtab', { activate: true });
     w.tabs.filter(x => x.id !== keep.id).forEach(x => w.closeTab(x.id));
+
+    // --- Tab Stash на сторінці нової вкладки: список наборів, відновлення, видалення ---
+    const stA = ctx.places.saveStash('Тестовий набір A', [{ url: base + '/?s1', title: 'S1' }, { url: base + '/?s2', title: 'S2' }]);
+    const stB = ctx.places.saveStash('Тестовий набір B', [{ url: base + '/?s3', title: 'S3' }]);
+    const ntab = w.createTab('w3ir://newtab', { activate: true });
+    await sleep(2500);
+    const nwc = ntab.view.webContents;
+    const rows = await nwc.executeJavaScript(`[...document.querySelectorAll('.stash .st')].map(e => e.textContent)`);
+    ok(rows.includes('Тестовий набір A') && rows.includes('Тестовий набір B'), 'newtab/stash: відкладені набори видно на сторінці нової вкладки');
+    ok(await nwc.executeJavaScript(`[...document.querySelectorAll('.stash')].find(r => r.querySelector('.st').textContent === 'Тестовий набір A').querySelectorAll('details a').length`) === 2, 'newtab/stash: у наборі видно його вкладки');
+    const tabsBeforeRestore = w.tabs.length;
+    await nwc.executeJavaScript(`[...document.querySelectorAll('.stash')].find(r => r.querySelector('.st').textContent === 'Тестовий набір A').querySelector('.sa button').click()`);
+    await sleep(1200);
+    ok(w.tabs.length === tabsBeforeRestore + 2 && ctx.places.getStash(stA.id), 'newtab/stash: «Відновити всі» відкриває вкладки набору й лишає набір');
+    await nwc.executeJavaScript(`[...document.querySelectorAll('.stash')].find(r => r.querySelector('.st').textContent === 'Тестовий набір B').querySelectorAll('.sa button')[1].click()`);
+    await sleep(800);
+    ok(!ctx.places.getStash(stB.id) && ctx.places.getStash(stA.id), 'newtab/stash: «Видалити» прибирає лише обраний набір');
+    ctx.places.deleteStash(stA.id);
+    // --- префікси адресного рядка eth / sol ---
+    const txh = '0x' + 'ab'.repeat(32), addr = '0x' + 'cd'.repeat(20);
+    ok(ctx.keywordUrl('eth ' + txh) === 'https://etherscan.io/tx/' + txh && ctx.keywordUrl('eth ' + addr) === 'https://etherscan.io/address/' + addr && ctx.keywordUrl('eth vitalik').startsWith('https://etherscan.io/search?q='), 'keywords: eth — транзакція, адреса або пошук в Etherscan');
+    ok(ctx.keywordUrl('sol 11111111111111111111111111111111') === 'https://solscan.io/account/11111111111111111111111111111111' && ctx.keywordUrl('sol ' + '5'.repeat(88)) === 'https://solscan.io/tx/' + '5'.repeat(88) && ctx.keywordUrl('sol привіт') === null, 'keywords: sol — адреса чи підпис у Solscan, сміття відхиляється');
   } finally {
     if (w.glanceView) w.closeGlance();
     ctx.setNoJs('127.0.0.1', false); ctx.setBlockIframes('127.0.0.1', false);
