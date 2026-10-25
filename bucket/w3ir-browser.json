@@ -1,10 +1,10 @@
 {
-    "version": "1.44.6",
+    "version": "1.44.7",
     "description": "Chromium-based browser with built-in ad blocking, password manager, Web3 wallet, profiles and encrypted bookmark sync",
     "homepage": "https://github.com/ech2corrosionrrd/w3ir-browser",
     "license": "MIT",
-    "url": "https://github.com/ech2corrosionrrd/w3ir-browser/releases/download/v1.44.6/W3IR-Browser-1.44.6-portable.exe#/W3IR-Browser.exe",
-    "hash": "185bdcbf6f32baa3c53b31ef5dc4739306342d76769153befdde1d94fa5f1e27",
+    "url": "https://github.com/ech2corrosionrrd/w3ir-browser/releases/download/v1.44.7/W3IR-Browser-1.44.7-portable.exe#/W3IR-Browser.exe",
+    "hash": "212447afba674b1ad0c014cc314d7e5c6dd8fdd12db68646b0264d4ca6a326dd",
     "shortcuts": [
         [
             "W3IR-Browser.exe",
