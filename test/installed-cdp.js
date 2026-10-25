@@ -206,6 +206,81 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
     ok(!JSON.parse(txt(await call('browser_tabs'))).some(t => t.scope === 'shared'), 'спільна вкладка: «припинити» одразу знімає доступ');
   }
 
+  // ---- 1.44.0: провайдер Arweave, перемикачі Shield для сайту, Glance, довідка ----
+  const http = require('http');
+  const hits = { inner: 0 };
+  const srv = http.createServer((req, res) => {
+    res.setHeader('content-type', 'text/html; charset=utf-8');
+    if (req.url.startsWith('/inner')) { hits.inner++; return res.end('<title>inner</title>'); }
+    if (req.url.startsWith('/frame')) return res.end('<title>frame</title><iframe src="http://localhost:' + srv.address().port + '/inner"></iframe>');
+    if (req.url.startsWith('/target')) return res.end('<title>glance-target</title><p>glance</p>');
+    res.end('<title>start</title><p><a id="l" href="/target">link</a></p><script>document.title = "js-ran"</script>');
+  });
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  const pageAt = async (u) => waitFor(async () => (await find(t => t.url === u))[0], 10000);
+  // Провайдер вебсторінкам вводиться лише за наявності гаманця: у свіжому тестовому профілі створюємо сховище й гаманець
+  const pwT = (await find(t => /^w3ir:\/\/passwords\/?$/.test(t.url)))[0];
+  const wlT = (await find(t => /^w3ir:\/\/wallet\/?$/.test(t.url)))[0];
+  const vcRes = pwT ? await ev(pwT, `w3ir.invoke('vault:create', { master: 'Installed-Test-Master-9!' })`) : null;
+  const wcRes = wlT ? await ev(wlT, `w3ir.invoke('wallet:create')`) : null;
+  ok(!!(vcRes && vcRes.ok && wcRes && wcRes.ok), 'нові функції: у тестовому профілі створено сховище паролів і гаманець', { vcRes, wcRes: wcRes && wcRes.ok });
+  await ev(ui, `api.cmd('newTab')`); await sleep(500);
+  await ev(ui, `api.cmd('go', '${base}/')`);
+  let pg = await pageAt(base + '/');
+  await sleep(1200);
+  ok(!!pg && await ev(pg, 'document.title') === 'js-ran', 'нові функції: тестова сторінка відкрита, скрипти виконуються');
+  if (pg) {
+    // Arweave Wallet: провайдер є, підпис транзакцій не підтримується
+    ok(await ev(pg, `typeof window.arweaveWallet === 'object' && ['connect', 'getActiveAddress', 'getActivePublicKey', 'signature'].every(m => typeof window.arweaveWallet[m] === 'function')`), 'Arweave: window.arweaveWallet з методами ArConnect/Wander у вебсторінці');
+    ok(await ev(pg, `window.arweaveWallet.sign({}).then(() => 'signed', () => 'rejected')`) === 'rejected', 'Arweave: підпис транзакції відхиляється (не підтримується)');
+    ok(await ev(pg, `window.arweaveWallet.getActiveAddress().then(() => 'ok', () => 'rejected')`) === 'rejected', 'Arweave: адреса недоступна, поки сайт не підключено');
+
+    // Shield: вимкнення JavaScript для сайту
+    await ev(ui, `api.cmd('siteNoJs', { on: true })`); await sleep(2200);
+    ok(await ev(pg, 'document.title') === 'start', 'Shield: «Вимкнути JavaScript» — скрипти сайту не виконуються');
+    await ev(ui, `api.cmd('siteNoJs', { on: false })`); await sleep(2200);
+    ok(await ev(pg, 'document.title') === 'js-ran', 'Shield: після вимкнення перемикача скрипти знову працюють');
+
+    // Shield: сторонні кадри
+    hits.inner = 0;
+    await ev(ui, `api.cmd('go', '${base}/frame')`); await sleep(2000);
+    ok(hits.inner === 1, 'Shield: типово сторонній кадр завантажується');
+    hits.inner = 0;
+    await ev(ui, `api.cmd('siteBlockIframes', { on: true })`); await sleep(2200);
+    ok(hits.inner === 0, 'Shield: «Блокувати сторонні кадри» — кадр не завантажується');
+    await ev(ui, `api.cmd('siteBlockIframes', { on: false })`); await sleep(500);
+
+    // Glance: Alt+клік по посиланню відкриває плаваючий перегляд без моста гаманця
+    await ev(ui, `api.cmd('go', '${base}/')`);
+    pg = await pageAt(base + '/'); await sleep(1500);
+    const lr = await ev(pg, `(() => { const r = document.getElementById('l').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+    const mc = await cdp(pg.webSocketDebuggerUrl);
+    await mc.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: lr.x, y: lr.y, modifiers: 1 });
+    await mc.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: lr.x, y: lr.y, button: 'left', clickCount: 1, modifiers: 1 });
+    await sleep(120);
+    await mc.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: lr.x, y: lr.y, button: 'left', clickCount: 1, modifiers: 1 });
+    mc.close();
+    const gl = await pageAt(base + '/target');
+    ok(!!gl, 'Glance: Alt+клік відкриває посилання в плаваючому перегляді');
+    ok(!!(await find(t => t.url === base + '/'))[0], 'Glance: поточна вкладка лишається на місці (не переходить за посиланням)');
+    if (gl) {
+      await sleep(800);
+      ok(await ev(gl, `typeof window.arweaveWallet + '|' + typeof window.ethereum + '|' + typeof window.solana`) === 'undefined|undefined|undefined', 'Glance: у перегляді немає моста гаманця (preload не підключено)');
+      // Esc і Ctrl+Enter обробляє головний процес (before-input-event): через CDP клавіші туди не доходять, їх перевіряє область productivityTests
+    }
+  }
+  srv.closeAllConnections(); srv.close();
+
+  // довідка описує нові функції (з 1.44.1; у 1.44.0 розділів ще не було)
+  if (V.split('.').map(Number).reduce((a, n, i) => a || (n - [1, 44, 1][i]), 0) >= 0) {
+    await ev(ui, `api.cmd('openPage', 'help')`);
+    const helpT = await waitFor(async () => (await find(x => /^w3ir:\/\/help\/?(\?.*)?$/.test(x.url)))[0], 8000);
+    await sleep(2500);
+    const helpText = helpT ? await ev(helpT, 'document.body.innerText') : '';
+    ok(/Glance/.test(helpText) && /Tab Stash/.test(helpText) && /Вимкнути JavaScript/.test(helpText) && /ipfs:\/\//.test(helpText), 'довідка: Glance, Tab Stash, перемикачі Shield та ipfs:// описано');
+  }
+
   // ---- темна тема ----
   await ev(settings, `w3ir.invoke('settings:set', { theme: 'dark' })`); await sleep(1500);
   const bgUi = await ev(ui, `getComputedStyle(document.body).backgroundColor`);
@@ -225,6 +300,15 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   ok(pinStyle && (pinStyle.bg !== 'rgba(0, 0, 0, 0)' || pinStyle.img !== 'none') && pinStyle.shadow !== 'none', 'вкладки: закріплена вкладка помітна (має фон і рамку, не зливається з тлом)', pinStyle);
   await shot(ui, 'i-pinned');
   await sleep(500);
+  // ---- Tab Stash: відкласти всі незакріплені вкладки й відновити набір ----
+  const tabsBefore = await ev(ui, `document.querySelectorAll('.tab').length`);
+  const pinnedBefore = await ev(ui, `document.querySelectorAll('.tab.pinned').length`);
+  await ev(ui, `api.cmd('stashTabs')`); await sleep(1500);
+  const tabsStashed = await ev(ui, `document.querySelectorAll('.tab').length`);
+  ok(tabsBefore >= 2 && tabsStashed === Math.max(1, pinnedBefore), 'Tab Stash: незакріплені вкладки відкладено (лишаються закріплені або одна нова)', { було: tabsBefore, стало: tabsStashed, закріплених: pinnedBefore });
+  await ev(ui, `api.cmd('restoreStash')`); await sleep(2000);
+  const tabsRestored = await ev(ui, `document.querySelectorAll('.tab').length`);
+  ok(tabsRestored > tabsStashed, 'Tab Stash: останній набір відновлено', { після: tabsRestored });
   stop = true;
   const mainUi = (await find(t => t.url === 'w3ir://ui/index.html'))[0];
   await shot(mainUi, 'i-main-ui');

@@ -508,8 +508,14 @@ async function productivityTests(ctx) {
     w.openGlance(base + '/frame');
     ok(w.glanceView && w.glanceUrl === base + '/frame', 'glance: новий перегляд замінює попередній');
     await sleep(800);
+    const wcg = w.glanceView.webContents;
+    wcg.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
+    await sleep(400);
+    ok(!w.glanceView, 'glance: Esc закриває перегляд');
+    w.openGlance(base + '/frame'); await sleep(800);
     const before = w.tabs.length;
-    w.glanceToTab();
+    w.glanceView.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Return', modifiers: ['control'] });
+    await sleep(500);
     await sleep(300);
     ok(!w.glanceView && w.tabs.length === before + 1 && w.tabUrl(w.active()).startsWith(base + '/frame'), 'glance: «у вкладку» закриває перегляд і відкриває адресу в новій вкладці');
     w.closeTab(w.active().id);
