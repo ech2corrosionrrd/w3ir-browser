@@ -219,7 +219,7 @@ async function ipcPolicyTests() {
     ['profiles:create', 'w3ir://profiles', true], ['profiles:remove', 'w3ir://settings', false], ['import:run', 'w3ir://import', true], ['import:run', 'w3ir://newtab', false],
     ['settings:set', 'w3ir://settings', true], ['settings:set', 'w3ir://history', false], ['settings:set', 'w3ir://error?code=1', false], ['settings:get', 'w3ir://help', true], ['settings:get', 'w3ir://help#faq', true],
     ['clear', 'w3ir://settings', true], ['clear', 'w3ir://reader', false], ['ext:add', 'w3ir://bookmarks', false], ['reader:get', 'w3ir://reader', true], ['reader:get', 'w3ir://newtab', false], ['doc:get', 'w3ir://doc', true], ['doc:print', 'w3ir://doc', true], ['doc:savePdf', 'w3ir://doc', true], ['doc:get', 'w3ir://reader', false], ['doc:print', 'w3ir://newtab', false], ['doc:get', 'w3ir://doc?x=1', false],
-    ['wallet:importKey', 'w3ir://wallet', true], ['wallet:importKey', 'w3ir://settings', false], ['wallet:revealKey', 'w3ir://newtab', false], ['wallet:removeImported', 'w3ir://history', false], ['wallet:qr', 'w3ir://wallet', true], ['wallet:qr', 'w3ir://newtab', false],
+    ['wallet:ledgerAdd', 'w3ir://wallet', true], ['wallet:ledgerAdd', 'w3ir://settings', false], ['wallet:importKey', 'w3ir://wallet', true], ['wallet:importKey', 'w3ir://settings', false], ['wallet:revealKey', 'w3ir://newtab', false], ['wallet:removeImported', 'w3ir://history', false], ['wallet:qr', 'w3ir://wallet', true], ['wallet:qr', 'w3ir://newtab', false],
     ['wallet:replace', 'w3ir://wallet', true], ['wallet:replace', 'w3ir://history', false], ['wallet:revoke', 'w3ir://newtab', false], ['wallet:addContact', 'w3ir://settings', false], ['wallet:resolveName', 'w3ir://wallet', true],
     ['vault:lock', 'w3ir://wallet', true], ['vault:lock', 'w3ir://history', false], ['wallet:send', 'w3ir://wallet', true], ['wallet:send', 'w3ir://newtab', false], ['wallet:rename', 'w3ir://wallet', true],
     ['assistant:run', 'w3ir://assistant', true], ['assistant:run', 'w3ir://settings', false], ['assistant:run', 'w3ir://assistant?x=1', false], ['assistant:share', 'w3ir://history', false],
@@ -428,6 +428,18 @@ async function ipfsSchemeTests(ctx) {
   ok(ctx.resolveInput('ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG') === 'ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG' && ctx.keywordUrl('ipfs not valid') === null, 'ipfs: адресний рядок приймає ipfs://, ключове слово перевіряє CID');
 }
 
+// Міст до Ledger: службова сторінка завантажується, дозвіл WebHID видається лише їй і лише пристроям Ledger
+async function ledgerBridgeTests(ctx) {
+  const { allowDevice } = require('../../src/ledger-bridge');
+  const dev = (vendorId) => ({ deviceType: 'hid', origin: 'w3ir://ledger', device: { vendorId } });
+  ok(allowDevice(dev(0x2c97)) && !allowDevice(dev(0x1234)) && !allowDevice({ ...dev(0x2c97), origin: 'https://evil.example' }) && !allowDevice({ ...dev(0x2c97), deviceType: 'usb' }) && !allowDevice(null), 'ledger: WebHID дозволено лише службовій сторінці й лише пристроям Ledger');
+  const bridge = ctx.ledger();
+  ok(await bridge.run('typeof window.ledgerIo.write + typeof window.ledgerIo.read') === 'functionfunction', 'ledger: службова сторінка завантажується й надає ввід-вивід');
+  let err = ''; try { await bridge.app().getAddress("m/44'/60'/0'/0/0"); } catch (e) { err = e.message; }
+  ok(err === '' || /Ledger|Ethereum|пристр/i.test(err), 'ledger: без пристрою — зрозуміла помилка, а не збій (' + err.slice(0, 80) + ')');
+  bridge.close();
+}
+
 // Темний вигляд сайту: вмикається лише для вибраного домену, застосовується без перезавантаження й знімається
 async function darkTests(ctx) {
   const w = [...ctx.windows].find(x => !x.incognito);
@@ -456,4 +468,4 @@ async function darkTests(ctx) {
   site.closeAllConnections(); site.close();
 }
 
-module.exports = { ipfsSchemeTests, darkTests, failoverTests, auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };
+module.exports = { ledgerBridgeTests, ipfsSchemeTests, darkTests, failoverTests, auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };

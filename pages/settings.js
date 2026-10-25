@@ -454,6 +454,7 @@ async function main() {
       ['experimental', 'Локальний ШІ-помічник', 'Якість залежить від моделі.'],
       ['experimental', 'Керування браузером ШІ (MCP)', 'Вимкнено за замовчуванням.'],
       ['experimental', 'Розширення Chrome', 'Сумісність часткова.'],
+      ['experimental', 'Ledger (EVM)', 'Перевірено лише на імітованому пристрої; починайте з малої суми.'],
     ].map(([level, name, note]) => h('div', { class: 'row' },
       h('div', null, h('div', null, name), note && h('div', { class: 'd' }, note)),
       h('span', { class: 'maturity ' + level }, { stable: 'Стабільна', beta: 'Бета', experimental: 'Експериментальна' }[level])))),

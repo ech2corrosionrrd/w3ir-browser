@@ -19,6 +19,7 @@ const { Places, BookmarkStore } = require('./places');
 const { Assistant } = require('./assistant');
 const arweave = require('./arweave');
 const ipfs = require('./ipfs');
+const { LedgerBridge, allowDevice, isHelperOrigin } = require('./ledger-bridge');
 const { parse: parseHost } = require('tldts-experimental');
 const { attachCosmetic } = require('./adblock');
 const { stripTracking, upgradeHttps } = require('./urlrules');
@@ -128,6 +129,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   const userData = dataDir;
   ctx.vault = new Vault({ dir: userData, autolockMinutes: ctx.cfg().autolockMinutes, onChange: () => { ctx.pushAll(); if (ctx.wallet) ctx.wallet.onVaultChange(); } });
   ctx.wallet = new Wallet(ctx);
+  ctx.ledger = () => (ctx._ledger = ctx._ledger || new LedgerBridge(ctx));
   ctx.arweave = arweave;
   // Захист від шахрайських сайтів: списки спільні для всіх профілів і лежать у теці основного профілю
   shared.threats = shared.threats || { lists: null };
@@ -568,8 +570,11 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
         cb(allow);
       }).catch(() => cb(false));
     });
+    // WebHID для Ledger: лише службова сторінка w3ir://ledger й лише пристрої виробника Ledger (див. src/ledger-bridge.js)
+    ses.setDevicePermissionHandler(allowDevice);
     ses.setPermissionCheckHandler((wc, permission, origin) => {
       if (ALWAYS_ALLOW.has(permission)) return true;
+      if (permission === 'hid') return isHelperOrigin(origin);
       return decisions()[originOf(origin) + '|' + permission] === true;
     });
 

@@ -258,8 +258,8 @@ async function renderDashboard(st) {
       h('div', { class: 'chain' }, h('span', { class: 'tag' + (a.chain === 'sol' ? ' sol' : '') }, impTag(a)), h('code', null, a.address), bal, cp,
         h('button', { class: 'link', onclick: () => showQr(a.name || impTag(a), a.address) }, 'QR'),
         h('a', { href: a.chain === 'sol' ? solExplorer(a.address, sol.cluster) : (net.explorer ? `${net.explorer}/address/${a.address}` : '#') }, 'Оглядач')),
-      h('div', { class: 'chain' }, h('span', { class: 'note' }, 'Імпортовано за приватним ключем: не відновлюється з фрази гаманця й недоступний сайтам (dApp).'),
-        h('button', { class: 'link', onclick: async () => { const r = await withAuth((x) => call('wallet:revealKey', { id: a.id, ...x })); if (r && r.ok) showSecret(r.key); else if (r && r.error) alert(r.error); } }, 'Показати ключ'),
+      h('div', { class: 'chain' }, h('span', { class: 'note' }, a.hw ? t('Ledger ({0}): ключ лишається на пристрої, кожен підпис підтверджується на ньому. Експериментально.', a.path) : 'Імпортовано за приватним ключем: не відновлюється з фрази гаманця й недоступний сайтам (dApp).'),
+        a.hw ? null : h('button', { class: 'link', onclick: async () => { const r = await withAuth((x) => call('wallet:revealKey', { id: a.id, ...x })); if (r && r.ok) showSecret(r.key); else if (r && r.error) alert(r.error); } }, 'Показати ключ'),
         h('button', { class: 'link danger', onclick: async () => { const r = await withAuth((x) => call('wallet:removeImported', { id: a.id, ...x })); if (r && r.ok) render(); else if (r && r.error) alert(r.error); } }, 'Видалити')));
   });
   const watchCards = watch.map((a) => {
@@ -670,6 +670,26 @@ async function renderDashboard(st) {
     const r = await call('wallet:addWatch', { address: a.address, name: a.name });
     if (r.ok) render(); else alert(r.error);
   }
+  // ----- Ledger (експериментально) -----
+  function ledgerDialog() {
+    const kind = h('select', null, h('option', { value: 'ledgerLive' }, "Ledger Live: m/44'/60'/N'/0/0"), h('option', { value: 'standard' }, "Стандартний: m/44'/60'/0'/0/N"));
+    const idx = h('select', null, Array.from({ length: 10 }, (_, i) => h('option', { value: String(i) }, String(i + 1))));
+    const name = h('input', { type: 'text', placeholder: 'Назва рахунку (необов\u2019язково)', spellcheck: false });
+    const msg = h('div', { class: 'merr' });
+    const go = h('button', { class: 'primary', onclick: async () => {
+      msg.textContent = ''; go.disabled = true; go.textContent = t('Підтвердіть адресу на Ledger…');
+      const r = await call('wallet:ledgerAdd', { kind: kind.value, index: Number(idx.value), name: name.value });
+      go.disabled = false; go.textContent = t('Підключити');
+      if (!r.ok) { msg.textContent = r.error; return; }
+      box.remove(); render();
+    } }, 'Підключити');
+    const box = h('div', { class: 'modal', onmousedown: (e) => { if (e.target === box) box.remove(); } },
+      h('div', { class: 'mbox' }, h('h2', { class: 'mtitle' }, 'Підключити Ledger'),
+        h('div', { class: 'warnbox' }, 'Експериментальна функція: перевірена лише на імітованому пристрої. Спершу спробуйте з невеликою сумою. Підключіть Ledger, розблокуйте його й відкрийте застосунок «Ethereum». Адреса з’явиться на екрані пристрою: звірте її з тією, що покаже браузер, і підтвердьте.'),
+        h('label', { class: 'mfield' }, h('span', null, 'Шлях деривації'), kind), h('label', { class: 'mfield' }, h('span', null, 'Номер рахунку'), idx), h('label', { class: 'mfield' }, h('span', null, 'Назва'), name),
+        msg, h('div', { class: 'mbtns' }, h('button', { onclick: () => box.remove() }, 'Скасувати'), go)));
+    document.body.append(box);
+  }
   function importDialog() {
     const key = h('textarea', { rows: 3, placeholder: 'Приватний ключ: EVM — 64 шістнадцяткові символи; Solana — base58 (формат Phantom) або JSON-масив із файлу keypair', spellcheck: false, autocomplete: 'off', style: 'width:100%;font-family:Consolas,monospace' });
     const name = h('input', { type: 'text', placeholder: 'Назва рахунку (необов\u2019язково)', spellcheck: false });
@@ -907,7 +927,7 @@ async function renderDashboard(st) {
     tabsBar,
     h('h2', { id: 'sec-accounts' }, 'Рахунки'),
     accountsAll,
-    h('div', { class: 'bar', style: 'margin-top:10px' }, info.accounts.length < 10 ? h('button', { onclick: async () => { const r = await call('wallet:addAccount'); if (!r.ok) alert(r.error); render(); } }, '+ Додати рахунок') : '', h('button', { onclick: importDialog }, 'Імпортувати ключ\u2026'), h('button', { onclick: watchDialog }, 'Додати адресу для перегляду\u2026')),
+    h('div', { class: 'bar', style: 'margin-top:10px' }, info.accounts.length < 10 ? h('button', { onclick: async () => { const r = await call('wallet:addAccount'); if (!r.ok) alert(r.error); render(); } }, '+ Додати рахунок') : '', h('button', { onclick: importDialog }, 'Імпортувати ключ\u2026'), h('button', { onclick: ledgerDialog }, 'Підключити Ledger\u2026'), h('button', { onclick: watchDialog }, 'Додати адресу для перегляду\u2026')),
     h('h2', { id: 'tokens-anchor' }, 'Токени та NFT'),
     h('div', { class: 'bar' }, tokAcct, tokChain, h('button', { onclick: () => loadTokens() }, 'Оновити')),
     tokFilterBar, tokMsg, tokList, nftMsg, nftGrid, nftMore, tokAddBar, nftAddBar,

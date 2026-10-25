@@ -179,6 +179,8 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
       const s = this.section();
       const i = s.addresses.indexOf(address);
       if (i < 0) {
+        const hw = this.ledgerSigner(address); // рахунок Ledger: підпис на пристрої
+        if (hw) return hw;
         const secret = this._importedSecret(address, 'evm'); // імпортований за приватним ключем
         if (!secret) throw unauthorized('Невідомий рахунок');
         return new EthWallet(secret);

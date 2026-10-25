@@ -8,6 +8,7 @@ const { Wallet: EthWallet, getAddress, isAddress, ZeroAddress } = require('ether
 const S = require('./solana');
 const { injectionClean } = require('./token-text');
 const qr = require('./qr');
+const { LedgerSigner, PATHS } = require('./ledger');
 
 const IMP_BASE = 1000;
 const MAX_IMPORTED = 20;
@@ -22,7 +23,7 @@ function install(Wallet, { RpcError, unauthorized }) {
 
   proto._imported = function () { const s = this.data(); if (!s) throw unauthorized('Гаманець не створено'); s.imported = s.imported || []; return s.imported; };
 
-  proto.importedAccounts = function () { return this._imported().map((a, i) => ({ id: IMP_BASE + i, chain: a.chain, address: a.address, name: a.name || '' })); };
+  proto.importedAccounts = function () { return this._imported().map((a, i) => ({ id: IMP_BASE + i, chain: a.chain, address: a.address, name: a.name || '', ...(a.hw ? { hw: a.hw.type, path: a.hw.path } : {}) })); };
 
   // Адреса рахунку для EVM/Solana: індекс 0–9 — похідні від фрази, ≥ 1000 — імпортовані
   proto.evmAccount = function (index) {
@@ -54,8 +55,32 @@ function install(Wallet, { RpcError, unauthorized }) {
   proto.isOwnSol = function (address) { return this.ownSol().includes(address); };
 
   proto._importedSecret = function (address, chain) {
-    const a = this._imported().find(x => x.chain === chain && x.address === address);
+    const a = this._imported().find(x => x.chain === chain && x.address === address && !x.hw);
     return a ? a.secret : null;
+  };
+
+  // ---------- Ledger (ЕКСПЕРИМЕНТАЛЬНО): рахунок без ключа, підпис — на пристрої ----------
+  // Запис зберігає лише адресу й шлях деривації; приватний ключ ніколи не залишає пристрій.
+  proto.ledgerApp = function () { return this.ctx.ledger().app(); };
+  proto._ledgerEntry = function (address) { return this._imported().find(x => x.chain === 'evm' && x.address === address && x.hw && x.hw.type === 'ledger') || null; };
+  proto.ledgerSigner = function (address) {
+    const e = this._ledgerEntry(address);
+    return e ? new LedgerSigner(this.ledgerApp(), e.hw.path, e.address) : null;
+  };
+  proto.addLedger = async function (kind, index, name) {
+    const make = PATHS[kind];
+    const i = Number(index);
+    if (!make || !Number.isInteger(i) || i < 0 || i > 19) throw new RpcError(-32602, 'Некоректний шлях Ledger.');
+    const list = this._imported();
+    if (list.length >= MAX_IMPORTED) throw new RpcError(-32602, `Не більше ${MAX_IMPORTED} імпортованих рахунків.`);
+    const path = make(i);
+    let got;
+    try { got = await this.ledgerApp().getAddress(path, true); } // адреса показується на екрані пристрою для звірки
+    catch (e) { throw new RpcError(e.code === 4001 ? 4001 : -32000, e.message); }
+    if (this.isOwnEvm(got.address)) throw new RpcError(-32602, 'Цей рахунок уже є в гаманці.');
+    list.push({ chain: 'evm', address: got.address, name: injectionClean(name, 32), added: Date.now(), hw: { type: 'ledger', path } });
+    this.vault.persist();
+    return { id: IMP_BASE + list.length - 1, chain: 'evm', address: got.address, name: list[list.length - 1].name, hw: 'ledger', path };
   };
 
   // Розпізнає ключ: EVM — 64 hex (з 0x або без); Solana — base58 із 64 байтів (формат Phantom) або JSON-масив із 64 чисел (файл keypair)
@@ -100,6 +125,7 @@ function install(Wallet, { RpcError, unauthorized }) {
   proto.revealKey = function (id) {
     const a = this._imported()[Number(id) - IMP_BASE];
     if (!a) throw new RpcError(-32602, 'Невідомий рахунок');
+    if (a.hw) throw new RpcError(-32602, 'Ключ рахунку Ledger зберігається лише на пристрої.');
     if (a.chain === 'evm') return a.secret;
     const seed = Buffer.from(a.secret, 'base64');
     return S.b58encode(Buffer.concat([seed, S.keypairFromSeed(seed).publicKey]));

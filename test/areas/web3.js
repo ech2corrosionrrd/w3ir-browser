@@ -374,6 +374,36 @@ async function walletTests(ctx) {
   ok(/Невідомий рахунок/.test(afterRemove) && !w.approval, 'import: після видалення переказ із цього рахунку неможливий');
   ok(!JSON.stringify(wal.section()).includes(impHex), 'import: після видалення ключа немає в даних гаманця');
 
+  // ---------- Ledger: рахунок без ключа, підпис на (імітованому) пристрої ----------
+  const hwKey = new E.Wallet('0x' + '33'.repeat(32));
+  const hwCalls = [];
+  let hwReject = false;
+  const fakeApp = {
+    async getAddress(path, display) { hwCalls.push([path, display]); if (hwReject) { const e = new Error('Підпис відхилено на пристрої Ledger.'); e.code = 4001; throw e; } return { address: hwKey.address, publicKey: '0x' }; },
+    async signPersonalMessage(path, bytes) { const sg = hwKey.signingKey.sign(E.hashMessage(bytes)); return { v: 27 + sg.yParity, r: sg.r, s: sg.s }; },
+    async signTransaction(path, hex) { const sg = hwKey.signingKey.sign(E.keccak256(hex)); return { v: sg.yParity, r: sg.r, s: sg.s }; },
+  };
+  const origLedgerApp = wal.ledgerApp;
+  wal.ledgerApp = () => fakeApp;
+  const hwErr = async (...a) => { try { await wal.addLedger(...a); return ''; } catch (e) { return e.message; } };
+  ok(/Некоректний шлях/.test(await hwErr('evil', 0)) && /Некоректний шлях/.test(await hwErr('ledgerLive', 99)) && /Некоректний шлях/.test(await hwErr('standard', -1)) && wal.importedAccounts().length === 0, 'ledger: некоректний тип шляху й номер відхиляються');
+  hwReject = true;
+  let hwRejCode = 0; try { await wal.addLedger('ledgerLive', 0, 'x'); } catch (e) { hwRejCode = e.code; }
+  ok(hwRejCode === 4001 && wal.importedAccounts().length === 0, 'ledger: відмова на пристрої не додає рахунок (код 4001)');
+  hwReject = false;
+  const hwAcc = await wal.addLedger('ledgerLive', 1, '  Мій Ledger‮ ');
+  ok(hwAcc.id === 1000 && hwAcc.hw === 'ledger' && hwAcc.path === "m/44'/60'/1'/0/0" && hwAcc.name === 'Мій Ledger' && hwCalls.at(-1)[1] === true && wal.isOwnEvm(hwKey.address), 'ledger: рахунок додано (адреса показується на пристрої), він визнається власним');
+  ok(wal._imported()[0].secret === undefined && !JSON.stringify(wal.section().imported).includes('33'.repeat(32)), 'ledger: у сховищі немає жодного секрету, лише адреса й шлях');
+  ok(/уже є в гаманці/.test(await hwErr('ledgerLive', 1)) && wal.importedAccounts().length === 1, 'ledger: той самий рахунок удруге не додається');
+  ok(wal.importedAccounts()[0].hw === 'ledger' && wal._importedSecret(hwKey.address, 'evm') === null && (() => { try { wal.revealKey(1000); return false; } catch (e) { return /лише на пристрої/.test(e.message); } })(), 'ledger: ключ показати неможливо');
+  const hwSigner = wal.signerFor(hwKey.address);
+  const hwSig = await hwSigner.signMessage('привіт');
+  ok(E.verifyMessage('привіт', hwSig) === hwKey.address, 'ledger: підпис повідомлення з пристрою відповідає адресі рахунку');
+  const hwRaw = await hwSigner.signTransaction({ chainId: 31337, type: 2, nonce: 0, to: rcpt, value: 1n, gasLimit: 21000n, maxFeePerGas: 10n ** 9n, maxPriorityFeePerGas: 1n });
+  ok(E.Transaction.from(hwRaw).from === hwKey.address, 'ledger: підписана транзакція відновлюється до адреси рахунку');
+  ok(wal.removeImported(1000) === true && !wal.isOwnEvm(hwKey.address) && (() => { try { wal.signerFor(hwKey.address); return false; } catch { return true; } })(), 'ledger: після видалення рахунок недоступний для підпису');
+  wal.ledgerApp = origLedgerApp;
+
   ok(wal.removeToken(TOKEN) === true && (await wal.evmTokens(0)).tokens.length === 0 && wal.removeToken(TOKEN) === false, 'tokens: токен можна прибрати зі списку');
   const evmSt = await wal.txStatuses([{ hash: tokHash, chainId: 31337 }, { hash: '0x' + 'ab'.repeat(32), chainId: 31337 }, { hash: 'не хеш', chainId: 31337 }, { hash: tokHash, chainId: 999999 }]);
   ok(evmSt[tokHash] === 'confirmed' && evmSt['0x' + 'ab'.repeat(32)] === 'pending' && Object.keys(evmSt).length === 2, 'tokens: статуси транзакцій EVM (підтверджено / очікує); хибні записи ігноруються');

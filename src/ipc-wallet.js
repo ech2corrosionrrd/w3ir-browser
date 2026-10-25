@@ -113,6 +113,7 @@ async function walletApi(ctx, entry, name, arg) {
       case 'wallet:addContact': return { ok: true, contact: w.addContact(arg.name, arg.address) };
       case 'wallet:removeContact': return { ok: true, removed: w.removeContact(String(arg.address)) };
       case 'wallet:resolveName': return { ok: true, address: await w.resolveName(arg.name) };
+      case 'wallet:ledgerAdd': return { ok: true, account: await w.addLedger(arg.kind, arg.index, arg.name) };
       case 'wallet:importKey': return { ok: true, account: w.importKey(arg.key, arg.name) };
       case 'wallet:revealKey': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, key: w.revealKey(arg.id) };
       case 'wallet:removeImported': {
