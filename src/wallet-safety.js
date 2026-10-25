@@ -72,6 +72,35 @@ function install(Wallet, { RpcError, unauthorized }) {
   // повертає { warnings, delay, danger } для вікна підтвердження. Переказ NFT (nft: true) оцінюється лише за адресою отримувача.
   // contacts: false — не перевіряти адресну книгу (транзакція від сайту: отримувач — контракт сервісу, а не людина)
   // chainId — мережа EVM, у якій сплачується сума; pendingUsd — уже враховане в цьому ж підтвердженні (кілька переказів в одній транзакції)
+  // Кілька переказів в одному підтвердженні (транзакція Solana): кожен проходить policyGate, добовий ліміт складається,
+  // а стеля «на один переказ» і пауза великої суми застосовуються ще й до суми всієї транзакції
+  proto.policyGateMany = async function (items, base = {}) {
+    const gates = [];
+    let total = 0;
+    for (const it of items) {
+      const g = await this.policyGate({ ...base, ...it, pendingUsd: total });
+      total += g.usd > 0 ? g.usd : 0;
+      gates.push(g);
+    }
+    const out = {
+      warnings: [...new Set(gates.flatMap(g => g.warnings))],
+      delay: Math.max(0, ...gates.map(g => g.delay)),
+      danger: gates.some(g => g.danger),
+      usd: total,
+      commit: () => gates.forEach(g => g.commit()),
+    };
+    if (gates.length > 1) {
+      const p = this.getPolicy();
+      if (p.maxUsd && total > p.maxUsd) throw new RpcError(-32602, `Перевищено ліміт ${p.maxUsd} USD на одну транзакцію: усі перекази разом ≈ ${total.toFixed(2)} USD. Змініть ліміт у налаштуваннях безпеки гаманця.`);
+      if (p.confirmUsd && total >= p.confirmUsd && !out.delay) {
+        out.warnings.push(`Велика сума в транзакції (разом ≈ ${total.toFixed(2)} USD): підтвердити можна буде через ${DELAY_SEC} с. Ще раз перевірте отримувача.`);
+        out.delay = DELAY_SEC;
+        out.danger = true;
+      }
+    }
+    return out;
+  };
+
   proto.policyGate = async function ({ to, chain, chainId, token, amount, nft, contacts = true, pendingUsd = 0 }) {
     const p = this.getPolicy();
     const out = { warnings: [], delay: 0, danger: false, commit: () => {} };

@@ -476,7 +476,7 @@ function describe(parsed, ours = []) {
         const prog = pid === P.TOKEN22 ? 'Token-2022' : 'SPL Token';
         const withFee = pid === P.TOKEN22 && t === 26 && d[1] === 1 && d.length >= 19; // TransferCheckedWithFee
         if ((t === 3 && d.length >= 9 && mine.has(key(ins, 2))) || (t === 12 && d.length >= 10 && mine.has(key(ins, 3))) || (withFee && mine.has(key(ins, 3)))) tokensOut++;
-        if (t === 3 && d.length >= 9 && mine.has(key(ins, 2))) tokenTransfers.push({ mint: null, amount: d.readBigUInt64LE(1), decimals: null });
+        if (t === 3 && d.length >= 9 && mine.has(key(ins, 2))) tokenTransfers.push({ mint: null, amount: d.readBigUInt64LE(1), decimals: null, source: key(ins, 0) });
         else if (t === 12 && d.length >= 10 && mine.has(key(ins, 3))) tokenTransfers.push({ mint: key(ins, 1), amount: d.readBigUInt64LE(1), decimals: d[9] });
         else if (withFee && mine.has(key(ins, 3))) tokenTransfers.push({ mint: key(ins, 1), amount: d.readBigUInt64LE(2), decimals: d[10] });
         if (t === 3 && d.length >= 9) add(`Переказ токенів (${d.readBigUInt64LE(1)} у мінімальних одиницях): ${short(key(ins, 0))} → ${short(key(ins, 1))}, підпис ${who(key(ins, 2))}`);

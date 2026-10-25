@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { isSafeRpc } = require('./wallet');
+const { assertPublicRpc } = require('./rpc-guard');
 
 const PING_TIMEOUT = 6000;
 const PING_MIN_INTERVAL = 10000;
@@ -22,6 +23,7 @@ async function pingNetworks(networks, { timeout = PING_TIMEOUT, fetchFn = fetch 
     for (let i = 0; i < urls.length; i++) {
       const t0 = Date.now();
       try {
+        await assertPublicRpc(urls[i]);
         const res = await fetchFn(urls[i], {
           method: 'POST', headers: { 'content-type': 'application/json' }, redirect: 'error',
           body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_chainId', params: [] }), signal: AbortSignal.timeout(timeout),

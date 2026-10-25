@@ -6,6 +6,7 @@ const S = require('./solana');
 const { t: tr } = require('./i18n');
 const { csvCell } = require('./wallet-history-evm');
 const { truncationWarning } = require('./wallet-signguard');
+const { assertPublicRpc } = require('./rpc-guard');
 
 function solToCsv(items, { cluster = '', tr: translate = (x) => x } = {}) {
   const head = ['Час (UTC)', 'Мережа', 'Статус', 'Зміна SOL', 'Токени SPL', 'Транзакція'];
@@ -83,6 +84,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), timeout);
       try {
+        if (!this.allowInsecureRpc) await assertPublicRpc(url);
         const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), signal: ctl.signal });
         const j = await r.json();
         if (j.error) throw Object.assign(new Error(j.error.message || 'RPC'), { rpc: true, code: j.error.code, data: j.error.data });
@@ -583,6 +585,16 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     } catch (e) { return { ok: false, text: clip(e.message || 'не вдалося виконати', 120) }; }
   };
 
+  // Mint і decimals токен-акаунта (для переказів, де інструкція mint не вказує). Відповідь вузла недовірена: перевіряється формат
+  proto._solTokenAccount = async function (cluster, address) {
+    try {
+      const r = await this.solRpc(cluster, 'getAccountInfo', [address, { encoding: 'jsonParsed' }], SIM_TIMEOUT, { fallbackOnError: true });
+      const info = r && r.value && r.value.data && r.value.data.parsed && r.value.data.parsed.info;
+      const dec = info && info.tokenAmount && info.tokenAmount.decimals;
+      return info && typeof info.mint === 'string' && S.isAddress(info.mint) && Number.isInteger(dec) && dec >= 0 && dec <= 30 ? { mint: info.mint, decimals: dec } : null;
+    } catch { return null; }
+  };
+
   // opts.address — переказ зі сторінки гаманця (власний рахунок без підключеного сайту); opts.warnings/danger — додаткові попередження
   proto._solSignTransactions = async function (win, origin, p, sameTab, send, opts = {}) {
     const address = opts.address || this._solConnected(origin);
@@ -606,16 +618,14 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       // Усе, що піде зі свого рахунку: SOL і токени SPL (без відомого mint вартість невідома — лишається попередження)
       const items = [];
       if (outgoing > 0n) items.push({ amount: S.sol(outgoing) });
+      // У звичайному Transfer немає mint: читаємо його з токен-акаунта відправника (відповідь вузла перевіряється)
+      let lookups = 0;
+      for (const x of descs) for (const tt of x.tokenTransfers) {
+        if (!tt.mint && tt.source && lookups++ < 8) { const info = await this._solTokenAccount(cluster, tt.source); if (info) { tt.mint = info.mint; tt.decimals = info.decimals; } }
+      }
       for (const x of descs) for (const tt of x.tokenTransfers) items.push(tt.mint && tt.decimals !== null ? { token: tt.mint, amount: S.formatUnits(tt.amount, tt.decimals) } : { token: tt.mint || 'unknown', amount: undefined });
       if (items.length) {
-        const gates = [];
-        let pending = 0;
-        for (const it of items) {
-          const g = await this.policyGate({ chain: 'sol', token: it.token, amount: it.amount, contacts: false, pendingUsd: pending });
-          pending += g.usd > 0 ? g.usd : 0;
-          gates.push(g);
-        }
-        gate = { warnings: [...new Set(gates.flatMap(g => g.warnings))], delay: Math.max(0, ...gates.map(g => g.delay)), danger: gates.some(g => g.danger), commit: () => gates.forEach(g => g.commit()) };
+        gate = await this.policyGateMany(items, { chain: 'sol', contacts: false });
         opts = { ...opts, danger: opts.danger || gate.danger, warnings: [...(opts.warnings || []), ...gate.warnings], ...(gate.delay ? { delay: gate.delay } : {}) };
       }
     }

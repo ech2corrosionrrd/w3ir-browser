@@ -3,6 +3,7 @@
 // запит повторюється на наступному. Працюючий вузол стає першим, щоб мертвий не гальмував кожен запит.
 // Відповіді вузла у форматі JSON-RPC (помилка виконання, «execution reverted») не вважаються відмовою й не повторюються.
 const { JsonRpcProvider, keccak256 } = require('ethers');
+const { guardedRequest } = require('./rpc-guard');
 
 // Відповідь JSON-RPC із помилкою самого вузла (внутрішня помилка, ліміт запитів, метод не підтримується, перевантаження) — це відмова вузла,
 // а не результат виконання: пробуємо наступний. Детерміновані помилки (revert, nonce too low, insufficient funds) не повторюються.
@@ -21,10 +22,12 @@ const READ_METHODS = new Set(['eth_call', 'eth_getBalance', 'eth_blockNumber', '
 const ALREADY_KNOWN = /already known|known transaction|already imported|already in the mempool/i;
 
 class FailoverProvider extends JsonRpcProvider {
-  constructor(urls, network, { timeout = 5000, hedgeMs = 1200 } = {}) {
+  // guard — async (url) => void: перевірка вузла перед кожним з'єднанням (кидає помилку, якщо вузол заборонений)
+  constructor(urls, network, { timeout = 5000, hedgeMs = 1200, guard = null } = {}) {
     const opts = { staticNetwork: network, batchMaxCount: 1 };
-    super(urls[0], network, opts);
-    this._nodes = urls.map((u) => ({ url: u, p: new JsonRpcProvider(u, network, opts) }));
+    const target = (u) => (guard ? guardedRequest(u, guard) : u);
+    super(target(urls[0]), network, opts);
+    this._nodes = urls.map((u) => ({ url: u, p: new JsonRpcProvider(target(u), network, opts) }));
     this._timeout = timeout;
     this._hedgeMs = hedgeMs;
   }

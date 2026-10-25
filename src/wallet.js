@@ -1,6 +1,7 @@
 // @ts-check
 'use strict';
 const { FailoverProvider } = require('./rpc-failover');
+const { assertPublicRpc, guardedRequest } = require('./rpc-guard');
 
 /**
  * @typedef {Object} EvmNetwork
@@ -94,7 +95,9 @@ class Wallet {
     if (!p) {
       const n = Network.from(chainId);
       const backups = (net.rpcFallback || []).filter(u => this.allowInsecureRpc || isSafeRpc(u));
-      p = backups.length ? new FailoverProvider([net.rpc, ...backups], n) : new JsonRpcProvider(net.rpc, n, { staticNetwork: n, batchMaxCount: 1 });
+      // Ім'я хоста зовнішнього вузла перевіряється на публічну адресу перед кожним з'єднанням (локальні вузли розробки пропускаються)
+      const guard = this.allowInsecureRpc ? null : assertPublicRpc;
+      p = backups.length ? new FailoverProvider([net.rpc, ...backups], n, { guard }) : new JsonRpcProvider(guard ? guardedRequest(net.rpc, guard) : net.rpc, n, { staticNetwork: n, batchMaxCount: 1 });
       this.providers.set(key, p);
     }
     return p;
