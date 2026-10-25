@@ -43,7 +43,7 @@
  ],
  "(без імені користувача)": [
   "pages/passwords.js:229",
-  "ui/overlay.js:285"
+  "ui/overlay.js:296"
  ],
  "(в Edge —": [
   "pages/import.js:56"
@@ -143,7 +143,7 @@
   "ui/renderer.js:197"
  ],
  "{0} {1} Клік — відкрити у новій вкладці": [
-  "ui/overlay.js:231"
+  "ui/overlay.js:242"
  ],
  "{0} активних": [
   "pages/newtab.js:91"
@@ -156,7 +156,7 @@
   "pages/dashboard.js:118"
  ],
  "{0} год": [
-  "ui/overlay.js:214"
+  "ui/overlay.js:225"
  ],
  "{0} год {1} хв": [
   "pages/dashboard.js:26"
@@ -165,7 +165,7 @@
   "pages/dashboard.js:17"
  ],
  "{0} дн": [
-  "ui/overlay.js:215"
+  "ui/overlay.js:226"
  ],
  "{0} дн {1} год": [
   "pages/dashboard.js:25"
@@ -177,13 +177,13 @@
   "pages/dashboard.js:184"
  ],
  "{0} заблоковано": [
-  "ui/overlay.js:423"
+  "ui/overlay.js:434"
  ],
  "{0} заблоковано · {1}": [
   "pages/newtab.js:93"
  ],
  "{0} запитує доступ до {1}": [
-  "src/context.js:534"
+  "src/context.js:563"
  ],
  "{0} інструкцій": [
   "src/wallet-solana.js:585"
@@ -238,7 +238,7 @@
   "src/wallet-solana.js:596"
  ],
  "{0}Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам. Завантажуйте лише те, на що маєте право.": [
-  "src/app-window.js:443"
+  "src/app-window.js:444"
  ],
  "{0}Транзакція": [
   "src/wallet-solana.js:585"
@@ -421,13 +421,13 @@
   "ui/index.html:32"
  ],
  "🌐 WebRTC (захист IP)": [
-  "ui/overlay.js:451"
+  "ui/overlay.js:462"
  ],
  "🍪 Сторонні cookie": [
-  "ui/overlay.js:431"
+  "ui/overlay.js:442"
  ],
  "🎭 Захист від відбитків": [
-  "ui/overlay.js:442"
+  "ui/overlay.js:453"
  ],
  "💤 Спляча вкладка: оживе при відкритті": [
   "ui/renderer.js:102"
@@ -443,19 +443,19 @@
   "pages/help-data.js:30"
  ],
  "🤖 Оновити пояснення ШІ": [
-  "ui/overlay.js:170"
+  "ui/overlay.js:181"
  ],
  "🤖 Пояснити дію через ШІ": [
-  "ui/overlay.js:153"
+  "ui/overlay.js:164"
  ],
  "🤖 Спробувати знову": [
-  "ui/overlay.js:176"
+  "ui/overlay.js:187"
  ],
  "🧹 Очищення посилань": [
-  "ui/overlay.js:461"
+  "ui/overlay.js:472"
  ],
  "🛡 Реклама й трекери": [
-  "ui/overlay.js:421"
+  "ui/overlay.js:432"
  ],
  "12 слів, з яких програма виводить усі ваші ключі й адреси. Це «головний ключ» від усього: хто її знає, той може забрати кошти. Її не можна змінити чи «скинути» — лише зберегти.": [
   "pages/help-data.js:298"
@@ -476,7 +476,7 @@
   "pages/help-data.js:179"
  ],
  "Автозаповнення вимкнено на незахищених (http) сторінках.": [
-  "ui/overlay.js:280"
+  "ui/overlay.js:291"
  ],
  "Автоматичні оновлення": [
   "pages/settings.js:448",
@@ -594,8 +594,8 @@
   "pages/settings.js:387"
  ],
  "Активно": [
-  "ui/overlay.js:444",
-  "ui/overlay.js:463"
+  "ui/overlay.js:455",
+  "ui/overlay.js:474"
  ],
  "актуальна версія": [
   "pages/dashboard.js:174"
@@ -604,7 +604,7 @@
   "pages/newtab.js:94"
  ],
  "Аналізуємо транзакцію локально…": [
-  "ui/overlay.js:159"
+  "ui/overlay.js:170"
  ],
  "Б": [
   "pages/common.js:19",
@@ -627,7 +627,7 @@
   "pages/help-data.js:104"
  ],
  "Без контейнера": [
-  "src/app-menus.js:115"
+  "src/app-menus.js:137"
  ],
  "Без назви": [
   "src/app-commands.js:26",
@@ -640,7 +640,7 @@
   "pages/pdftools.js:80"
  ],
  "Без прямого UDP (лише через проксі)": [
-  "ui/overlay.js:452"
+  "ui/overlay.js:463"
  ],
  "Без фрази відновлення доступ до коштів буде втрачено назавжди. Переконайтеся, що фразу збережено.": [
   "src/ipc-wallet.js:46"
@@ -671,7 +671,7 @@
   "pages/help-data.js:382"
  ],
  "Більше не питати": [
-  "src/app-window.js:444",
+  "src/app-window.js:445",
   "src/downloads.js:97"
  ],
  "Більше не пропонувати зберігати паролі для цього сайту": [
@@ -694,10 +694,10 @@
   "pages/settings.js:445"
  ],
  "Блокування реклами (заблоковано: {0})": [
-  "ui/overlay.js:88"
+  "ui/overlay.js:99"
  ],
  "Блокування реклами вимкнене глобально": [
-  "ui/overlay.js:88"
+  "ui/overlay.js:99"
  ],
  "Блокування реклами вимкнено для цього сайту": [
   "pages/settings.js:57"
@@ -712,7 +712,7 @@
   "ui/index.html:34"
  ],
  "Блокування трекерів, реклами та відбитків": [
-  "ui/overlay.js:399"
+  "ui/overlay.js:410"
  ],
  "Блокувати рекламу та трекери": [
   "pages/settings.js:387"
@@ -721,7 +721,7 @@
   "pages/settings.js:392"
  ],
  "Блокуються (режим «{0}»)": [
-  "ui/overlay.js:434"
+  "ui/overlay.js:445"
  ],
  "Блокчейн — спільна книга записів про всі операції. Різні блокчейни не сполучені між собою: **Ethereum, Polygon, Base, BNB Chain** та інші належать до сімейства EVM і мають однакові адреси, а **Solana** — окрема система з іншими адресами. Монета й токен існують у конкретній мережі.": [
   "pages/help-data.js:301"
@@ -801,7 +801,7 @@
   "pages/help-data.js:306"
  ],
  "вашого місцезнаходження": [
-  "src/context.js:82"
+  "src/context.js:84"
  ],
  "Вбудований гаманець для мереж **EVM** (Ethereum, Polygon, Base, Arbitrum, Optimism, BNB Chain, Avalanche та власні) і для **Solana**. Сайти бачать його як `window.ethereum`, `window.solana` та «W3IR Wallet» у списку гаманців. Працює у звичайних вікнах на https-сайтах.": [
   "pages/help-data.js:242"
@@ -825,7 +825,7 @@
   "pages/settings.js:414"
  ],
  "Введіть майстер-пароль, щоб розблокувати сховище.": [
-  "ui/overlay.js:260"
+  "ui/overlay.js:271"
  ],
  "Введіть майстер-пароль.": [
   "src/ipc-wallet.js:28"
@@ -951,7 +951,8 @@
   "pages/wallet.js:1236"
  ],
  "Вигляд": [
-  "pages/doc.js:133"
+  "pages/doc.js:133",
+  "ui/overlay.js:87"
  ],
  "Вигляд внутрішніх сторінок": [
   "pages/help-data.js:376"
@@ -966,7 +967,7 @@
   "pages/help-data.js:206"
  ],
  "Видалення utm_*, fbclid, gclid": [
-  "ui/overlay.js:462"
+  "ui/overlay.js:473"
  ],
  "Видалити": [
   "pages/bookmarks.js:20",
@@ -974,7 +975,7 @@
   "pages/settings.js:35"
  ],
  "Видалити всі збережені cookie та локальні дані для цього сайту": [
-  "ui/overlay.js:477"
+  "ui/overlay.js:488"
  ],
  "Видалити всю історію?": [
   "pages/history.js:4"
@@ -1014,13 +1015,13 @@
   "pages/wallet.js:969"
  ],
  "Видаляє cookie й локальні дані цього сайту: ви вийдете з акаунтів на ньому": [
-  "ui/overlay.js:96"
+  "ui/overlay.js:107"
  ],
  "Виділення місця в акаунті {0}": [
   "src/solana.js:455"
  ],
  "Виділити все": [
-  "src/app-menus.js:166"
+  "src/app-menus.js:188"
  ],
  "Вийти": [
   "src/app-commands.js:54",
@@ -1056,11 +1057,11 @@
  ],
  "Вимкнено": [
   "pages/dashboard.js:237",
-  "ui/overlay.js:443",
-  "ui/overlay.js:444"
+  "ui/overlay.js:454",
+  "ui/overlay.js:455"
  ],
  "Вимкнено глобально": [
-  "ui/overlay.js:422"
+  "ui/overlay.js:433"
  ],
  "Вимкнено за замовчуванням.": [
   "pages/settings.js:455"
@@ -1075,7 +1076,7 @@
   "pages/wallet.js:951"
  ],
  "Вимкніть, якщо сайт працює неправильно: виняток діє лише для цього сайту, сторінка перезавантажиться": [
-  "ui/overlay.js:90"
+  "ui/overlay.js:101"
  ],
  "Вимкнути": [
   "pages/dashboard.js:247",
@@ -1085,13 +1086,13 @@
   "src/app-commands.js:29"
  ],
  "Вимкнути звук": [
-  "src/app-menus.js:125"
+  "src/app-menus.js:147"
  ],
  "Випуск токенів (MintTo, {0})": [
   "src/solana.js:494"
  ],
  "Вирізати": [
-  "src/app-menus.js:165"
+  "src/app-menus.js:187"
  ],
  "Витоків не виявлено": [
   "pages/passwords.js:183"
@@ -1160,7 +1161,7 @@
   "pages/settings.js:437"
  ],
  "Відкриє сторінку, де потрібно задати майстер-пароль": [
-  "ui/overlay.js:257"
+  "ui/overlay.js:268"
  ],
  "відкрийте": [
   "pages/import.js:56",
@@ -1182,15 +1183,15 @@
   "pages/dashboard.js:240"
  ],
  "Відкрити": [
-  "src/app-window.js:462",
+  "src/app-window.js:463",
   "pages/profiles.js:17",
   "pages/settings.js:402"
  ],
  "Відкрити в {0}": [
-  "src/app-window.js:441"
+  "src/app-window.js:442"
  ],
  "Відкрити в контейнері": [
-  "src/app-menus.js:116"
+  "src/app-menus.js:138"
  ],
  "Відкрити в торент-клієнті": [
   "src/downloads.js:95"
@@ -1202,10 +1203,10 @@
   "pages/help-data.js:453"
  ],
  "Відкрити зображення в новій вкладці": [
-  "src/app-menus.js:157"
+  "src/app-menus.js:179"
  ],
  "Відкрити зовнішню програму?": [
-  "src/app-window.js:463"
+  "src/app-window.js:464"
  ],
  "Відкрити інсталятор": [
   "src/updater.js:215"
@@ -1220,13 +1221,13 @@
   "pages/settings.js:368"
  ],
  "Відкрити посилання в інкогніто": [
-  "src/app-menus.js:152"
+  "src/app-menus.js:174"
  ],
  "Відкрити посилання в контейнері": [
-  "src/app-menus.js:151"
+  "src/app-menus.js:173"
  ],
  "Відкрити посилання в новій вкладці": [
-  "src/app-menus.js:150"
+  "src/app-menus.js:172"
  ],
  "Відкрити сайт один раз попри попередження?": [
   "pages/warning.js:40"
@@ -1238,7 +1239,7 @@
   "pages/wallet.js:1126"
  ],
  "Відкрити magnet-посилання у торент-клієнті?": [
-  "src/app-window.js:442"
+  "src/app-window.js:443"
  ],
  "Відкритих вкладок звичайних вікон немає.": [
   "pages/dashboard.js:161"
@@ -1250,7 +1251,7 @@
   "pages/help-data.js:327"
  ],
  "Відкріпити вкладку": [
-  "src/app-menus.js:124"
+  "src/app-menus.js:146"
  ],
  "Відновити гаманець із резервної копії": [
   "src/ipc-wallet.js:105"
@@ -1283,10 +1284,10 @@
   "pages/help-data.js:467"
  ],
  "Відхилити": [
-  "ui/overlay.js:184"
+  "ui/overlay.js:195"
  ],
  "Відхилити запит сайту (Esc). Нічого не буде підписано чи надіслано": [
-  "ui/overlay.js:200"
+  "ui/overlay.js:211"
  ],
  "Вікна": [
   "pages/help-data.js:56"
@@ -1349,7 +1350,7 @@
   "pages/settings.js:444"
  ],
  "Вкладки, команди, закладки, історія — або введіть адресу чи запит": [
-  "ui/overlay.js:312"
+  "ui/overlay.js:323"
  ],
  "Вкладки, якими ви не користувалися 15 хвилин, «засинають»: звільняють оперативну пам’ять, але лишаються на панелі (зі зменшеною яскравістю). Повернувшись, вкладка оживає разом з історією переходів. Вкладки зі звуком не засинають. Вимикається в налаштуваннях.": [
   "pages/help-data.js:52"
@@ -1406,13 +1407,13 @@
   "pages/help-data.js:149"
  ],
  "Внутрішня сторінка або файл: зовнішні трекери відсутні.": [
-  "ui/overlay.js:412"
+  "ui/overlay.js:423"
  ],
  "Внутрішня сторінка браузера": [
   "ui/overlay.js:60"
  ],
  "Вперед": [
-  "src/app-menus.js:177"
+  "src/app-menus.js:199"
  ],
  "Вперед (Alt+→) — на наступну сторінку цієї вкладки": [
   "ui/index.html:21"
@@ -1421,7 +1422,7 @@
   "pages/wallet.js:1156"
  ],
  "Вставити": [
-  "src/app-menus.js:165"
+  "src/app-menus.js:187"
  ],
  "Вставте приватний ключ.": [
   "src/wallet-import.js:64"
@@ -1433,7 +1434,7 @@
   "pages/settings.js:100"
  ],
  "Встановіть торент-клієнт (наприклад, qBittorrent або Transmission) — і magnet-посилання відкриватимуться в ньому.": [
-  "src/app-window.js:432"
+  "src/app-window.js:433"
  ],
  "Встановлення йде у фоні без вікон і триває 15–30 секунд: браузер закривається, оновлюється й запускається сам. Не відкривайте його вручну під час цього. Якщо версія не змінилась, при наступному запуску браузер запропонує відкрити інсталятор. Хід оновлення записується в журнал `updater.log` (шлях — у налаштуваннях).": [
   "pages/help-data.js:473"
@@ -1642,10 +1643,10 @@
   "pages/dashboard.js:277"
  ],
  "Дані сайту очищено": [
-  "src/app-exec.js:297"
+  "src/app-exec.js:305"
  ],
  "Дані сайту очищено (cookie: {0})": [
-  "src/app-exec.js:297"
+  "src/app-exec.js:305"
  ],
  "Дані сховища пошкоджено.": [
   "src/vault.js:182"
@@ -1753,7 +1754,7 @@
   "src/solana.js:439"
  ],
  "Для {0} збережених паролів немає.": [
-  "ui/overlay.js:281"
+  "ui/overlay.js:292"
  ],
  "Для вибраної мережі Solana; порожнє поле — типові вузли. Адреси виводяться з тієї самої фрази відновлення (шлях m/44′/501′/N′/0′, як у Phantom).": [
   "pages/wallet.js:940"
@@ -1765,7 +1766,7 @@
   "pages/wallet.js:750"
  ],
  "Для підтвердження введіть майстер-пароль.": [
-  "ui/overlay.js:147"
+  "ui/overlay.js:158"
  ],
  "Для сайтів зі списків є лише кнопка «Повернутися» (відкрити можна тільки свідомо, через дрібне посилання). Для підозрілих за ознаками — ще й «Я довіряю цьому сайту». Сайти, якими ви вже часто користуєтесь або що є в закладках, евристики не зачіпають. Шкідливі завантаження з небезпечних хостів блокуються, а гаманець Web3 не працює з ними.": [
   "pages/help-data.js:137"
@@ -1775,13 +1776,13 @@
   "pages/wallet.js:8"
  ],
  "Для цієї сторінки автозаповнення недоступне.": [
-  "ui/overlay.js:280"
+  "ui/overlay.js:291"
  ],
  "Для цієї сторінки окремих налаштувань сайту немає.": [
-  "ui/overlay.js:104"
+  "ui/overlay.js:115"
  ],
  "Для цієї сторінки режим читання недоступний": [
-  "src/app-window.js:582"
+  "src/app-window.js:583"
  ],
  "Для Scoop: додайте маніфест `scoop bucket add w3ir https://github.com/ech2corrosionrrd/w3ir-browser` і виконайте `scoop install w3ir-browser`. Для Chocolatey: `choco install w3ir-browser` (пакет із `bucket/w3ir-browser.json`). Також підтримується Windows Package Manager (`winget install W3IR.Browser`).": [
   "pages/help-data.js:494"
@@ -1893,7 +1894,7 @@
   "pages/pdftools.js:130"
  ],
  "Додати, змінити, видалити паролі; резервна копія та імпорт": [
-  "ui/overlay.js:294"
+  "ui/overlay.js:305"
  ],
  "Додаткові можливості переглядача (наприклад, поля форм і виділення) залежать від версії Chromium, а не від W3IR. Щоб зберегти зміни, натисніть кнопку збереження в самому переглядачі.": [
   "pages/help-data.js:325"
@@ -1938,10 +1939,10 @@
   "pages/settings.js:53"
  ],
  "Дозволено": [
-  "ui/overlay.js:435"
+  "ui/overlay.js:446"
  ],
  "Дозволено (режим «Стандартний»)": [
-  "ui/overlay.js:434"
+  "ui/overlay.js:445"
  ],
  "Дозволи для сайту": [
   "ui/overlay.js:67"
@@ -1956,7 +1957,7 @@
   "pages/help-data.js:288"
  ],
  "Дозволити": [
-  "src/context.js:531",
+  "src/context.js:560",
   "ui/overlay.js:73"
  ],
  "Дозволити ШІ керувати браузером": [
@@ -2000,7 +2001,7 @@
   "pages/help-data.js:357"
  ],
  "Дослідити елемент": [
-  "src/app-menus.js:188"
+  "src/app-menus.js:210"
  ],
  "доступ до адреси вашого рахунку та право пропонувати транзакції": [
   "src/wallet-dapp.js:111"
@@ -2039,10 +2040,10 @@
  "Друк…": [
   "src/app-commands.js:48",
   "src/app-commands.js:85",
-  "src/app-menus.js:182"
+  "src/app-menus.js:204"
  ],
  "Дублювати": [
-  "src/app-menus.js:126"
+  "src/app-menus.js:148"
  ],
  "Дублювати вкладку": [
   "src/app-commands.js:22"
@@ -2152,13 +2153,13 @@
  ],
  "Заблоковано": [
   "pages/newtab.js:90",
-  "ui/overlay.js:435"
+  "ui/overlay.js:446"
  ],
  "заблоковано: {0}": [
   "pages/dashboard.js:167"
  ],
  "Заблокувати": [
-  "src/context.js:531",
+  "src/context.js:560",
   "pages/passwords.js:139",
   "pages/wallet.js:212"
  ],
@@ -2303,7 +2304,7 @@
   "pages/dashboard.js:240"
  ],
  "Закрити": [
-  "src/app-menus.js:134",
+  "src/app-menus.js:156",
   "pages/passwords.js:104",
   "pages/wallet.js:177"
  ],
@@ -2314,11 +2315,11 @@
   "pages/settings.js:192"
  ],
  "Закрити вкладки праворуч": [
-  "src/app-menus.js:136"
+  "src/app-menus.js:158"
  ],
  "Закрити вкладку": [
   "src/app-commands.js:19",
-  "src/app-window.js:478",
+  "src/app-window.js:479",
   "pages/help-data.js:453"
  ],
  "Закрити вкладку (Ctrl+W)": [
@@ -2328,7 +2329,7 @@
   "src/tab-groups.js:221"
  ],
  "Закрити інші": [
-  "src/app-menus.js:135"
+  "src/app-menus.js:157"
  ],
  "Закрити інші вкладки групи": [
   "src/app-commands.js:24",
@@ -2354,7 +2355,7 @@
   "src/app-commands.js:21"
  ],
  "Закріпити вкладку": [
-  "src/app-menus.js:124"
+  "src/app-menus.js:146"
  ],
  "Закріпити/відкріпити, вимкнути звук, дублювати, приспати, закрити, закрити інші, закрити праворуч.": [
   "pages/help-data.js:44"
@@ -2393,7 +2394,7 @@
   "src/wallet-evm-nft.js:37"
  ],
  "Запам'ятати вибір для цього сайту": [
-  "src/context.js:535"
+  "src/context.js:564"
  ],
  "Запис не знайдено.": [
   "src/ipc.js:59",
@@ -2406,10 +2407,10 @@
   "pages/assistant.js:23"
  ],
  "Запит до локальної моделі…": [
-  "ui/overlay.js:164"
+  "ui/overlay.js:175"
  ],
  "Запит дозволу": [
-  "src/context.js:533"
+  "src/context.js:562"
  ],
  "Запит заблоковано": [
   "pages/error.js:18"
@@ -2430,13 +2431,13 @@
   "pages/assistant.js:7"
  ],
  "Запитати GitHub про нові сповіщення": [
-  "ui/overlay.js:238"
+  "ui/overlay.js:249"
  ],
  "Запити відкрити зовнішню програму": [
   "pages/help-data.js:151"
  ],
  "Запити на рев’ю": [
-  "ui/overlay.js:235"
+  "ui/overlay.js:246"
  ],
  "Запитувати": [
   "ui/overlay.js:73"
@@ -2454,7 +2455,7 @@
   "pages/pdftools.js:156"
  ],
  "Заповнити для {0}:": [
-  "ui/overlay.js:283"
+  "ui/overlay.js:294"
  ],
  "Запуск із параметрами налагодження (--remote-debugging-port, --inspect тощо) заблоковано з міркувань безпеки. Для тестування встановіть змінну середовища W3IR_ALLOW_DEBUG=1.": [
   "main.js:13"
@@ -2478,7 +2479,7 @@
   "pages/help-data.js:261"
  ],
  "Захист вимкнено для сайту": [
-  "ui/overlay.js:398"
+  "ui/overlay.js:409"
  ],
  "Захист від підбору": [
   "pages/help-data.js:190"
@@ -2506,7 +2507,7 @@
   "pages/help-data.js:153"
  ],
  "Захист W3IR Shield активний": [
-  "ui/overlay.js:398"
+  "ui/overlay.js:409"
  ],
  "Захищене сховище ключів недоступне в цій системі — синхронізація вимкнена.": [
   "pages/settings.js:207"
@@ -2518,10 +2519,10 @@
   "src/github.js:80"
  ],
  "Захищено": [
-  "ui/overlay.js:454"
+  "ui/overlay.js:465"
  ],
  "Зачекайте приблизно 30 секунд — браузер запуститься сам після завершення.": [
-  "main.js:85"
+  "main.js:87"
  ],
  "Зачекайте ще {0} с: це велика сума.": [
   "src/app-vault-ui.js:156"
@@ -2556,7 +2557,7 @@
   "pages/wallet.js:950"
  ],
  "Зберегти зображення як…": [
-  "src/app-menus.js:158"
+  "src/app-menus.js:180"
  ],
  "Зберегти історію (CSV)": [
   "src/ipc-wallet.js:69",
@@ -2578,13 +2579,13 @@
  "Зберегти сторінку як PDF…": [
   "src/app-commands.js:49",
   "src/app-commands.js:86",
-  "src/app-menus.js:183"
+  "src/app-menus.js:205"
  ],
  "Зберегти файл…": [
   "pages/passwords.js:115"
  ],
  "Зберегти як закладку": [
-  "src/app-menus.js:180"
+  "src/app-menus.js:202"
  ],
  "Зберегти CSV": [
   "pages/wallet.js:569",
@@ -2656,10 +2657,10 @@
   "src/tips.js:45"
  ],
  "Звичайний": [
-  "ui/overlay.js:454"
+  "ui/overlay.js:465"
  ],
  "Звичайний (всі інтерфейси)": [
-  "ui/overlay.js:452"
+  "ui/overlay.js:463"
  ],
  "Звідки": [
   "pages/wallet.js:1062"
@@ -2903,6 +2904,9 @@
  "Імпортуємо…": [
   "pages/import.js:19"
  ],
+ "Інвертує кольори сторінки лише для цього сайту; зображення й відео лишаються звичайними. Не потребує перезавантаження": [
+  "ui/overlay.js:91"
+ ],
  "Ініціалізація стейк-акаунта {0} (виведення коштів: {1})": [
   "src/solana.js:526",
   "src/solana.js:530"
@@ -2991,7 +2995,7 @@
   "pages/settings.js:47"
  ],
  "камери та/або мікрофона": [
-  "src/context.js:81"
+  "src/context.js:83"
  ],
  "КБ": [
   "pages/common.js:20"
@@ -3028,7 +3032,7 @@
   "src/solana.js:517"
  ],
  "Керувати паролями": [
-  "ui/overlay.js:292"
+  "ui/overlay.js:303"
  ],
  "Керує ШІ": [
   "ui/renderer.js:79"
@@ -3048,7 +3052,7 @@
   "src/wallet-evm-tokens.js:173"
  ],
  "Кількість заблокованих небажаних запитів на активній вкладці": [
-  "ui/overlay.js:424"
+  "ui/overlay.js:435"
  ],
  "Кількість має бути цілим числом, більшим за нуль.": [
   "src/wallet-evm-nft.js:232"
@@ -3202,7 +3206,7 @@
   "src/app-window.js:231"
  ],
  "Контейнер «{0}»: cookie й сховище цього сайту окремі від інших вкладок.": [
-  "src/app-menus.js:62"
+  "src/app-menus.js:83"
  ],
  "Контейнери вкладок": [
   "pages/help-data.js:51"
@@ -3238,18 +3242,18 @@
   "pages/wallet.js:796"
  ],
  "Копіювати": [
-  "src/app-menus.js:165",
-  "src/app-menus.js:168",
+  "src/app-menus.js:187",
+  "src/app-menus.js:190",
   "pages/dashboard.js:220"
  ],
  "Копіювати адресу зображення": [
-  "src/app-menus.js:160"
+  "src/app-menus.js:182"
  ],
  "Копіювати адресу посилання": [
-  "src/app-menus.js:153"
+  "src/app-menus.js:175"
  ],
  "Копіювати зображення": [
-  "src/app-menus.js:159"
+  "src/app-menus.js:181"
  ],
  "Корисно для порівняння сторінок, документації поруч із кодом, перекладу.": [
   "pages/help-data.js:127"
@@ -3297,7 +3301,7 @@
   "pages/wallet.js:276"
  ],
  "Лише публічний інтерфейс": [
-  "ui/overlay.js:452"
+  "ui/overlay.js:463"
  ],
  "Лише якщо ви користуєтесь відповідною функцією:": [
   "pages/help-data.js:164"
@@ -3612,7 +3616,7 @@
   "pages/help-data.js:250"
  ],
  "надсилання сповіщень": [
-  "src/context.js:83"
+  "src/context.js:85"
  ],
  "Надсилати «Не відстежувати» (DNT / GPC)": [
   "pages/settings.js:393"
@@ -3621,7 +3625,7 @@
   "pages/wallet.js:777"
  ],
  "Назад": [
-  "src/app-menus.js:176"
+  "src/app-menus.js:198"
  ],
  "Назад (Alt+←) — на попередню сторінку цієї вкладки": [
   "ui/index.html:20"
@@ -3688,10 +3692,10 @@
   "pages/help-data.js:460"
  ],
  "Налаштування → Дозволи та винятки сайтів": [
-  "ui/overlay.js:108"
+  "ui/overlay.js:119"
  ],
  "Налаштування захисту…": [
-  "ui/overlay.js:471"
+  "ui/overlay.js:482"
  ],
  "Налаштувати гаманець": [
   "pages/dashboard.js:209"
@@ -3756,7 +3760,7 @@
   "pages/import.js:58"
  ],
  "Натисніть ще раз для підтвердження": [
-  "ui/overlay.js:99"
+  "ui/overlay.js:110"
  ],
  "Не бачу свій токен чи NFT": [
   "pages/help-data.js:478"
@@ -3792,14 +3796,14 @@
   "pages/pdftools.js:15"
  ],
  "Не вдалося відкрити документ": [
-  "src/app-window.js:592"
+  "src/app-window.js:593"
  ],
  "Не вдалося відкрити сторінку": [
   "pages/error.js:20",
   "pages/error.html:5"
  ],
  "Не вдалося відкрити торент-клієнт": [
-  "src/app-window.js:449"
+  "src/app-window.js:450"
  ],
  "Не вдалося завершити за {0} кроків. Уточніть запит або розбийте його на частини.": [
   "src/assistant.js:121"
@@ -3831,7 +3835,7 @@
   "src/wallet-history-evm.js:51"
  ],
  "Не вдалося отримати пояснення.": [
-  "ui/overlay.js:177"
+  "ui/overlay.js:188"
  ],
  "Не вдалося отримати стейки.": [
   "pages/wallet.js:1195"
@@ -3915,7 +3919,7 @@
   "src/wallet-solana.js:598"
  ],
  "Не вдалося увімкнути режим читання": [
-  "src/app-window.js:585"
+  "src/app-window.js:586"
  ],
  "Не видаляйте файли `.corrupt-…` одразу: іноді з них можна дістати дані вручну. Файли лежать у папці даних.": [
   "pages/help-data.js:418"
@@ -4057,7 +4061,7 @@
   "src/tips.js:39"
  ],
  "Негайно заблокувати сховище паролів і гаманець": [
-  "ui/overlay.js:297"
+  "ui/overlay.js:308"
  ],
  "Негайно припиняє доступ ШІ до цієї вкладки.": [
   "src/tips.js:37"
@@ -4211,7 +4215,7 @@
   "src/arweave.js:300"
  ],
  "Некоректне magnet-посилання": [
-  "src/app-window.js:425"
+  "src/app-window.js:426"
  ],
  "Некоректний вибір.": [
   "src/app-vault-ui.js:159",
@@ -4396,7 +4400,7 @@
  "Нова вкладка": [
   "src/app-commands.js:13",
   "src/app-commands.js:64",
-  "src/app-menus.js:33"
+  "src/app-menus.js:35"
  ],
  "Нова вкладка — **Ctrl+T** або кнопка «+». Закрити — **Ctrl+W**, хрестик або клік середньою кнопкою миші. Повернути закриту — **Ctrl+Shift+T**. Подвійний клік по порожньому місцю панелі вкладок відкриває нову вкладку.": [
   "pages/help-data.js:41"
@@ -4534,7 +4538,7 @@
   "pages/newtab.js:52"
  ],
  "Оновити": [
-  "src/app-menus.js:178",
+  "src/app-menus.js:200",
   "pages/wallet.js:765",
   "pages/wallet.js:844"
  ],
@@ -4571,7 +4575,7 @@
   "pages/dashboard.js:189"
  ],
  "Оновлення {0} готове й перевірене — натисніть ⬆ у панелі, щоб встановити": [
-  "main.js:100"
+  "main.js:102"
  ],
  "Оновлення {0} готове й перевірене. Клік — встановити та перезапустити": [
   "ui/renderer.js:183"
@@ -4633,7 +4637,7 @@
   "pages/help-data.js:309"
  ],
  "Основний": [
-  "src/context.js:121",
+  "src/context.js:123",
   "src/profiles.js:10"
  ],
  "Основний профіль": [
@@ -4669,7 +4673,7 @@
   "pages/wallet.js:211"
  ],
  "Отримати просте пояснення від локальної моделі Ollama (100% приватно)": [
-  "ui/overlay.js:155"
+  "ui/overlay.js:166"
  ],
  "Отримувати бета-версії": [
   "pages/settings.js:105"
@@ -4719,10 +4723,10 @@
   "pages/pdftools.js:131"
  ],
  "Очистити cookie ({0})": [
-  "ui/overlay.js:476"
+  "ui/overlay.js:487"
  ],
  "Очистити cookie та дані сайту ({0})": [
-  "ui/overlay.js:95"
+  "ui/overlay.js:106"
  ],
  "Очищення даних": [
   "pages/help-data.js:144"
@@ -4977,7 +4981,7 @@
   "pages/help-data.js:324"
  ],
  "Переглянути код сторінки": [
-  "src/app-menus.js:185"
+  "src/app-menus.js:207"
  ],
  "Переглянути NFT": [
   "pages/wallet.js:1159"
@@ -4998,7 +5002,7 @@
   "pages/help-data.js:260"
  ],
  "Перезавантажити сторінку": [
-  "src/app-window.js:478"
+  "src/app-window.js:479"
  ],
  "Перейменувати": [
   "pages/profiles.js:23",
@@ -5016,7 +5020,7 @@
   "pages/help-data.js:456"
  ],
  "Перейти до вкладки: {0}{1}": [
-  "ui/overlay.js:357"
+  "ui/overlay.js:368"
  ],
  "Перейти до групи «{0}»": [
   "src/app-commands.js:26"
@@ -5095,10 +5099,10 @@
   "pages/help-data.js:105"
  ],
  "Перемикач захисту для поточного сайту (перезавантажить сторінку)": [
-  "ui/overlay.js:405"
+  "ui/overlay.js:416"
  ],
  "Перемістити в нове вікно": [
-  "src/app-menus.js:127"
+  "src/app-menus.js:149"
  ],
  "Перемістити вкладку в нове вікно": [
   "src/app-commands.js:23"
@@ -5253,7 +5257,7 @@
   "pages/pdftools.js:90"
  ],
  "Підставити логін і пароль на цій сторінці": [
-  "ui/overlay.js:287"
+  "ui/overlay.js:298"
  ],
  "Підсумок по всіх основних мережах EVM і Solana: нативні монети та відомі токени (вбудований список і додані вами) на всіх рахунках, в USD за орієнтовними цінами. Рахунки лише для перегляду в суму не входять.": [
   "pages/wallet.js:740"
@@ -5276,17 +5280,17 @@
  "Підтвердити": [
   "pages/passwords.js:8",
   "pages/wallet.js:8",
-  "ui/overlay.js:185"
+  "ui/overlay.js:196"
  ],
  "Підтвердити ({0})": [
-  "ui/overlay.js:197",
-  "ui/overlay.js:198"
+  "ui/overlay.js:208",
+  "ui/overlay.js:209"
  ],
  "Підтвердити дію після перевірки сайту й деталей": [
-  "ui/overlay.js:201"
+  "ui/overlay.js:212"
  ],
  "Підтвердити?": [
-  "ui/overlay.js:480"
+  "ui/overlay.js:491"
  ],
  "Підтвердіть особу": [
   "pages/passwords.js:8",
@@ -5385,7 +5389,7 @@
   "pages/pdftools.js:141"
  ],
  "Повторити": [
-  "src/app-menus.js:164"
+  "src/app-menus.js:186"
  ],
  "Повторіть майстер-пароль": [
   "pages/passwords.js:30"
@@ -5406,7 +5410,7 @@
   "pages/wallet.js:609"
  ],
  "Позначити всі сповіщення прочитаними на GitHub": [
-  "ui/overlay.js:239"
+  "ui/overlay.js:250"
  ],
  "Покажіть **дві сторінки поруч**: правий клік по вкладці → «Показати поруч з активною вкладкою» або Ctrl+K → «Розділений екран: нова вкладка поруч». Клік у будь-якій панелі робить її активною: адресний рядок і гарячі клавіші працюють для неї. Вкладки пари мають значки ◧ ◨.": [
   "pages/help-data.js:125"
@@ -5542,7 +5546,7 @@
  ],
  "Порожньо": [
   "pages/wallet.js:759",
-  "ui/overlay.js:226"
+  "ui/overlay.js:237"
  ],
  "Порожньо — стандартна папка «Завантаження»": [
   "pages/settings.js:399"
@@ -5605,7 +5609,7 @@
   "pages/newtab.js:116"
  ],
  "пошук або перехід (Shift+Enter — у новій вкладці)": [
-  "ui/overlay.js:346"
+  "ui/overlay.js:357"
  ],
  "Пошук в історії": [
   "pages/history.js:2"
@@ -5639,7 +5643,7 @@
   "pages/wallet.js:815"
  ],
  "Пошук по відкритих вкладках": [
-  "ui/overlay.js:312"
+  "ui/overlay.js:323"
  ],
  "Пошук по вкладках і командах": [
   "src/app-commands.js:69"
@@ -5666,7 +5670,7 @@
   "pages/help-data.js:372"
  ],
  "Пояснення ШІ (локально)": [
-  "ui/overlay.js:172"
+  "ui/overlay.js:183"
  ],
  "Правий клік — меню вкладки (групи, закріплення…) · Середня кнопка — закрити · Перетягніть — змінити порядок або додати до групи": [
   "ui/renderer.js:103"
@@ -5771,7 +5775,7 @@
  "Приватність": [
   "pages/settings.js:239",
   "pages/settings.js:378",
-  "ui/overlay.js:86"
+  "ui/overlay.js:97"
  ],
  "Приватність і безпека": [
   "pages/help-data.js:98"
@@ -5814,7 +5818,7 @@
   "src/app-exec.js:172"
  ],
  "Приспати вкладку": [
-  "src/app-menus.js:128"
+  "src/app-menus.js:150"
  ],
  "Приспати всі неактивні вкладки, щоб звільнити пам’ять (закріплені, з відео та з незбереженим введенням не чіпаються)": [
   "ui/index.html:15"
@@ -6010,7 +6014,7 @@
  "Режим читання": [
   "src/app-commands.js:27",
   "src/app-commands.js:70",
-  "src/app-menus.js:181"
+  "src/app-menus.js:203"
  ],
  "Режим читання (Ctrl+Shift+R) — лише текст статті, зі зміною шрифту й теми": [
   "ui/index.html:27"
@@ -6074,13 +6078,13 @@
  "Розблокувати": [
   "pages/passwords.js:60",
   "pages/wallet.js:62",
-  "ui/overlay.js:266"
+  "ui/overlay.js:277"
  ],
  "Розблокувати і зберегти": [
   "ui/renderer.js:408"
  ],
  "Розблокувати сховище (Enter)": [
-  "ui/overlay.js:275"
+  "ui/overlay.js:286"
  ],
  "Розблокуйте сховище": [
   "pages/wallet.js:62"
@@ -6180,7 +6184,7 @@
   "pages/error.js:10"
  ],
  "Сайт додано до білого списку винятків": [
-  "ui/overlay.js:399"
+  "ui/overlay.js:410"
  ],
  "Сайт є у списках фішингових (шахрайських) ресурсів: він намагається виманити паролі, платіжні дані або доступ до гаманця.": [
   "src/threats.js:265"
@@ -6401,9 +6405,9 @@
   "src/wallet-signguard.js:166"
  ],
  "Скасувати": [
-  "src/app-menus.js:164",
-  "src/app-window.js:441",
-  "src/app-window.js:462"
+  "src/app-menus.js:186",
+  "src/app-window.js:442",
+  "src/app-window.js:463"
  ],
  "Скасувати дозвіл": [
   "pages/wallet.js:715"
@@ -6538,7 +6542,7 @@
  "Сповіщення": [
   "pages/settings.js:47",
   "ui/overlay.js:68",
-  "ui/overlay.js:236"
+  "ui/overlay.js:247"
  ],
  "Сповіщення «Сталася внутрішня помилка»": [
   "pages/help-data.js:439"
@@ -6574,7 +6578,7 @@
   "pages/help-data.js:407"
  ],
  "Сталася внутрішня помилка. Подробиці записано в журнал crash.log.": [
-  "main.js:44"
+  "main.js:46"
  ],
  "Сталася помилка під час завантаження.": [
   "pages/error.js:20"
@@ -6586,7 +6590,7 @@
   "pages/dashboard.js:309"
  ],
  "Стан модулів приватності": [
-  "ui/overlay.js:415"
+  "ui/overlay.js:426"
  ],
  "Стан функцій": [
   "pages/settings.js:441",
@@ -6645,7 +6649,7 @@
  ],
  "Створити сховище": [
   "pages/passwords.js:46",
-  "ui/overlay.js:255",
+  "ui/overlay.js:266",
   "ui/renderer.js:408"
  ],
  "Створити сховище паролів": [
@@ -6707,7 +6711,7 @@
   "pages/help-data.js:152"
  ],
  "Сторінка не відповідає": [
-  "src/app-window.js:479",
+  "src/app-window.js:480",
   "pages/help-data.js:409"
  ],
  "Сторінка результату": [
@@ -6789,7 +6793,7 @@
   "src/ipc.js:42"
  ],
  "Сховище заблоковано. Введіть майстер-пароль, щоб розблокувати та підтвердити.": [
-  "ui/overlay.js:147"
+  "ui/overlay.js:158"
  ],
  "Сховище паролів або гаманець заблоковано": [
   "pages/help-data.js:469"
@@ -6807,7 +6811,7 @@
   "src/vault.js:148"
  ],
  "Сховище ще не створено. Паролі шифруються майстер-паролем і зберігаються лише на цьому комп’ютері.": [
-  "ui/overlay.js:254"
+  "ui/overlay.js:265"
  ],
  "схоже на розсилку": [
   "pages/wallet.js:345"
@@ -6865,6 +6869,9 @@
  ],
  "Темна": [
   "pages/settings.js:357"
+ ],
+ "Темний вигляд сайту": [
+  "ui/overlay.js:89"
  ],
  "Термін дії повідомлення вже минув.": [
   "src/wallet-signguard.js:91"
@@ -6948,7 +6955,7 @@
   "pages/wallet.js:386"
  ],
  "Торент-клієнт не знайдено": [
-  "src/app-window.js:431"
+  "src/app-window.js:432"
  ],
  "Торенти": [
   "pages/help-data.js:316"
@@ -6997,7 +7004,7 @@
   "src/wallet-solana.js:632"
  ],
  "Триває встановлення оновлення": [
-  "main.js:85"
+  "main.js:87"
  ],
  "Тут видно, які адреси зараз можуть витрачати ваші токени ERC-20 чи всі NFT колекції. Небезпечні (необмежені чи для звичайного рахунку) угорі. Список складається з недавніх подій блокчейну й перевіряється за поточним станом контрактів.": [
   "pages/wallet.js:843"
@@ -7140,7 +7147,7 @@
   "src/app-commands.js:29"
  ],
  "Увімкнути звук": [
-  "src/app-menus.js:125"
+  "src/app-menus.js:147"
  ],
  "Увімкнути синхронізацію": [
   "pages/settings.js:232"
@@ -7176,10 +7183,10 @@
   "pages/newtab.js:176"
  ],
  "Усе прочитано": [
-  "ui/overlay.js:239"
+  "ui/overlay.js:250"
  ],
  "Усі дозволи й винятки…": [
-  "ui/overlay.js:106"
+  "ui/overlay.js:117"
  ],
  "Усі закладки ({0})": [
   "pages/newtab.js:171"
@@ -7207,7 +7214,7 @@
   "pages/pdftools.js:10"
  ],
  "Файл завеликий для перегляду (понад 5 МБ)": [
-  "src/app-window.js:592"
+  "src/app-window.js:593"
  ],
  "Файл завеликий для резервної копії.": [
   "src/ipc-wallet.js:108"
@@ -7390,7 +7397,7 @@
   "src/wallet-evm-nft.js:50"
  ],
  "Це не текстовий файл": [
-  "src/app-window.js:592"
+  "src/app-window.js:593"
  ],
  "Це не токен (mint) або його немає в цій мережі.": [
   "src/wallet-solana.js:335"
@@ -7442,7 +7449,7 @@
   "src/wallet-evm-nft.js:237"
  ],
  "Центр контролю приватності": [
-  "ui/overlay.js:386"
+  "ui/overlay.js:397"
  ],
  "Цифрове «так» від вашого рахунку. Підписати можна транзакцію (переказ чи виклик контракту) або повідомлення (наприклад, вхід на сайт). Деякі підписи без жодної комісії дають сайту право забрати токени, тому читайте, що саме підписуєте.": [
   "pages/help-data.js:307"
@@ -7501,7 +7508,7 @@
   "pages/dashboard.js:150"
  ],
  "Чекати": [
-  "src/app-window.js:478"
+  "src/app-window.js:479"
  ],
  "червоний": [
   "src/tab-groups.js:8"
@@ -7534,7 +7541,7 @@
   "pages/settings.js:189"
  ],
  "читання буфера обміну": [
-  "src/context.js:84"
+  "src/context.js:86"
  ],
  "Читання буфера обміну": [
   "pages/settings.js:47",
@@ -7668,7 +7675,7 @@
   "pages/wallet.js:543"
  ],
  "Шукати «{0}» ({1})": [
-  "src/app-menus.js:172"
+  "src/app-menus.js:194"
  ],
  "Шукати:": [
   "ui/overlay.js:43"
@@ -7681,7 +7688,7 @@
   "pages/wallet.js:333"
  ],
  "Шум Canvas + нормалізація розмірів": [
-  "ui/overlay.js:443"
+  "ui/overlay.js:454"
  ],
  "ще {0} рядків": [
   "src/wallet-solana.js:588"
@@ -7756,7 +7763,7 @@
   "pages/help-data.js:161"
  ],
  "щойно": [
-  "ui/overlay.js:212"
+  "ui/overlay.js:223"
  ],
  "Щоразу питати, яким рахунком увійти на сайті": [
   "pages/wallet.js:955"
@@ -7931,25 +7938,25 @@
   "src/github.js:142"
  ],
  "GitHub: відкрити в GitHub Desktop — {0}": [
-  "src/app-menus.js:100"
+  "src/app-menus.js:122"
  ],
  "GitHub: відкрити в github.dev (редактор) — {0}": [
-  "src/app-menus.js:95"
+  "src/app-menus.js:117"
  ],
  "GitHub: відкрити у VS Code — {0}": [
-  "src/app-menus.js:101"
+  "src/app-menus.js:123"
  ],
  "GitHub: відкрити Raw-файл": [
-  "src/app-menus.js:105"
+  "src/app-menus.js:127"
  ],
  "GitHub: завантажити ZIP — {0}": [
-  "src/app-menus.js:94"
+  "src/app-menus.js:116"
  ],
  "GitHub: копіювати git clone (HTTPS) — {0}": [
-  "src/app-menus.js:92"
+  "src/app-menus.js:114"
  ],
  "GitHub: копіювати git clone (SSH) — {0}": [
-  "src/app-menus.js:93"
+  "src/app-menus.js:115"
  ],
  "GitHub: сповіщення та запити на рев’ю": [
   "ui/index.html:31"

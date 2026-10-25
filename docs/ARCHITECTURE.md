@@ -63,6 +63,7 @@ Electron 44 (Chromium 152 + Node 24). Увесь код головного пр�
 | `wallet-solana.js` | Solana-частина гаманця: підключення сайтів, `signMessage`/`signTransaction`/`signAndSendTransaction`, симуляція (`simulateTransaction`), нативний стейкінг (управління життєвим циклом Stake Account, делегування, деактивація, виведення SOL), мережі Mainnet/Devnet/Testnet |
 | `chrome-identity.js` | узгоджена особа Chrome для вкладок через CDP (UA без Electron, `userAgentData` із «Google Chrome», `window.chrome`) — потрібна для входу Google |
 | `arweave.js` | децентралізоване сховище Arweave/Irys: протокол `ar://`, резолвінг транзакцій через пул шлюзів (Irys/Arweave), нормалізація NFT-метаданих, GraphQL |
+| `ipfs.js` | протоколи `ipfs://` і `ipns://` через фіксований перелік публічних шлюзів (ipfs.io, dweb.link, w3s.link): суворий розбір CID/імені, перенаправлення лише в межах переліку. Вміст не перевіряється за хешем — користувач довіряє шлюзу |
 | `sync.js` | зашифрована синхронізація закладок через теку |
 | `github.js` | сповіщення й запити на рев'ю GitHub (токен у DPAPI) |
 | `dashboard.js` | сторінка «Панель»: пінг RPC, стан гаманця/захисту/ШІ, журнал, копіювання адреси (дані для `pages/dashboard.js`) |

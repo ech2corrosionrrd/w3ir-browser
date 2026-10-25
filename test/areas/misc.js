@@ -419,4 +419,41 @@ async function rpcListTests() {
   ok(cleanUserAgent('Mozilla/5.0 (X) W3IRBrowser/1.29.0 Chrome/146.0.0.0 Electron/41.0.0 Safari/537.36') === 'Mozilla/5.0 (X) Chrome/146.0.0.0 Safari/537.36', 'identity: з User-Agent для Google прибрано ознаки Electron і W3IR');
 }
 
-module.exports = { failoverTests, auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };
+// ipfs:// і ipns:// зареєстровані в сеансі й відхиляють хибні адреси (без звернення до мережі)
+async function ipfsSchemeTests(ctx) {
+  const r1 = await ctx.session.fetch('ipfs://not-a-cid').catch(() => null);
+  ok(r1 && r1.status === 400, 'ipfs: хибна адреса ipfs:// відхиляється обробником протоколу');
+  const r2 = await ctx.session.fetch('ipns://Bad_Name').catch(() => null);
+  ok(r2 && r2.status === 400, 'ipfs: хибна адреса ipns:// відхиляється обробником протоколу');
+  ok(ctx.resolveInput('ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG') === 'ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG' && ctx.keywordUrl('ipfs not valid') === null, 'ipfs: адресний рядок приймає ipfs://, ключове слово перевіряє CID');
+}
+
+// Темний вигляд сайту: вмикається лише для вибраного домену, застосовується без перезавантаження й знімається
+async function darkTests(ctx) {
+  const w = [...ctx.windows].find(x => !x.incognito);
+  const site = http.createServer((req, res) => { res.setHeader('content-type', 'text/html'); res.end('<title>dk</title><p>text</p>'); });
+  await new Promise(r => site.listen(0, '127.0.0.1', r));
+  const url = `http://127.0.0.1:${site.address().port}/`;
+  const tab = w.createTab(url, { activate: true });
+  await sleep(1500);
+  const wc = tab.view.webContents;
+  const filter = () => wc.executeJavaScript('getComputedStyle(document.documentElement).filter');
+  ok(!ctx.darkAllowed('127.0.0.1') && (await filter()) === 'none', 'dark: типово темний вигляд вимкнено');
+  ctx.setDark('127.0.0.1', true);
+  ok(ctx.darkAllowed('127.0.0.1') && ctx.cfg().darkSites.includes('127.0.0.1'), 'dark: сайт додано до списку темних');
+  await w.applyDark(tab);
+  ok(/invert/.test(await filter()), 'dark: фільтр застосовується без перезавантаження');
+  wc.reload(); await sleep(1200);
+  ok(/invert/.test(await filter()), 'dark: після перезавантаження застосовується знову');
+  ctx.setDark('127.0.0.1', false);
+  await w.applyDark(tab);
+  ok((await filter()) === 'none', 'dark: вимкнення знімає фільтр');
+  const other = w.createTab('w3ir://settings', { activate: false });
+  ctx.setDark('127.0.0.1', true); await w.applyDark(other);
+  ok(!other.darkKey, 'dark: внутрішні сторінки не затемнюються');
+  ctx.setDark('127.0.0.1', false);
+  w.closeTab(other.id); w.closeTab(tab.id);
+  site.closeAllConnections(); site.close();
+}
+
+module.exports = { ipfsSchemeTests, darkTests, failoverTests, auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };

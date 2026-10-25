@@ -8,6 +8,8 @@ const { isWebUrl } = require('./util');
 const { shieldSummary } = require('./protection');
 const containers = require('./containers');
 
+const DARK_CSS = 'html{filter:invert(1) hue-rotate(180deg)!important;background:#fff!important}img,picture,video,canvas,svg image,iframe,[style*="background-image"]{filter:invert(1) hue-rotate(180deg)!important}';
+
 const methods = {
   // ---------- деталі захисту W3IR Shield ----------
   async shieldPanelData() {
@@ -46,6 +48,25 @@ const methods = {
     }
   },
 
+  // ---------- темний вигляд сайту (фільтр інверсії; зображення й відео повертаються до звичайних кольорів) ----------
+  // Виклики виконуються по черзі, щоб одночасні події (dom-ready, перемикач) не вставили стиль двічі
+  applyDark(tab) {
+    tab.darkChain = (tab.darkChain || Promise.resolve()).then(() => this.applyDarkNow(tab));
+    return tab.darkChain;
+  },
+
+  async applyDarkNow(tab) {
+    const wc = tab.view && tab.view.webContents;
+    if (!wc || wc.isDestroyed()) return;
+    let host = '';
+    try { const u = new URL(wc.getURL()); if (/^https?:$/.test(u.protocol)) host = u.hostname; } catch { /* немає адреси */ }
+    const want = !!host && this.ctx.darkAllowed(host);
+    try {
+      if (want && !tab.darkKey) tab.darkKey = await wc.insertCSS(DARK_CSS);
+      else if (!want && tab.darkKey) { const k = tab.darkKey; tab.darkKey = null; await wc.removeInsertedCSS(k); }
+    } catch { /* вкладка закрилась під час застосування */ }
+  },
+
   // ---------- інформація про сайт ----------
   async sitePanelData() {
     const t = this.active();
@@ -63,6 +84,7 @@ const methods = {
       perms: web ? this.ctx.sitePerms(this.tabSes(t), u.origin) : null,
       permLabels: ASK,
       adblock: { enabled: this.ctx.cfg().adblock !== false, allowed: web ? this.ctx.adblockAllowed(host) : false, blocked: t ? t.blocked : 0 },
+      dark: web ? this.ctx.darkAllowed(host) : null,
       cookies,
     };
   },

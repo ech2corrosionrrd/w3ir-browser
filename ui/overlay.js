@@ -92,6 +92,17 @@ function renderSite(p) {
     ab.append(cb);
     box.append(ab);
 
+    if (p.dark !== null && p.dark !== undefined) {
+      box.append(el('div', 'gsec', 'Вигляд'));
+      const dk = el('label', 'srow');
+      dk.append(el('span', null, 'Темний вигляд сайту'));
+      const dcb = el('input'); dcb.type = 'checkbox'; dcb.checked = !!p.dark;
+      dcb.title = 'Інвертує кольори сторінки лише для цього сайту; зображення й відео лишаються звичайними. Не потребує перезавантаження';
+      dcb.onchange = () => api.cmd('siteDark', { on: dcb.checked });
+      dk.append(dcb);
+      box.append(dk);
+    }
+
     const clear = el('button', 'vbtn', `Очистити cookie та дані сайту (${p.cookies})`);
     clear.title = 'Видаляє cookie й локальні дані цього сайту: ви вийдете з акаунтів на ньому';
     let armed = false;

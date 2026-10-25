@@ -18,6 +18,8 @@ if (require('./src/launch-guard').shouldBlock({ argv: process.argv, packaged: ap
 protocol.registerSchemesAsPrivileged([
   { scheme: 'w3ir', privileges: { standard: true, secure: true, supportFetchAPI: true } },
   { scheme: 'ar', privileges: { secure: true, supportFetchAPI: true, corsEnabled: true } },
+  { scheme: 'ipfs', privileges: { secure: true, supportFetchAPI: true, corsEnabled: true } },
+  { scheme: 'ipns', privileges: { secure: true, supportFetchAPI: true, corsEnabled: true } },
 ]);
 
 // Лише для розробки/тестів: окрема тека даних (ізоляція від встановленої копії та власне блокування одного екземпляра)

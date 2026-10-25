@@ -283,6 +283,14 @@ const methods = {
         if (u && arg && (arg.value === true || arg.value === false || arg.value === null)) this.ctx.setSitePerm(this.tabSes(this.active()), u.origin, arg.perm, arg.value);
         return this.refreshSiteOverlay();
       }
+      case 'siteDark': {
+        const u = this.siteTarget();
+        if (u && /^https?:$/.test(u.protocol)) {
+          this.ctx.setDark(u.hostname, !!(arg && arg.on));
+          for (const t of this.tabs) { try { if (this.ctx.siteKey(new URL(t.view.webContents.getURL()).hostname) === this.ctx.siteKey(u.hostname)) this.applyDark(t); } catch { /* ignore */ } }
+        }
+        return this.refreshSiteOverlay();
+      }
       case 'siteAdblock': {
         const u = this.siteTarget();
         if (u) { this.ctx.setAdblockAllowed(u.hostname, !!(arg && arg.allowed)); const wc2 = this.wc(); if (wc2) wc2.reload(); }

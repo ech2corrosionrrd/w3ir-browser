@@ -18,6 +18,7 @@ const { Threats } = require('./threats');
 const { Places, BookmarkStore } = require('./places');
 const { Assistant } = require('./assistant');
 const arweave = require('./arweave');
+const ipfs = require('./ipfs');
 const { parse: parseHost } = require('tldts-experimental');
 const { attachCosmetic } = require('./adblock');
 const { stripTracking, upgradeHttps } = require('./urlrules');
@@ -49,6 +50,7 @@ const DEFAULT_SETTINGS = {
   theme: 'dark',
   language: 'auto',
   adblockAllow: [],
+  darkSites: [], // сайти (домени), для яких увімкнено темний вигляд
   safeBrowsing: true,
   safeAllow: [],
   autoUpdate: true,
@@ -214,6 +216,15 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     if (!allowed && i >= 0) list.splice(i, 1);
     ctx.settingsStore.save();
   };
+  ctx.darkAllowed = (host) => !!host && (ctx.cfg().darkSites || []).includes(ctx.siteKey(host));
+  ctx.setDark = (host, on) => {
+    const key = ctx.siteKey(host);
+    const list = ctx.cfg().darkSites = ctx.cfg().darkSites || [];
+    const i = list.indexOf(key);
+    if (on && i < 0 && list.length < 500) list.push(key);
+    if (!on && i >= 0) list.splice(i, 1);
+    ctx.settingsStore.save();
+  };
   // Дозволи: у звичайних сеансах — у файлі профілю, в інкогніто — лише в пам'яті сеансу
   ctx.permStore = (ses) => ses.__w3irPerms || ctx.permsStore.data;
   ctx.permDecision = (ses, origin, permission) => { const v = ctx.permStore(ses)[origin + '|' + permission]; return typeof v === 'boolean' ? v : null; };
@@ -248,7 +259,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     input = String(input || '').trim();
     if (!input) return null;
     if (/^javascript:/i.test(input)) return null;
-    if (/^(https?|file|about|w3ir|view-source|ar):/i.test(input)) return input;
+    if (/^(https?|file|about|w3ir|view-source|ar|ipfs|ipns):/i.test(input)) return input;
     const kw = ctx.keywordUrl(input);
     if (kw) return kw;
     if (!/\s/.test(input)) {
@@ -279,6 +290,8 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       case 'wiki': return `https://uk.wikipedia.org/w/index.php?search=${enc(q)}`;
       case 'crates': return `https://crates.io/search?q=${enc(q)}`;
       case 'pypi': return `https://pypi.org/search/?q=${enc(q)}`;
+      case 'ipfs': return ipfs.parseIpfsUrl(`ipfs://${q}`) ? `ipfs://${q}` : null;
+      case 'ipns': return ipfs.parseIpfsUrl(`ipns://${q}`) ? `ipns://${q}` : null;
       case 'ar': return arweave.isValidTxId(q) ? `ar://${q}` : `https://viewblock.io/arweave/search?q=${enc(q)}`;
     }
     for (const line of String(ctx.cfg().keywords || '').split('\n').slice(0, 100)) {
@@ -423,6 +436,22 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
         });
       }
     });
+
+    for (const scheme of ['ipfs', 'ipns']) {
+      ses.protocol.handle(scheme, async (req) => {
+        const parsed = ipfs.parseIpfsUrl(req.url);
+        if (!parsed) return new Response('Invalid address. Use: ipfs://<CID>[/path] or ipns://<name>[/path]', { status: 400, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+        try {
+          const r = await ipfs.handleProtocolRequest(parsed, net.fetch);
+          const h = new Headers(r.headers);
+          h.set('X-Content-Type-Options', 'nosniff');
+          h.set('Referrer-Policy', 'no-referrer');
+          return new Response(r.body, { status: r.status, statusText: r.statusText, headers: h });
+        } catch (err) {
+          return new Response(`Failed to fetch from IPFS gateways: ${err.message}`, { status: 502, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+        }
+      });
+    }
 
     ctx.sessions.push(ses);
     attachCosmetic(ctx, ses);

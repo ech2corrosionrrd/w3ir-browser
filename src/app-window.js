@@ -324,8 +324,9 @@ class AppWindow {
     });
     wc.on('page-favicon-updated', (e, favicons) => { if (!tab.sleep) { tab.favicon = favicons[0] || ''; push(); } });
     wc.on('did-start-navigation', (d) => {
-      if (d.isMainFrame && !d.isSameDocument) tab.blocked = 0;
+      if (d.isMainFrame && !d.isSameDocument) { tab.blocked = 0; tab.darkKey = null; }
     });
+    wc.on('dom-ready', () => { if (!tab.sleep) this.applyDark(tab); });
     chromeIdentity(wc);
     wc.on('did-navigate', (e, url) => {
       if (tab.sleep) return;
@@ -379,7 +380,7 @@ class AppWindow {
       const md = docview.docPathFromUrl(url);
       if (md && !/^https?:/i.test(wc.getURL())) { e.preventDefault(); this.openDoc(tab, md); return; }
       if (EXTERNAL_SCHEME.test(url)) { e.preventDefault(); this.openExternal(url, { tab }); }
-      else if (!/^(https?|w3ir|file|about|blob|data|view-source|ar):/i.test(url)) e.preventDefault();
+      else if (!/^(https?|w3ir|file|about|blob|data|view-source|ar|ipfs|ipns):/i.test(url)) e.preventDefault();
       else if (webToInternal(wc.getURL(), url)) e.preventDefault();
     });
     wc.on('will-redirect', (e, url) => { if (webToInternal(wc.getURL(), url)) e.preventDefault(); });
