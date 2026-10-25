@@ -1661,6 +1661,7 @@
  "Парольна фраза має містити щонайменше 12 символів.": "The passphrase must contain at least 12 characters.",
  "Парольну фразу неможливо відновити. Ключ зберігається на пристрої під захистом Windows, сама фраза — ні.": "The passphrase cannot be recovered. The key is stored on the device protected by Windows; the phrase itself is not.",
  "Пауза": "Pause",
+ "Перевищено добовий ліміт {0} USD: за останні 24 години вже надіслано ≈ {1} USD, інші перекази в цій транзакції ≈ {2} USD, цей переказ ≈ {3} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.": "Daily limit of {0} USD exceeded: ≈ {1} USD was already sent in the last 24 hours, other transfers in this transaction ≈ {2} USD, this transfer is ≈ {3} USD. Wait or change the limit in the wallet security settings.",
  "Перевищено добовий ліміт {0} USD: за останні 24 години вже надіслано ≈ {1} USD, цей переказ ≈ {2} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.": "Daily limit of {0} USD exceeded: ≈ {1} USD was already sent in the last 24 hours, this transfer is ≈ {2} USD. Wait or change the limit in the wallet security settings.",
  "Перевищено ліміт {0} USD на один переказ (сума ≈ {1} USD). Змініть ліміт у налаштуваннях безпеки гаманця.": "Transfer over the limit of {0} USD per transfer (amount ≈ {1} USD). Change the limit in the wallet’s security settings.",
  "Перевищено ліміт запитів GitHub. Спробуємо пізніше.": "GitHub request limit exceeded. We will try later.",

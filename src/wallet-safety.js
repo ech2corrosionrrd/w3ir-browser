@@ -88,7 +88,12 @@ function install(Wallet, { RpcError, unauthorized }) {
         if (p.maxUsd && usd > p.maxUsd) throw new RpcError(-32602, `Перевищено ліміт ${p.maxUsd} USD на один переказ (сума ≈ ${usd.toFixed(2)} USD). Змініть ліміт у налаштуваннях безпеки гаманця.`);
         if (p.dailyUsd) {
           const spent = this.spentUsd();
-          if (spent + pendingUsd + usd > p.dailyUsd) throw new RpcError(-32602, `Перевищено добовий ліміт ${p.dailyUsd} USD: за останні 24 години вже надіслано ≈ ${spent.toFixed(2)} USD, цей переказ ≈ ${usd.toFixed(2)} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.`);
+          if (spent + pendingUsd + usd > p.dailyUsd) {
+            // Окремі повні речення: ключі перекладу не повинні склеюватися з частин
+            throw new RpcError(-32602, pendingUsd > 0
+              ? `Перевищено добовий ліміт ${p.dailyUsd} USD: за останні 24 години вже надіслано ≈ ${spent.toFixed(2)} USD, інші перекази в цій транзакції ≈ ${pendingUsd.toFixed(2)} USD, цей переказ ≈ ${usd.toFixed(2)} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.`
+              : `Перевищено добовий ліміт ${p.dailyUsd} USD: за останні 24 години вже надіслано ≈ ${spent.toFixed(2)} USD, цей переказ ≈ ${usd.toFixed(2)} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.`);
+          }
           out.commit = () => this.recordSpend(usd);
         }
         if (p.confirmUsd && usd >= p.confirmUsd) {

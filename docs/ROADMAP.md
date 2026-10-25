@@ -86,9 +86,9 @@ _Оновлено: 2026-10-25, версія 1.44.2._
   - `ipc.js` скорочено з ≈775 до 466 рядків (`ipc-wallet.js`, `ipc-browser.js`).
   - `wallet.js` скорочено з 815 до ≈480 рядків (зараз ≈390) (`wallet-dapp.js`, `wallet-evm-core.js`).
   - `test/areas/web3.js` скорочено з 1 968 до 896 рядків (зараз ≈990 із новими перевірками): виокремлено `test/areas/github.js`, `test/areas/history-evm.js`, `test/areas/portfolio.js`, `test/areas/simulate.js`, `test/areas/solana.js`, `test/areas/solana-extras.js`.
-- **Резервний ключ підпису оновлень**: згенеровано резервну пару Ed25519 (`build/keys/update-backup-private.pem`), підтримка перевірки обох ключів у `src/update-key.js` та `src/update-verify.js` (2026-10-23).
+- ~~**Резервний ключ підпису оновлень**~~ — виконано: згенеровано резервну пару Ed25519 (`build/keys/update-backup-private.pem`), підтримка перевірки обох ключів у `src/update-key.js` та `src/update-verify.js` (2026-10-23).
 - **Незалежний аудит гаманця** (лише за появи коштів; платного bug bounty не буде).
-- **Пакети Chocolatey та Scoop**: генератор `npm run packages` готовий (2026-10-21); лишилося опублікувати `bucket/w3ir-browser.json` після релізу й подати пакет у Chocolatey Community (рішення власника).
+- **Пакети Chocolatey та Scoop**: генератор `npm run packages` готовий (2026-10-21); пакет у Chocolatey Community подано (1.43.1, на модерації); Scoop-маніфест `bucket/w3ir-browser.json` оновлюється вручну після релізів.
 
 ### Відкладено
 * **Апаратні гаманці** (WebHID сесії Electron): Ledger для EVM — експериментально з 1.43.5 (перевірено лише на емуляторі, очікує справжнього пристрою); Trezor і Ledger для Solana відкладено, потрібен фізичний пристрій.

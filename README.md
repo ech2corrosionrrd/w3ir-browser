@@ -70,7 +70,7 @@ Checksums are also available in `SHA256SUMS.txt` accompanying every release.
 npm install
 npm start                      # Run from source
 npm test                       # Run full end-to-end Electron test suite (1,300+ checks)
-npm run test:unit              # Fast headless unit tests (100 checks, node:test)
+npm run test:unit              # Fast headless unit tests (140+ checks, node:test)
 npm run test:coverage          # Native V8 test coverage (>= 98% on wallet safety & crypto)
 npm run lint                   # ESLint static analysis (0 errors, 0 warnings required)
 npm run perf                   # Performance and memory benchmark suite

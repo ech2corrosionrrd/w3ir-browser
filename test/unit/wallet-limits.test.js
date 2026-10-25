@@ -91,7 +91,7 @@ test('policyGate: кілька переказів в одному підтвер
   const first = await w.policyGate({ to: OTHER, chain: 'sol', token: 'MINT', amount: '300', contacts: false });
   assert.equal(first.usd, 300);
   // другий переказ ще не списаний (commit після підтвердження), але вже враховується через pendingUsd
-  await assert.rejects(() => w.policyGate({ to: OTHER, chain: 'sol', token: 'MINT', amount: '300', contacts: false, pendingUsd: first.usd }), /Перевищено добовий ліміт/);
+  await assert.rejects(() => w.policyGate({ to: OTHER, chain: 'sol', token: 'MINT', amount: '300', contacts: false, pendingUsd: first.usd }), /Перевищено добовий ліміт 500 USD.*інші перекази в цій транзакції ≈ 300.00 USD/);
   const ok = await w.policyGate({ to: OTHER, chain: 'sol', token: 'MINT', amount: '150', contacts: false, pendingUsd: first.usd });
   assert.equal(ok.usd, 150);
   first.commit(); ok.commit();
