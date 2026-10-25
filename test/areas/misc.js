@@ -440,6 +440,50 @@ async function ledgerBridgeTests(ctx) {
   bridge.close();
 }
 
+// Малий екран: меню й панелі прокручуються й не виходять за межі вікна, адресний рядок лишається придатним для вводу,
+// вертикальні вкладки на вузькому вікні тимчасово стають горизонтальними
+async function smallScreenTests(ctx) {
+  const w = [...ctx.windows].find(x => !x.incognito);
+  const prev = w.win.getBounds();
+  const prevVertical = ctx.cfg().verticalTabs;
+  try {
+    w.win.setSize(480, 320);
+    await sleep(900);
+    const dims = await w.chrome.executeJavaScript('({ W: innerWidth, url: document.getElementById("url").getBoundingClientRect().width, tb: document.getElementById("toolbar").scrollWidth <= innerWidth + 1 })');
+    ok(dims.W <= 500 && dims.url >= 100 && dims.tb, 'малий екран: на мінімальному вікні адресний рядок має ' + Math.round(dims.url) + ' px і панель інструментів не виходить за межі');
+    ok(await w.chrome.executeJavaScript('["home", "vault", "dl"].every(id => getComputedStyle(document.getElementById(id)).display === "none") && getComputedStyle(document.getElementById("copilot")).width === "32px"'), 'малий екран: другорядні кнопки сховано, «Помічник» стиснуто до значка');
+
+    await w.chrome.executeJavaScript('document.getElementById("menu").click()');
+    await sleep(900);
+    const menu = await w.overlay.webContents.executeJavaScript(`(() => {
+      const m = document.querySelector('.menu');
+      const items = [...m.querySelectorAll('button')];
+      const last = items[items.length - 1];
+      const before = m.getBoundingClientRect();
+      m.scrollTop = m.scrollHeight;
+      const lb = last.getBoundingClientRect();
+      return { n: items.length, overflowY: getComputedStyle(m).overflowY, scrolls: m.scrollHeight > m.clientHeight, inside: before.bottom <= innerHeight, lastReachable: lb.bottom <= innerHeight + 1 && lb.top >= 0, text: last.textContent };
+    })()`);
+    ok(menu.n > 20 && menu.overflowY === 'auto' && menu.scrolls && menu.inside && menu.lastReachable, 'малий екран: головне меню вміщується у вікно, прокручується й останній пункт («' + menu.text.slice(0, 20) + '») досяжний');
+    w.exec('closeOverlay');
+    await sleep(400);
+
+    ctx.cfg().verticalTabs = true;
+    w.layout(); w.push();
+    await sleep(500);
+    ok(w.vertical() === false && w.verticalPref() === true && !(await w.chrome.executeJavaScript('document.body.classList.contains("vertical")')), 'малий екран: вертикальні вкладки на вузькому вікні тимчасово горизонтальні, налаштування збережено');
+
+    w.win.setSize(1100, 700);
+    await sleep(900);
+    ok(w.vertical() === true && await w.chrome.executeJavaScript('document.body.classList.contains("vertical")'), 'малий екран: на широкому вікні вертикальні вкладки повертаються');
+  } finally {
+    ctx.cfg().verticalTabs = prevVertical;
+    w.win.setBounds(prev);
+    w.layout(); w.push();
+    await sleep(500);
+  }
+}
+
 // Темний вигляд сайту: вмикається лише для вибраного домену, застосовується без перезавантаження й знімається
 async function darkTests(ctx) {
   const w = [...ctx.windows].find(x => !x.incognito);
@@ -468,4 +512,4 @@ async function darkTests(ctx) {
   site.closeAllConnections(); site.close();
 }
 
-module.exports = { ledgerBridgeTests, ipfsSchemeTests, darkTests, failoverTests, auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };
+module.exports = { smallScreenTests, ledgerBridgeTests, ipfsSchemeTests, darkTests, failoverTests, auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };

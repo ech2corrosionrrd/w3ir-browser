@@ -6,7 +6,7 @@ const containers = require('./containers');
 
 const methods = {
   commandList() {
-    const vert = this.vertical();
+    const vert = this.verticalPref();
     const ad = this.ctx.cfg().adblock;
     return [
       ...this.githubCommands(),

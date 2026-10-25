@@ -69,3 +69,14 @@ button:hover:not(:disabled) { background: rgba(255,255,255,.07); }
   border: 1px solid rgba(56,189,248,.3); background: rgba(56,189,248,.1); box-shadow: 0 0 12px rgba(56,189,248,.15); white-space: nowrap; }
 #toolbar > button#copilot:hover:not(:disabled) { background: rgba(56,189,248,.2); }
 body.vertical #sleepall { margin: 8px 0 0; }
+
+/* Вузьке вікно (мінімум 480 px): адресний рядок має лишатися придатним для вводу, тож другорядне ховається.
+   Вимкнене тут доступне з головного меню: «Менеджер паролів», «Завантаження»; домашня сторінка — Alt+Home. */
+#omni { min-width: 120px; }
+@media (max-width: 760px) {
+  #toolbar > button#copilot { width: 32px; padding: 0; font-size: 0; }
+  #toolbar > button#copilot::before { content: "\2726"; font-size: 14px; }
+}
+@media (max-width: 600px) {
+  #toolbar > button#home, #toolbar > button#vault, #toolbar > button#dl { display: none; }
+}

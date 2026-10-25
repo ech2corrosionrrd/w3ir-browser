@@ -121,6 +121,7 @@ function renderSite(p) {
   allRow.append(all);
   box.append(allRow);
   root.append(box);
+  box.style.left = Math.max(8, Math.min(parseFloat(box.style.left) || 8, innerWidth - box.offsetWidth - 8)) + 'px';
 }
 
 // ---------- підтвердження дій гаманця ----------

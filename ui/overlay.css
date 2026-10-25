@@ -15,7 +15,7 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
   font: 13px "Segoe UI", system-ui, sans-serif; color: var(--fg); user-select: none; }
 #root { height: 100%; position: relative; }
 
-.menu { position: absolute; top: 4px; right: 8px; width: 290px; padding: 6px; border-radius: 10px;
+.menu { position: absolute; top: 4px; right: 8px; width: 290px; max-width: calc(100% - 16px); max-height: calc(100% - 8px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 6px; border-radius: 10px;
   background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 28px var(--shadow); }
 .menu button { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 12px;
   padding: 7px 10px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; text-align: left; }
@@ -42,7 +42,7 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 .prow .t { flex: none; max-width: 60%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .prow .u { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--link); font-size: 12px; text-align: right; }
 
-.vlt { position: absolute; top: 4px; right: 8px; width: 330px; padding: 14px; border-radius: 10px; background: var(--panel);
+.vlt { position: absolute; top: 4px; right: 8px; width: 330px; max-width: calc(100% - 16px); max-height: calc(100% - 8px); overflow-y: auto; scrollbar-width: thin; padding: 14px; border-radius: 10px; background: var(--panel);
   border: 1px solid var(--line); box-shadow: 0 8px 28px var(--shadow); }
 .vh { font-weight: 600; margin-bottom: 8px; }
 .vtxt { color: var(--fg2); font-size: 12px; margin: 6px 0 10px; line-height: 1.45; }
@@ -59,7 +59,7 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 .vitem:hover { background: var(--hover); }
 .vrow { display: flex; gap: 8px; margin-top: 12px; }
 
-.ghp { position: absolute; top: 4px; right: 8px; width: 400px; max-height: calc(100% - 16px); overflow-y: auto; padding: 14px; border-radius: 10px;
+.ghp { position: absolute; top: 4px; right: 8px; width: 400px; max-width: calc(100% - 16px); max-height: calc(100% - 8px); overflow-y: auto; scrollbar-width: thin; padding: 14px; border-radius: 10px;
   background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 28px var(--shadow); }
 .gsec { margin: 12px 0 4px; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
 .gitem { display: block; width: 100%; padding: 7px 10px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -79,14 +79,14 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 .appr input { margin-top: 10px; }
 .appr .asel { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--input); color: inherit; font: inherit; }
 
-.site { position: absolute; top: 4px; width: 340px; padding: 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 28px var(--shadow); }
+.site { position: absolute; top: 4px; width: 340px; max-width: calc(100% - 16px); max-height: calc(100% - 8px); overflow-y: auto; scrollbar-width: thin; padding: 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 28px var(--shadow); }
 .sconn { margin: 4px 0 8px; font-size: 12px; color: var(--fg2); line-height: 1.45; }
 .sconn.warn { color: var(--danger); }
 .srow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0; font-size: 12px; }
 .srow select { height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: inherit; font: inherit; }
 .site .vbtn { width: 100%; margin-top: 10px; }
 
-.shld { position: absolute; top: 4px; width: 350px; padding: 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 28px var(--shadow); }
+.shld { position: absolute; top: 4px; width: 350px; max-width: calc(100% - 16px); max-height: calc(100% - 8px); overflow-y: auto; scrollbar-width: thin; padding: 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 28px var(--shadow); }
 .shld-hdr { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 10px; }
 .shld-sub { font-size: 11px; color: var(--dim); margin-top: 1px; }
 .shld-host { font-size: 11px; color: var(--accent); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--input); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); }

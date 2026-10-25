@@ -16,6 +16,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const ICON = path.join(ROOT, 'build', 'icon.png');
 const SIDEBAR_W = 240;
+const VERTICAL_MIN_W = 720; // вужче — бічна панель забирає в адресного рядка майже всю ширину
 const { SLEEP_ENV } = tabSleep;
 let counter = 0;
 let readabilitySrc = null;
@@ -93,7 +94,11 @@ class AppWindow {
     ctx.register(this.overlay.webContents, this);
     this.overlay.webContents.loadURL('w3ir://ui/overlay.html');
 
-    this.win.on('resize', () => this.layout());
+    this.win.on('resize', () => {
+      this.layout();
+      const v = this.vertical();
+      if (v !== this._lastVertical) { this._lastVertical = v; this.push(); }
+    });
     this.win.on('enter-full-screen', () => this.layout());
     this.win.on('leave-full-screen', () => { this.userFs = false; if (this.htmlFullscreen) this.exitHtmlFullscreen(false); else this.layout(); });
     this.win.on('close', () => this.onClose());
@@ -134,7 +139,10 @@ class AppWindow {
     const u = this.tabUrl(tab);
     return isBlankUrl(u) ? '' : u;
   }
-  vertical() { return !!this.ctx.cfg().verticalTabs; }
+  verticalPref() { return !!this.ctx.cfg().verticalTabs; }
+  contentWidth() { try { return this.win.getContentSize()[0]; } catch { return Infinity; } }
+  // Дійсний режим: налаштування діє, лише якщо вікно достатньо широке
+  vertical() { return this.verticalPref() && this.contentWidth() >= VERTICAL_MIN_W; }
   tabSes(tab) { return (tab && tab.ses) || this.ses; }
   snapshot() {
     const urls = [], pinned = [], containersOf = [], included = [];
