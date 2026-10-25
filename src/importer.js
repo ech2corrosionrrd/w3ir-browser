@@ -17,6 +17,24 @@ const CHROMIUM = [
   { id: 'brave', label: 'Brave', rel: ['BraveSoftware', 'Brave-Browser', 'User Data'] },
   { id: 'chromium', label: 'Chromium', rel: ['Chromium', 'User Data'] },
   { id: 'vivaldi', label: 'Vivaldi', rel: ['Vivaldi', 'User Data'] },
+  // Opera зберігає єдиний профіль просто в каталозі застосунку в Roaming (без Default/Profile N)
+  { id: 'opera', label: 'Opera', roaming: true, flat: true, rel: ['Opera Software', 'Opera Stable'] },
+  { id: 'operagx', label: 'Opera GX', roaming: true, flat: true, rel: ['Opera Software', 'Opera GX Stable'] },
+  { id: 'arc', label: 'Arc', rel: ['Arc', 'User Data'] },
+  { id: 'thorium', label: 'Thorium', rel: ['Thorium', 'User Data'] },
+  { id: 'supermium', label: 'Supermium', rel: ['Supermium', 'User Data'] },
+  { id: 'helium', label: 'Helium', rel: ['imput', 'Helium', 'User Data'] },
+  { id: 'cromite', label: 'Cromite', rel: ['Cromite', 'User Data'] },
+  { id: 'catsxp', label: 'CatsXP', rel: ['ArcSoft', 'CatsXP', 'User Data'] },
+];
+
+// Форки Firefox зберігають профілі за тією самою схемою, що й Firefox
+const FIREFOX = [
+  { id: 'firefox', label: 'Mozilla Firefox', rel: ['Mozilla', 'Firefox', 'Profiles'] },
+  { id: 'librewolf', label: 'LibreWolf', rel: ['LibreWolf', 'Profiles'] },
+  { id: 'waterfox', label: 'Waterfox', rel: ['Waterfox', 'Profiles'] },
+  { id: 'floorp', label: 'Floorp', rel: ['Floorp', 'Profiles'] },
+  { id: 'zen', label: 'Zen', rel: ['Zen', 'Profiles'] },
 ];
 
 const isImportable = (u) => typeof u === 'string' && u.length <= 4096 && /^(https?|file):/i.test(u);
@@ -32,19 +50,22 @@ function readJson(file) {
 }
 
 // Профілі Chromium-браузерів: каталоги, де є Bookmarks або History
-function detectChromium(base = process.env.LOCALAPPDATA) {
+function detectChromium(localBase = process.env.LOCALAPPDATA, roamingBase = process.env.APPDATA) {
   const out = [];
-  if (!base) return out;
   for (const b of CHROMIUM) {
+    const base = b.roaming ? roamingBase : localBase;
+    if (!base) continue;
     const root = path.join(base, ...b.rel);
     if (!fs.existsSync(root)) continue;
     const state = readJson(path.join(root, 'Local State')) || {};
     const cache = (state.profile && state.profile.info_cache) || {};
     let dirs = [];
-    try { dirs = fs.readdirSync(root, { withFileTypes: true }).filter(d => d.isDirectory() && (d.name === 'Default' || /^Profile \d+$/.test(d.name))).map(d => d.name); } catch { /* ignore */ }
+    if (b.flat) dirs = ['.'];
+    else try { dirs = fs.readdirSync(root, { withFileTypes: true }).filter(d => d.isDirectory() && (d.name === 'Default' || /^Profile \d+$/.test(d.name))).map(d => d.name); } catch { /* ignore */ }
     for (const d of dirs) {
       const dir = path.join(root, d);
       if (!fs.existsSync(path.join(dir, 'Bookmarks')) && !fs.existsSync(path.join(dir, 'History'))) continue;
+      if (b.flat) { out.push({ id: `${b.id}:.`, kind: 'chromium', browser: b.label, name: 'Основний профіль', dir }); continue; }
       const name = clean(((cache[d] && cache[d].name) || d) + (cache[d] && cache[d].name ? ' (' + d + ')' : ''), 80);
       out.push({ id: `${b.id}:${d}`, kind: 'chromium', browser: b.label, name, dir });
     }
@@ -55,21 +76,23 @@ function detectChromium(base = process.env.LOCALAPPDATA) {
 function detectFirefox(base = process.env.APPDATA) {
   const out = [];
   if (!base) return out;
-  const root = path.join(base, 'Mozilla', 'Firefox', 'Profiles');
-  if (!fs.existsSync(root)) return out;
-  try {
-    for (const d of fs.readdirSync(root, { withFileTypes: true })) {
-      if (!d.isDirectory()) continue;
-      const dir = path.join(root, d.name);
-      if (!fs.existsSync(path.join(dir, 'places.sqlite'))) continue;
-      out.push({ id: `firefox:${d.name}`, kind: 'firefox', browser: 'Mozilla Firefox', name: clean(d.name.replace(/^[a-z0-9]{8}\./i, ''), 80), dir });
-    }
-  } catch { /* ignore */ }
+  for (const b of FIREFOX) {
+    const root = path.join(base, ...b.rel);
+    if (!fs.existsSync(root)) continue;
+    try {
+      for (const d of fs.readdirSync(root, { withFileTypes: true })) {
+        if (!d.isDirectory()) continue;
+        const dir = path.join(root, d.name);
+        if (!fs.existsSync(path.join(dir, 'places.sqlite'))) continue;
+        out.push({ id: `${b.id}:${d.name}`, kind: 'firefox', browser: b.label, name: clean(d.name.replace(/^[a-z0-9]{8}./i, ''), 80), dir });
+      }
+    } catch { /* ignore */ }
+  }
   return out;
 }
 
 function detect(opts = {}) {
-  return [...detectChromium(opts.localAppData), ...detectFirefox(opts.appData)];
+  return [...detectChromium(opts.localAppData, opts.appData), ...detectFirefox(opts.appData)];
 }
 
 // Копіюємо базу (разом із WAL) у тимчасову папку, бо оригінал може бути заблокований запущеним браузером

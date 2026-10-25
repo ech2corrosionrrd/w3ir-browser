@@ -24,7 +24,7 @@ A privacy-focused, Web3-native desktop browser for Windows built on Chromium (El
 | **History & Bookmarks** | Embedded SQLite (`places.sqlite`, WAL mode): FTS5 full-text search suggestions, **frecency** ranking (frequency × exponential decay), seamless one-time migration from legacy JSON |
 | **Sync** | Folder-based sync (OneDrive, Dropbox, Syncthing) with client-side end-to-end encryption |
 | **Profiles** | Multiple isolated profiles with separate cookies, bookmarks, history, passwords, and settings |
-| **Data Import** | One-click import of bookmarks and history from Chrome, Edge, Brave, Vivaldi, and Firefox; passwords via CSV |
+| **Data Import** | One-click import of bookmarks and history from Chrome, Edge, Brave, Vivaldi, Opera, Arc, other Chromium forks, and Firefox with its forks (LibreWolf, Waterfox, Floorp, Zen); passwords via CSV |
 | **GitHub Integration** | Notification and pull request review indicators (🐙), repository navigation via Ctrl+K, search shortcuts (`gh`, `ghi`, `ghp`, `gha`, `ghc`) |
 | **Split Screen** | Side-by-side view of two tabs in a single window with draggable divider and session restoration |
 | **Browser Dashboard** | Real-time diagnostics at `w3ir://dashboard`: live CPU & memory sparklines, tab breakdown, session protection counters, process memory distribution, heavy tab detection, RPC ping latency, AI control, audit log |

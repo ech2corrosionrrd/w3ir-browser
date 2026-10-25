@@ -313,6 +313,24 @@ async function importTests(ctx) {
   const opts = { localAppData: localApp, appData: roaming };
   const found = imp.detect(opts);
   ok(found.length === 2 && found.some(s => s.kind === 'chromium' && s.name === 'Тест (Default)') && found.some(s => s.kind === 'firefox'), 'import: профілі Chrome і Firefox знайдено');
+  // Opera (плоский профіль у Roaming), Chromium-форк у Local і форк Firefox
+  const opera = path.join(roaming, 'Opera Software', 'Opera Stable');
+  fs.mkdirSync(opera, { recursive: true });
+  fs.writeFileSync(path.join(opera, 'Bookmarks'), JSON.stringify({ roots: { bookmark_bar: { type: 'folder', children: [{ type: 'url', name: 'Opera bm', url: 'https://opera.example/' }] } } }));
+  const thor = path.join(localApp, 'Thorium', 'User Data', 'Default');
+  fs.mkdirSync(thor, { recursive: true });
+  fs.writeFileSync(path.join(thor, 'Bookmarks'), JSON.stringify({ roots: {} }));
+  const libre = path.join(roaming, 'LibreWolf', 'Profiles', 'wxyz5678.default');
+  fs.mkdirSync(libre, { recursive: true });
+  fs.writeFileSync(path.join(libre, 'places.sqlite'), '');
+  const more = imp.detect(opts);
+  const op = more.find(s => s.id === 'opera:.');
+  ok(op && op.browser === 'Opera' && imp.readBookmarks(imp.findSource('opera:.', opts)).length === 1, 'import: Opera (єдиний профіль у Roaming) знайдено й прочитано');
+  ok(more.some(s => s.id === 'thorium:Default') && more.some(s => s.browser === 'LibreWolf' && s.kind === 'firefox'), 'import: Chromium- і Firefox-форки знайдено');
+  fs.rmSync(path.join(roaming, 'Opera Software'), { recursive: true, force: true });
+  fs.rmSync(path.join(localApp, 'Thorium'), { recursive: true, force: true });
+  fs.rmSync(path.join(roaming, 'LibreWolf'), { recursive: true, force: true });
+
   ok(imp.findSource('../../Windows', opts) === null && imp.findSource('chrome:../x', opts) === null, 'import: довільний шлях замість id відхилено');
 
   const chrome = found.find(s => s.kind === 'chromium'), ff = found.find(s => s.kind === 'firefox');
