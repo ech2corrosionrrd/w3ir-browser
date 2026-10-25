@@ -601,9 +601,21 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     // Ліміти політики діють і на транзакції від сайтів: сума SOL, що спишеться зі свого рахунку за явними інструкціями
     let gate = { commit: () => {} };
     if (!opts.address) {
-      const outgoing = txs.reduce((s, tx) => s + S.describe(tx.parsed, [address]).outgoing, 0n);
-      if (outgoing > 0n) {
-        gate = await this.policyGate({ chain: 'sol', amount: S.sol(outgoing), contacts: false });
+      const descs = txs.map(tx => S.describe(tx.parsed, [address]));
+      const outgoing = descs.reduce((s, x) => s + x.outgoing, 0n);
+      // Усе, що піде зі свого рахунку: SOL і токени SPL (без відомого mint вартість невідома — лишається попередження)
+      const items = [];
+      if (outgoing > 0n) items.push({ amount: S.sol(outgoing) });
+      for (const x of descs) for (const tt of x.tokenTransfers) items.push(tt.mint && tt.decimals !== null ? { token: tt.mint, amount: S.formatUnits(tt.amount, tt.decimals) } : { token: tt.mint || 'unknown', amount: undefined });
+      if (items.length) {
+        const gates = [];
+        let pending = 0;
+        for (const it of items) {
+          const g = await this.policyGate({ chain: 'sol', token: it.token, amount: it.amount, contacts: false, pendingUsd: pending });
+          pending += g.usd > 0 ? g.usd : 0;
+          gates.push(g);
+        }
+        gate = { warnings: [...new Set(gates.flatMap(g => g.warnings))], delay: Math.max(0, ...gates.map(g => g.delay)), danger: gates.some(g => g.danger), commit: () => gates.forEach(g => g.commit()) };
         opts = { ...opts, danger: opts.danger || gate.danger, warnings: [...(opts.warnings || []), ...gate.warnings], ...(gate.delay ? { delay: gate.delay } : {}) };
       }
     }
@@ -636,7 +648,6 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       kind: 'tx', title: send ? tr('Підтвердження транзакції') : tr('Підпис транзакції'), danger, lines, warnings, ...(opts.delay ? { delay: opts.delay } : {}),
     });
 
-    gate.commit();
     const kp = this._solKeypair(address);
     const signed = txs.map((tx) => {
       const s = S.signTransaction(kp.secret, address, tx.wire);
@@ -654,6 +665,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       return s;
     });
     if (!send) {
+      gate.commit(); // підпис без відправки: чи надішле сайт транзакцію, невідомо, тож ліміт списується одразу
       this.log({ origin, action: `Підпис транзакції Solana (${signed.length})` });
       return { signedTransactions: signed.map(s => s.signedWire.toString('base64')), signatures: signed.map(s => S.b58encode(s.signature)) };
     }
@@ -661,6 +673,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     try {
       signature = await this.solRpc(cluster, 'sendTransaction', [signed[0].signedWire.toString('base64'), { encoding: 'base64', preflightCommitment: 'confirmed', maxRetries: 3 }], 15000);
     } catch (e) { throw new RpcError(-32000, `Не вдалося надіслати транзакцію: ${clip(e.message, 200)}`); }
+    gate.commit(); // добовий ліміт списується лише після успішної відправки
     this.log({ origin, action: opts.action || 'Транзакція Solana', hash: signature, chainId: cluster });
     return { signature, signedTransaction: signed[0].signedWire.toString('base64') };
   };

@@ -236,6 +236,23 @@ async function walletTests(ctx) {
   const apUnl = await waitApproval();
   ok(apUnl.spec.lines.some(l => l[0] === 'Сума дозволу' && l[1] === 'НЕОБМЕЖЕНО') && apUnl.spec.danger === true, 'tokens: необмежений approve лишається червоним попередженням');
   await decide(false); await apr;
+  // ліміти політики діють на transferFrom / safeTransferFrom від сайту, якщо токени йдуть зі СВОГО рахунку
+  const iface3 = new E.Interface(['function transferFrom(address,address,uint256)', 'function safeTransferFrom(address,address,uint256)']);
+  const realUsdSite = wal.usdValue;
+  wal.usdValue = async () => 500;
+  wal.setPolicy({ maxUsd: 100 });
+  let tfr = await call(wcA, 'eth_sendTransaction', [{ from: addr0, to: TOKEN, data: iface3.encodeFunctionData('transferFrom', [addr0, rcpt, 1_000_000n]) }]);
+  ok(tfr.err && /Перевищено ліміт 100 USD/.test(tfr.msg) && !w.approval, 'policy: transferFrom від сайту зі свого рахунку підпадає під ліміт суми');
+  tfr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: TOKEN, data: iface3.encodeFunctionData('transferFrom', [rcpt, spender, 1_000_000n]) }]);
+  const apOther = await waitApproval();
+  ok(!!apOther && !apOther.spec.warnings.some(x => /Перевищено|не визначено/.test(x)), 'policy: transferFrom з чужого рахунку (за дозволом) не зменшує ваш баланс і ліміт не застосовується');
+  await decide(false); await tfr;
+  tfr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: TOKEN, data: iface3.encodeFunctionData('safeTransferFrom', [addr0, rcpt, 7n]) }]);
+  const apNft = await waitApproval();
+  ok(!!apNft && apNft.spec.lines.some(l => l[0] === 'Дія' && /NFT/.test(l[1])), 'policy: safeTransferFrom (NFT) не береться за суму в USD, перевіряється лише отримувач');
+  await decide(false); await tfr;
+  wal.usdValue = realUsdSite;
+  wal.setPolicy({ maxUsd: 0 });
   // ---------- швидкість комісії, прискорення, скасування ----------
   const sendFee = async (speed) => {
     const p = wal.sendNative(w, () => true, { index: 0, to: rcpt, amount: '0.01', speed });

@@ -4,7 +4,7 @@
 
 Браузер для Windows на основі Chromium (Electron 44) з упором на приватність, безпеку й зручність. Усі функції працюють локально, без облікових записів і серверів розробника.
 
-- Поточна версія: **1.44.0** · Завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
+- Остання версія та завантаження: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
 - Мова інтерфейсу: українська, English, Polski, Deutsch, Español, Français (вибір у налаштуваннях) · Платформа: Windows 10/11 x64
 - Довідка в самому браузері: **F1**
 
@@ -47,7 +47,7 @@
 Кожен реліз містить відкритий криптографічний слід GitHub Actions (OpenSSF Provenance). Перевірити оригінальність інсталятора можна командою GitHub CLI:
 
 ```bash
-gh attestation verify W3IR-Browser-Setup-1.42.0.exe --repo ech2corrosionrrd/w3ir-browser
+gh attestation verify W3IR-Browser-Setup-<версія>.exe --repo ech2corrosionrrd/w3ir-browser
 ```
 
 Контрольні суми SHA-256 також додаються до кожного випуску у файлі `SHA256SUMS.txt`.
@@ -63,11 +63,11 @@ gh attestation verify W3IR-Browser-Setup-1.42.0.exe --repo ech2corrosionrrd/w3ir
 ```
 npm install
 npm start                      # запуск із вихідного коду
-npm test                       # повний автотест у тимчасовому профілі (~1390 перевірок)
-npm run test:unit              # швидкі headless unit-тести (137 перевірок, node:test)
+npm test                       # повний автотест у тимчасовому профілі (понад 1300 перевірок)
+npm run test:unit              # швидкі headless unit-тести (понад 140 перевірок, node:test)
 npm run test:coverage          # звіт покриття коду V8 (>= 98% для безпеки гаманця)
 npm run lint                   # статичний аналіз коду ESLint (0 помилок, 0 попереджень)
-W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # ~1390 автоматичних перевірок (W3IR_ONLY=<області> — лише названі)
+W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # понад 1300 автоматичних перевірок (W3IR_ONLY=<області> — лише названі)
 ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron.exe build/mainnet-sim-check.js   # транзакції Solana на справжньому mainnet (симуляція, без коштів)
 npm run release                # збірка + підпис оновлення → dist/release
 npm run check:rpc               # онлайн-перевірка вбудованих RPC гаманця

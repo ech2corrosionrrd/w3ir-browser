@@ -428,6 +428,7 @@ function describe(parsed, ours = []) {
   const mine = new Set(ours);
   const lines = [], warnings = [];
   let danger = false, outgoing = 0n, tokensOut = 0;
+  const tokenTransfers = []; // токени, що йдуть зі своїх акаунтів: { mint, amount, decimals } (mint = null, якщо інструкція його не вказує)
   const warn = (t, isDanger) => { if (!warnings.includes(t)) warnings.push(t); if (isDanger) danger = true; };
   const key = (ins, i) => parsed.keys[ins.accounts[i]];
   const who = (a) => (mine.has(a) ? `${short(a)} (ваш рахунок)` : a || '?');
@@ -475,6 +476,9 @@ function describe(parsed, ours = []) {
         const prog = pid === P.TOKEN22 ? 'Token-2022' : 'SPL Token';
         const withFee = pid === P.TOKEN22 && t === 26 && d[1] === 1 && d.length >= 19; // TransferCheckedWithFee
         if ((t === 3 && d.length >= 9 && mine.has(key(ins, 2))) || (t === 12 && d.length >= 10 && mine.has(key(ins, 3))) || (withFee && mine.has(key(ins, 3)))) tokensOut++;
+        if (t === 3 && d.length >= 9 && mine.has(key(ins, 2))) tokenTransfers.push({ mint: null, amount: d.readBigUInt64LE(1), decimals: null });
+        else if (t === 12 && d.length >= 10 && mine.has(key(ins, 3))) tokenTransfers.push({ mint: key(ins, 1), amount: d.readBigUInt64LE(1), decimals: d[9] });
+        else if (withFee && mine.has(key(ins, 3))) tokenTransfers.push({ mint: key(ins, 1), amount: d.readBigUInt64LE(2), decimals: d[10] });
         if (t === 3 && d.length >= 9) add(`Переказ токенів (${d.readBigUInt64LE(1)} у мінімальних одиницях): ${short(key(ins, 0))} → ${short(key(ins, 1))}, підпис ${who(key(ins, 2))}`);
         else if (t === 12 && d.length >= 10) add(`Переказ токенів ${formatUnits(d.readBigUInt64LE(1), d[9])} (mint ${short(key(ins, 1))}): ${short(key(ins, 0))} → ${short(key(ins, 2))}, підпис ${who(key(ins, 3))}`);
         else if ((t === 4 && d.length >= 9) || (t === 13 && d.length >= 10)) {
@@ -567,7 +571,7 @@ function describe(parsed, ours = []) {
   if (outgoing > 0n) lines.unshift(['Спишеться з ваших рахунків', `${sol(outgoing)} SOL (без комісії мережі)`]);
   // переказ токенів зі своїх акаунтів виносимо нагору, щоб його не заховали серед інших рядків
   if (tokensOut > 0) lines.unshift(['Токени підуть з ваших акаунтів', `переказів: ${tokensOut} (суми — серед дій нижче)`]);
-  return { lines, warnings, danger, outgoing };
+  return { lines, warnings, danger, outgoing, tokenTransfers };
 }
 
 module.exports = {

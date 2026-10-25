@@ -293,7 +293,7 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
           this._prepareTx(provider, signer, req),
           desc.token && to && !opts.summary ? this.tokenInfo(chain, to).catch(() => null) : null, // не схоже на ERC-20 або RPC недоступний
           to && data !== '0x' ? this.simulateEvm(chain, { from, to, value, data }).then(r => this.describeSimulation(chain, r, { symbol: net.symbol })).catch(() => this.describeSimulation(chain, null, { symbol: net.symbol })) : null,
-          timed(this.priceInfo({ chain, tokens: [] }), 1500).catch(() => null), // ціна лише для показу; повільний сервіс не затримує вікно
+          timed(this.priceInfo({ chain: 'evm', chainId: chain, tokens: [] }), 1500).catch(() => null), // ціна лише для показу; повільний сервіс не затримує вікно
         ]);
         populated = pop; delegate = del; ti = tokenData; if (sim) simInfo = sim;
         nativePrice = price && price.enabled && price.native ? price.native : null;
@@ -304,9 +304,12 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
       if (ti) desc = describeCall(data, ti);
       // Ліміти політики (сума, добовий ліміт, пауза) діють і на транзакції від сайтів, якщо вони передають кошти: нативну валюту чи токен
       let gate = { commit: () => {} };
-      const tokenSpend = !opts.internal && value === 0n && desc.spend && ti ? desc.spend : null;
-      if (!opts.internal && (value > 0n || tokenSpend)) {
-        gate = await this.policyGate({ to: tokenSpend ? tokenSpend.to : to, chain: 'evm', token: tokenSpend ? to : undefined, amount: tokenSpend ? formatUnits(tokenSpend.amount, ti.decimals) : formatEther(value), contacts: !!tokenSpend });
+      const own = (a) => !!a && a.toLowerCase() === from.toLowerCase();
+      // Токени без відомих decimals (RPC не відповів або це NFT) теж проходять політику: вартість невідома, тож лишається попередження
+      const tokenSpend = !opts.internal && value === 0n && desc.spend && (desc.spend.from === undefined || own(desc.spend.from)) ? desc.spend : null;
+      const nftMove = !opts.internal && value === 0n && desc.nft && own(desc.nft.from) ? desc.nft : null;
+      if (!opts.internal && (value > 0n || tokenSpend || nftMove)) {
+        gate = await this.policyGate({ to: tokenSpend ? tokenSpend.to : nftMove ? nftMove.to : to, chain: 'evm', chainId: chain, token: tokenSpend ? to : undefined, amount: tokenSpend ? (ti ? formatUnits(tokenSpend.amount, ti.decimals) : undefined) : formatEther(value), nft: !!nftMove, contacts: !!(tokenSpend || nftMove) });
         opts = { ...opts, danger: opts.danger || gate.danger, warnings: [...(opts.warnings || []), ...gate.warnings], ...(gate.delay ? { delay: gate.delay } : {}) };
       }
       const warnings = [...desc.warnings, ...(opts.warnings || [])];

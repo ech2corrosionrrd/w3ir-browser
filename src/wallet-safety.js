@@ -58,9 +58,9 @@ function install(Wallet, { RpcError, unauthorized }) {
   };
 
   // Вартість переказу в USD за орієнтовними цінами (null, якщо ціни немає)
-  proto.usdValue = async function (chain, token, amount) {
+  proto.usdValue = async function (chain, token, amount, chainId) {
     try {
-      const pr = await this.priceInfo({ chain, tokens: token ? [token] : [] });
+      const pr = await this.priceInfo({ chain, tokens: token ? [token] : [], chainId });
       if (!pr.enabled) return null;
       const price = token ? pr.tokens[token] : pr.native;
       const n = Number(amount);
@@ -71,7 +71,8 @@ function install(Wallet, { RpcError, unauthorized }) {
   // Перевірка переказу зі сторінки гаманця за режимами обережності: кидає помилку, якщо переказ заборонено;
   // повертає { warnings, delay, danger } для вікна підтвердження. Переказ NFT (nft: true) оцінюється лише за адресою отримувача.
   // contacts: false — не перевіряти адресну книгу (транзакція від сайту: отримувач — контракт сервісу, а не людина)
-  proto.policyGate = async function ({ to, chain, token, amount, nft, contacts = true }) {
+  // chainId — мережа EVM, у якій сплачується сума; pendingUsd — уже враховане в цьому ж підтвердженні (кілька переказів в одній транзакції)
+  proto.policyGate = async function ({ to, chain, chainId, token, amount, nft, contacts = true, pendingUsd = 0 }) {
     const p = this.getPolicy();
     const out = { warnings: [], delay: 0, danger: false, commit: () => {} };
     if (p.contactsOnly && contacts) {
@@ -80,13 +81,14 @@ function install(Wallet, { RpcError, unauthorized }) {
       if (!known.has(norm(to))) throw new RpcError(-32602, 'Увімкнено режим «лише адресна книга»: отримувача немає серед ваших рахунків і контактів. Додайте його в адресну книгу або вимкніть режим у налаштуваннях безпеки.');
     }
     if (!nft && (p.confirmUsd || p.maxUsd || p.dailyUsd)) {
-      const usd = await this.usdValue(chain, token, amount);
+      const usd = await this.usdValue(chain, token, amount, chainId);
+      out.usd = usd;
       if (usd === null) out.warnings.push('Вартість переказу в USD не визначено: ліміти за сумою не перевірено.');
       else {
         if (p.maxUsd && usd > p.maxUsd) throw new RpcError(-32602, `Перевищено ліміт ${p.maxUsd} USD на один переказ (сума ≈ ${usd.toFixed(2)} USD). Змініть ліміт у налаштуваннях безпеки гаманця.`);
         if (p.dailyUsd) {
           const spent = this.spentUsd();
-          if (spent + usd > p.dailyUsd) throw new RpcError(-32602, `Перевищено добовий ліміт ${p.dailyUsd} USD: за останні 24 години вже надіслано ≈ ${spent.toFixed(2)} USD, цей переказ ≈ ${usd.toFixed(2)} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.`);
+          if (spent + pendingUsd + usd > p.dailyUsd) throw new RpcError(-32602, `Перевищено добовий ліміт ${p.dailyUsd} USD: за останні 24 години вже надіслано ≈ ${spent.toFixed(2)} USD, цей переказ ≈ ${usd.toFixed(2)} USD. Зачекайте або змініть ліміт у налаштуваннях безпеки гаманця.`);
           out.commit = () => this.recordSpend(usd);
         }
         if (p.confirmUsd && usd >= p.confirmUsd) {

@@ -19,7 +19,7 @@ const FEE_FACTORS = { low: 85n, standard: 100n, fast: 150n };
 function install(Wallet, { RpcError, clip, unauthorized }) {
   const proto = Wallet.prototype;
   // Орієнтовні ціни в USD (лише показ). Вимкнено налаштуванням walletPrices; тестові мережі й Devnet без цін
-  proto.priceInfo = async function ({ chain, tokens }) {
+  proto.priceInfo = async function ({ chain, tokens, chainId: forChain }) {
     if (this.ctx.cfg().walletPrices === false) return { enabled: false, native: null, tokens: {} };
     this._prices = this._prices || new Prices();
     const list = Array.isArray(tokens) ? tokens.slice(0, 50).filter(x => typeof x === 'string') : [];
@@ -28,7 +28,8 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
       const [native, toks] = await Promise.all([this._prices.native('solana'), this._prices.tokens('solana', list)]);
       return { enabled: true, native, tokens: toks };
     }
-    const chainId = this.activeChain();
+    // Мережа транзакції (сайт може сидіти на іншій мережі, ніж активна в гаманці); без неї — активна
+    const chainId = Number.isInteger(forChain) && forChain > 0 ? forChain : this.activeChain();
     const [native, toks] = await Promise.all([NATIVE_ID[chainId] ? this._prices.native(NATIVE_ID[chainId]) : null, PLATFORM[chainId] ? this._prices.tokens(PLATFORM[chainId], list) : {}]);
     return { enabled: true, native, tokens: toks };
   };

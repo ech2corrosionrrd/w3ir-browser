@@ -141,6 +141,9 @@ function describeCall(data, ti) {
       case 'safeTransferFrom':
         out.token = parsed.name === 'transferFrom';
         out.lines.push(['Дія', 'Переказ токена/NFT'], ['Від', getAddress(a[0])], ['Кому', getAddress(a[1])], ['Токен/кількість', ti && parsed.name === 'transferFrom' ? human(a[2]) : a.length >= 5 ? `#${a[2]} × ${a[3]}` : a[2].toString()]);
+        // Ліміти застосовуються, лише якщо токени йдуть зі СВОГО рахунку (from збігається з відправником транзакції)
+        if (parsed.name === 'transferFrom') out.spend = { to: getAddress(a[1]), amount: a[2], from: getAddress(a[0]) };
+        else out.nft = { to: getAddress(a[1]), from: getAddress(a[0]) };
         break;
       default:
         break;

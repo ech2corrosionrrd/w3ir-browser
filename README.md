@@ -6,7 +6,7 @@
 
 A privacy-focused, Web3-native desktop browser for Windows built on Chromium (Electron 44). Engineered with built-in multichain wallet security, local AI assistance, decentralized storage (Arweave), and document viewing tools. Operates entirely locally with **zero telemetry** and no developer server dependencies.
 
-- Current Version: **1.44.0** · Downloads: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
+- Latest release and downloads: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
 - Supported Languages: English, Ukrainian, Polish, German, Spanish, French (switchable in settings) · Platform: Windows 10/11 x64
 - Built-in Browser Help: **F1**
 
@@ -47,14 +47,14 @@ A privacy-focused, Web3-native desktop browser for Windows built on Chromium (El
      scoop bucket add w3ir https://github.com/ech2corrosionrrd/w3ir-browser
      scoop install w3ir-browser
      ```
-   - **Chocolatey**: `choco install w3ir-browser` (community package manifest in `bucket/w3ir-browser.json`).
+   - **Chocolatey**: a community package has been submitted and is awaiting moderation (not installable yet). **Scoop**: manifest in `bucket/w3ir-browser.json`.
 
 ### Verifying Build Provenance (Attestations)
 
 Every release built via GitHub Actions includes cryptographic OpenSSF provenance attestations. You can verify that your installer was built unmodified directly from this repository using the GitHub CLI:
 
 ```bash
-gh attestation verify W3IR-Browser-Setup-1.42.0.exe --repo ech2corrosionrrd/w3ir-browser
+gh attestation verify W3IR-Browser-Setup-<version>.exe --repo ech2corrosionrrd/w3ir-browser
 ```
 
 Checksums are also available in `SHA256SUMS.txt` accompanying every release.
@@ -69,7 +69,7 @@ Checksums are also available in `SHA256SUMS.txt` accompanying every release.
 ```bash
 npm install
 npm start                      # Run from source
-npm test                       # Run full end-to-end Electron test suite (~1300 checks)
+npm test                       # Run full end-to-end Electron test suite (1,300+ checks)
 npm run test:unit              # Fast headless unit tests (100 checks, node:test)
 npm run test:coverage          # Native V8 test coverage (>= 98% on wallet safety & crypto)
 npm run lint                   # ESLint static analysis (0 errors, 0 warnings required)

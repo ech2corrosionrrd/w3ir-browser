@@ -551,7 +551,6 @@ async function productivityTests(ctx) {
     w.closeTab(page.id);
 
     // --- Tab Stash ---
-    const prevIds = w.tabs.map(x => x.id);
     const a = w.createTab(base + '/?a', { activate: false });
     const b = w.createTab(base + '/?b', { activate: true });
     await sleep(1200);
