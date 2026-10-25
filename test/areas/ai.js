@@ -175,6 +175,7 @@ async function agentTests(ctx) {
       <input id="cc" name="cardnumber" aria-label="Картка">
       <button id="b" onclick="document.title='clicked';document.getElementById('out').textContent='OK'">Натисни</button><span id="out"></span>
       <a id="other" href="http://localhost:${srv2.address().port}/">інший сайт</a> <a id="dl" href="/dl">файл</a>
+      <form id="lf" onsubmit="document.title='submitted';return false"><input id="lu" aria-label="Логін"><input id="lp" type="password" aria-label="Пароль форми" value="s3cret"><button id="ls" type="submit">Увійти</button></form>
       <div id="cover" style="position:fixed;left:0;top:0;width:100%;height:100%;display:none;background:#fff"></div>`, 'Головна'));
   });
   await new Promise(r => srv.listen(0, '127.0.0.1', r));
@@ -252,6 +253,19 @@ async function agentTests(ctx) {
   ok(!r.isError && await tabObj.view.webContents.executeJavaScript(`document.getElementById('q').value`) === 'привіт світе', 'agent: текст введено в поле');
   r = await call('browser_click', { ref: bBtn.ref, tab: tabId });
   ok(!r.isError && await tabObj.view.webContents.executeJavaScript(`document.title`) === 'clicked', 'agent: клік виконано справжньою подією');
+  // форма з уже заповненим паролем не відправляється агентом (ні кліком, ні Enter, ні введенням із submit)
+  const snapF = JSON.parse(txt(await call('browser_snapshot', { tab: tabId })).split('\n').pop());
+  const bLs = snapF.find(i => i.name === 'Увійти'), bLu = snapF.find(i => i.name === 'Логін');
+  const title = () => tabObj.view.webContents.executeJavaScript('document.title');
+  r = await call('browser_click', { ref: bLs.ref, tab: tabId });
+  ok(r.isError && /пароля/.test(txt(r)) && (await title()) !== 'submitted', 'agent: кнопка надсилання форми із заповненим паролем заблокована');
+  r = await call('browser_type', { ref: bLu.ref, text: 'user', submit: true, tab: tabId });
+  ok(r.isError && /не відправлено/.test(txt(r)) && (await title()) !== 'submitted' && await tabObj.view.webContents.executeJavaScript(`document.getElementById('lu').value`) === 'user', 'agent: введення з submit у форму із заповненим паролем — текст введено, форму не відправлено');
+  r = await call('browser_press', { key: 'Enter', tab: tabId });
+  ok(r.isError && /пароля/.test(txt(r)) && (await title()) !== 'submitted', 'agent: Enter у формі із заповненим паролем заблоковано');
+  await tabObj.view.webContents.executeJavaScript(`document.getElementById('lp').value = ''`);
+  r = await call('browser_click', { ref: bLs.ref, tab: tabId });
+  ok(!r.isError && (await title()) === 'submitted', 'agent: форма без заповненого пароля відправляється як раніше');
   ok((await call('browser_click', { ref: 9999, tab: tabId })).isError, 'agent: хибний номер елемента — помилка');
   await tabObj.view.webContents.executeJavaScript(`document.getElementById('cover').style.display='block'`);
   r = await call('browser_click', { ref: bBtn.ref, tab: tabId });

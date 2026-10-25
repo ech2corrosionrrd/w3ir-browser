@@ -126,6 +126,24 @@ const TARGET_JS = (ref) => `(() => {
   return { x, y, sensitive, typable, disabled: !!el.disabled, tag, type };
 })()`;
 
+// Чи відправить дія форму (<form>) з уже заповненим полем пароля, картки або одноразового коду. ref === null — елемент у фокусі.
+// needSubmit: дія відправляє форму, лише якщо елемент — кнопка надсилання (клік, Пробіл); Enter відправляє з будь-якого поля форми.
+const SECRET_FORM_JS = (ref, needSubmit) => `(() => {
+  const el = ${ref === null ? 'document.activeElement' : `(window.__w3irRefs || [])[${ref | 0}]`};
+  if (!el || !el.tagName) return false;
+  const tag = el.tagName.toLowerCase();
+  const type = (el.getAttribute('type') || '').toLowerCase();
+  const submits = tag === 'button' ? type !== 'button' && type !== 'reset' : tag === 'input' && (type === 'submit' || type === 'image');
+  if (${needSubmit ? 'true' : 'false'} && !submits) return false;
+  const root = el.form;
+  if (!root) return false;
+  return [...root.querySelectorAll('input')].some((i) => {
+    const ac = (i.getAttribute('autocomplete') || '').toLowerCase();
+    return (i.type === 'password' || /password|cc-|one-time-code/.test(ac)) && !!i.value;
+  });
+})()`;
+const SECRET_FORM_MSG = 'Агент не може відправити форму, у якій уже заповнено поле пароля, картки чи одноразового коду: цю дію виконує користувач.';
+
 const FOCUS_JS = (ref) => `(() => { const el = (window.__w3irRefs || [])[${ref | 0}]; if (el && el.isConnected) { el.focus(); if (el.select && el.tagName !== 'SELECT') try { el.select(); } catch {} return true; } return false; })()`;
 
 const INSTRUCTIONS = [
@@ -738,6 +756,7 @@ class Agent {
         const p = await this.inPage(wc, TARGET_JS(a.ref));
         if (p.error) return text(p.error, true);
         if (p.disabled) return text('Елемент вимкнений.', true);
+        if (name === 'browser_click' && await this.inPage(wc, SECRET_FORM_JS(a.ref | 0, true))) return text(SECRET_FORM_MSG, true);
         activate();
         wc.sendInputEvent({ type: 'mouseMove', x: p.x, y: p.y });
         if (name === 'browser_click') {
@@ -764,6 +783,7 @@ class Agent {
         if (str) wc.insertText(str); else { wc.sendInputEvent({ type: 'keyDown', keyCode: 'Backspace' }); wc.sendInputEvent({ type: 'keyUp', keyCode: 'Backspace' }); }
         if (a.submit) {
           await sleep(80);
+          if (await this.inPage(wc, SECRET_FORM_JS(null, false))) return text(SECRET_FORM_MSG + ' Текст введено, форму не відправлено.', true);
           wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' }); wc.sendInputEvent({ type: 'char', keyCode: '\r' }); wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
           await this.waitLoad(wc, 8000);
         }
@@ -787,6 +807,7 @@ class Agent {
         const { wc } = this.webTab(t);
         const key = KEYS[a.key];
         if (!key) return text('Непідтримувана клавіша.', true);
+        if ((key === 'Enter' || key === 'Space') && await this.inPage(wc, SECRET_FORM_JS(null, key === 'Space'))) return text(SECRET_FORM_MSG, true);
         activate();
         wc.sendInputEvent({ type: 'keyDown', keyCode: key });
         if (key === 'Enter') wc.sendInputEvent({ type: 'char', keyCode: '\r' });
