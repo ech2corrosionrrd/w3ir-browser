@@ -62,7 +62,8 @@ fs.writeFileSync(path.join(choco, 'w3ir-browser.nuspec'), `<?xml version="1.0" e
     <projectUrl>https://github.com/${REPO}</projectUrl>
     <licenseUrl>https://github.com/${REPO}/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <projectSourceUrl>https://github.com/${REPO}</projectSourceUrl>
+    <projectSourceUrl>https://github.com/${REPO}/tree/main</projectSourceUrl>
+    <packageSourceUrl>https://github.com/${REPO}/tree/main/build</packageSourceUrl>
     <bugTrackerUrl>https://github.com/${REPO}/issues</bugTrackerUrl>
     <releaseNotes>https://github.com/${REPO}/blob/main/CHANGELOG.md</releaseNotes>
     <tags>browser chromium privacy adblock web3 wallet password-manager</tags>
