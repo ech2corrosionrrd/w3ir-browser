@@ -35,7 +35,8 @@ async function readCapped(res, max, id) {
 const UPDATE_EVERY = 24 * 60 * 60 * 1000;
 
 const SOURCES = [
-  { id: 'urlhaus', kind: 'malware', title: 'URLhaus (abuse.ch)', url: 'https://urlhaus.abuse.ch/downloads/hostfile/' },
+  // urlhaus.abuse.ch/downloads/* вимкнено (410, тепер лише API з ключем); дзеркало malware-filter будується з тих самих даних URLhaus (CC0)
+  { id: 'urlhaus', kind: 'malware', title: 'URLhaus (abuse.ch)', url: 'https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-hosts.txt' },
   { id: 'phishdb', kind: 'phishing', title: 'Phishing.Database', url: 'https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/phishing-domains-ACTIVE.txt' },
   // web3-фішинг (підроблені OpenSea/Uniswap/MetaMask тощо): JSON {blacklist:[домени]} та Polkadot-JS {deny:[домени]}
   { id: 'ethphish', kind: 'phishing', title: 'MetaMask eth-phishing-detect', format: 'json-blacklist', url: 'https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json' },
