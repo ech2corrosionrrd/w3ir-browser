@@ -157,15 +157,16 @@ async function main() {
   const stashBox = Array.isArray(stashes) && stashes.length ? h('div', { class: 'stashes' }, stashes.map((st) => {
     const row = h('div', { class: 'stash' });
     const msg = h('span', { class: 'sm' });
-    const restore = h('button', { class: 'link', type: 'button', onclick: async () => {
-      restore.disabled = true;
+    const restoreNow = async (andDelete) => {
       const ok = await w3ir.invoke('stash:restore', { id: st.id }).catch(() => false);
+      if (ok && andDelete) { await w3ir.invoke('stash:delete', { id: st.id }).catch(() => null); row.remove(); return; }
       msg.textContent = ok ? t('Відновлено у фонових вкладках') : t('Не вдалося відновити');
-      restore.disabled = false;
-    } }, t('Відновити всі'));
+    };
+    const restore = h('button', { class: 'link', type: 'button', onclick: async () => { restore.disabled = true; await restoreNow(false); restore.disabled = false; } }, t('Відновити всі'));
+    const pop = h('button', { class: 'link', type: 'button', title: t('Відкрити вкладки набору й видалити сам набір'), onclick: async () => { pop.disabled = true; await restoreNow(true); pop.disabled = false; } }, t('Відновити й видалити'));
     const del = h('button', { class: 'link', type: 'button', onclick: async () => { await w3ir.invoke('stash:delete', { id: st.id }).catch(() => null); row.remove(); } }, t('Видалити'));
     row.append(
-      h('div', { class: 'sh' }, h('span', { class: 'st', title: st.title }, st.title), h('span', { class: 'sa' }, restore, del)),
+      h('div', { class: 'sh' }, h('span', { class: 'st', title: st.title }, st.title), h('span', { class: 'sa' }, restore, pop, del)),
       h('details', null, h('summary', null, t('Вкладок: {0}', st.tabs.length)),
         st.tabs.slice(0, 50).map(tab => h('a', { href: tab.url, title: tab.url }, tab.title || hostOf(tab.url)))),
       msg);

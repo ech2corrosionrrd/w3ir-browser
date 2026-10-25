@@ -804,6 +804,7 @@ async function renderDashboard(st) {
     h('label', { style: polRow }, polDaily, h('span', null, 'USD: забороняти переказів більше за добу (за останні 24 години; 0 — без ліміту)')),
     pol.dailyUsd ? h('div', { class: 'note' }, t('За останні 24 години надіслано ≈ {0} USD.', (info.spentUsd || 0).toFixed(2))) : null,
     h('label', { style: polRow }, polDays, h('span', null, 'Відключати сайти, якими не користувались N днів (0 — ніколи)')),
+    pol.siteDays ? null : h('div', { class: 'note' }, 'Підключені сайти лишаються доти, доки ви їх не відключите. Рекомендовано 30 днів.'),
     h('div', { class: 'bar' }, h('button', { class: 'primary', onclick: async () => {
       polMsg.textContent = '\u2026';
       const r = await withAuth((x) => call('wallet:setPolicy', { ...x, policy: { contactsOnly: polContacts.checked, confirmUsd: Number(polConfirm.value) || 0, maxUsd: Number(polMax.value) || 0, dailyUsd: Number(polDaily.value) || 0, siteDays: Math.floor(Number(polDays.value) || 0) } }));

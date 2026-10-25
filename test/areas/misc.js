@@ -585,9 +585,16 @@ async function productivityTests(ctx) {
     await nwc.executeJavaScript(`[...document.querySelectorAll('.stash')].find(r => r.querySelector('.st').textContent === 'Тестовий набір A').querySelector('.sa button').click()`);
     await sleep(1200);
     ok(w.tabs.length === tabsBeforeRestore + 2 && ctx.places.getStash(stA.id), 'newtab/stash: «Відновити всі» відкриває вкладки набору й лишає набір');
-    await nwc.executeJavaScript(`[...document.querySelectorAll('.stash')].find(r => r.querySelector('.st').textContent === 'Тестовий набір B').querySelectorAll('.sa button')[1].click()`);
+    await nwc.executeJavaScript(`[...document.querySelectorAll('.stash')].find(r => r.querySelector('.st').textContent === 'Тестовий набір B').querySelectorAll('.sa button')[2].click()`);
     await sleep(800);
     ok(!ctx.places.getStash(stB.id) && ctx.places.getStash(stA.id), 'newtab/stash: «Видалити» прибирає лише обраний набір');
+    const stC = ctx.places.saveStash('Тестовий набір C', [{ url: base + '/?s4', title: 'S4' }]);
+    await nwc.executeJavaScript('location.reload()');
+    await sleep(2500);
+    const tabsBeforePop = w.tabs.length;
+    await nwc.executeJavaScript(`[...document.querySelectorAll('.stash')].find(r => r.querySelector('.st').textContent === 'Тестовий набір C').querySelectorAll('.sa button')[1].click()`);
+    await sleep(1200);
+    ok(w.tabs.length === tabsBeforePop + 1 && !ctx.places.getStash(stC.id) && !!ctx.places.getStash(stA.id), 'newtab/stash: «Відновити й видалити» відкриває вкладки набору й прибирає сам набір');
     ctx.places.deleteStash(stA.id);
     // --- префікси адресного рядка eth / sol ---
     const txh = '0x' + 'ab'.repeat(32), addr = '0x' + 'cd'.repeat(20);
