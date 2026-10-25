@@ -3,6 +3,7 @@
 // Методи змішуються в прототип Wallet (як і в інших wallet-*.js); спільні помічники передає wallet.js.
 const { t: tr } = require('./i18n');
 const guard = require('./wallet-signguard');
+const { IFACE } = require('./wallet-evm-core');
 const {
   formatEther, formatUnits, getAddress, isAddress, isHexString, hexlify, getBytes, TypedDataEncoder, toUtf8String, Wallet: EthWallet,
 } = require('ethers');
@@ -312,6 +313,19 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
         gate = await this.policyGate({ to: tokenSpend ? tokenSpend.to : nftMove ? nftMove.to : to, chain: 'evm', chainId: chain, token: tokenSpend ? to : undefined, amount: tokenSpend ? (ti ? formatUnits(tokenSpend.amount, ti.decimals) : undefined) : formatEther(value), nft: !!nftMove, contacts: !!(tokenSpend || nftMove) });
         opts = { ...opts, danger: opts.danger || gate.danger, warnings: [...(opts.warnings || []), ...gate.warnings], ...(gate.delay ? { delay: gate.delay } : {}) };
       }
+      // Дозвіл витрачати токени понад ваш баланс (зокрема необмежений): пропонуємо обмежити його поточним балансом.
+      // Нове значення рахує сам гаманець; вибір перевіряється серед запропонованих варіантів (див. decide)
+      let allowChoice = null, allowCap = null;
+      if (!opts.internal && value === 0n && desc.approve && ti && to) {
+        const bal = await Promise.race([this.tokenBalance(chain, to, from), new Promise(r => setTimeout(() => r(null), 3000))]).catch(() => null);
+        if (typeof bal === 'bigint' && bal > 0n && desc.approve.amount > bal) {
+          allowCap = bal;
+          allowChoice = { label: tr('Сума дозволу'), value: 'asked', options: [
+            { value: 'asked', label: tr('Як просить сайт') },
+            { value: 'balance', label: tr('Обмежити до вашого балансу ({0} {1})', formatUnits(bal, ti.decimals), clip(ti.symbol, 12)) },
+          ] };
+        }
+      }
       const warnings = [...desc.warnings, ...(opts.warnings || [])];
       if (!to) warnings.push('Створення нового контракту.');
       if (fee > 10n ** 18n) warnings.push('Дуже висока комісія за газ.');
@@ -329,7 +343,11 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
         ['Ліміт газу', String(populated.gasLimit)], ['Макс. комісія', `${formatEther(fee)} ${net.symbol}`], ['Макс. разом', `${formatEther(fee + value)} ${net.symbol}`],
         ...(nativePrice ? [...(value > 0n ? [['Сума, USD', fmtUsd(usd(value))]] : []), ['Комісія, USD', fmtUsd(usd(fee))], ['Разом, USD', fmtUsd(usd(fee + value))]] : []),
       ];
-      await this.approve(win, origin, sameTab, { kind: 'tx', title: tr('Підтвердження транзакції'), danger: !!opts.danger || simInfo.danger || warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings, ...(opts.delay ? { delay: opts.delay } : {}) });
+      const answer = await this.approve(win, origin, sameTab, { kind: 'tx', title: tr('Підтвердження транзакції'), danger: !!opts.danger || simInfo.danger || warnings.some(w => /Необмежений|ВСІ/.test(w)), lines, warnings, ...(allowChoice ? { choice: allowChoice } : {}), ...(opts.delay ? { delay: opts.delay } : {}) });
+      if (allowChoice && answer && answer.choice === 'balance') {
+        populated.data = IFACE.encodeFunctionData(desc.approve.name, [desc.approve.spender, allowCap]);
+        this.log({ origin, action: `Дозвіл обмежено до балансу (${formatUnits(allowCap, ti.decimals)} ${clip(ti.symbol, 12)})`, chainId: chain });
+      }
       let hash;
       try {
         const signed = await signer.signTransaction(populated);

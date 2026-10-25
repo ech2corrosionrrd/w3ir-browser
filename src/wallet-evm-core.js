@@ -122,6 +122,7 @@ function describeCall(data, ti) {
       case 'increaseAllowance': {
         out.token = true;
         const amount = a[1];
+        out.approve = { name: parsed.name, spender: getAddress(a[0]), amount };
         const unlimited = amount >= (MaxUint256 >> 1n);
         out.lines.push(['Дія', 'Дозвіл витрачати токени'], ['Отримувач дозволу', getAddress(a[0])], ['Сума дозволу', unlimited ? 'НЕОБМЕЖЕНО' : human(amount)]);
         if (unlimited) out.warnings.push('Необмежений дозвіл: цей адрес зможе витратити ВСІ ваші токени цього типу, доки ви не скасуєте дозвіл.');

@@ -29,6 +29,10 @@ function install(Wallet, { RpcError, clip, unauthorized }) {
   const timed = (p, ms = CALL_TIMEOUT) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 
   proto._ethCall = function (chainId, to, data) { return timed(this.provider(chainId).call({ to, data })); };
+  // Баланс токена власника (null, якщо вузол не відповів або контракт не схожий на ERC-20)
+  proto.tokenBalance = async function (chainId, token, owner) {
+    try { return ERC20.decodeFunctionResult('balanceOf', await this._ethCall(chainId, token, ERC20.encodeFunctionData('balanceOf', [owner])))[0]; } catch { return null; }
+  };
 
   // symbol/name бувають і bytes32 (старі токени на кшталт MKR)
   async function readText(w, chainId, addr, fn) {

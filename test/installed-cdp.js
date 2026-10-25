@@ -306,6 +306,22 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   await ev(ui, `api.cmd('stashTabs')`); await sleep(1500);
   const tabsStashed = await ev(ui, `document.querySelectorAll('.tab').length`);
   ok(tabsBefore >= 2 && tabsStashed === Math.max(1, pinnedBefore), 'Tab Stash: незакріплені вкладки відкладено (лишаються закріплені або одна нова)', { було: tabsBefore, стало: tabsStashed, закріплених: pinnedBefore });
+  // з 1.44.6: відкладений набір видно на сторінці нової вкладки; ключові слова eth/sol (решта стає зайвою на старіших збірках)
+  if (V.split('.').map(Number).reduce((a, n, i) => a || (n - [1, 44, 6][i]), 0) >= 0) {
+    // закріплена вкладка не дає stashTabs створити нову, тож відкриваємо сторінку нової вкладки вручну
+    await ev(ui, `api.cmd('newTab')`);
+    await waitFor(async () => (await find(x => x.url.startsWith('w3ir://newtab')))[0], 8000);
+    await sleep(3000);
+    // у вікні може бути кілька сторінок нової вкладки (наприклад, у вікні агента): беремо ту, що містить набір
+    let ntT = null;
+    for (const c of await find(x => x.url.startsWith('w3ir://newtab'))) { if (await ev(c, `document.querySelectorAll('.stash').length`).catch(() => 0) >= 1) { ntT = c; break; } }
+    if (!ntT) ntT = (await find(x => x.url.startsWith('w3ir://newtab')))[0];
+    await sleep(2500);
+    ok(!!ntT && await ev(ntT, `document.querySelectorAll('.stash').length`) >= 1, 'Tab Stash: відкладений набір видно на сторінці нової вкладки');
+    const kwTx = '0x' + 'ab'.repeat(32);
+    const kw = ntT ? await ev(ntT, `Promise.all([w3ir.invoke('resolve', { text: 'eth ${kwTx}' }), w3ir.invoke('resolve', { text: 'sol 11111111111111111111111111111111' })])`) : [];
+    ok(kw[0] === 'https://etherscan.io/tx/' + kwTx && kw[1] === 'https://solscan.io/account/11111111111111111111111111111111', 'адресний рядок: eth і sol відкривають Etherscan і Solscan', kw);
+  }
   await ev(ui, `api.cmd('restoreStash')`); await sleep(2000);
   const tabsRestored = await ev(ui, `document.querySelectorAll('.tab').length`);
   ok(tabsRestored > tabsStashed, 'Tab Stash: останній набір відновлено', { після: tabsRestored });

@@ -60,3 +60,38 @@ SignPath Foundation підписує лише збірки з CI. Workflow `.git
 2. `npm run release:ci` — бере артефакт саме для поточного коміту (інакше відмовляє), перевіряє контрольні суми, підписує `latest.yml` і публікує Release.
 
 Після схвалення заявки в workflow додається крок підпису коду через SignPath (організація й токен — у секретах репозиторію; деталі видає SignPath). Локальний `npm run release:github` працює як раніше.
+
+## Хибне спрацювання Windows Defender / SmartScreen: подача в Microsoft (WDSI)
+
+Коли це потрібно: Windows Security (Defender) позначає інсталятор чи файл браузера як шкідливий або користувачі повідомляють про блокування. Подача **не замінює підпис Authenticode**: SmartScreen будує репутацію за підписом і кількістю завантажень, а WDSI лише розглядає конкретне хибне спрацювання. Заздалегідь відправляти «чисті» збірки немає сенсу: форма вимагає назви виявлення (detection name).
+
+Що відомо про форму (https://www.microsoft.com/wdsi/filesubmission, перевірено 2026-10-25):
+- тип подачі «Software developer» (розробник програмного забезпечення);
+- обов'язкові поля: продукт Microsoft, яким перевірено файл (є Microsoft Defender Antivirus і Microsoft Defender SmartScreen), назва компанії, кількість уражених пристроїв, файл, назва виявлення, додаткова інформація;
+- **файл не більше 50 МБ**, пусті файли відхиляються, архіви ZIP/RAR із паролем `infected`; інсталятори з багатьма файлами можуть отримати нижчий пріоритет;
+- класифікація «Incorrectly detected as malware/malicious»; пріоритет Medium (зазвичай кілька днів), High лише для надзвичайних випадків;
+- вхід в обліковий запис Microsoft не обов'язковий, але дає змогу бачити статус подачі.
+
+**Обмеження для нас:** інсталятор і портативна збірка мають близько 115 МБ (понад 50 МБ), тому подати їх цілком не вдасться. Дізнайтеся в «Захист від вірусів і загроз» → «Журнал захисту», **який саме файл** позначено (шлях і назва виявлення), і подавайте лише його, якщо він менший за 50 МБ. Якщо позначено лише великий інсталятор, подати його через цю форму неможливо (поле файлу обов'язкове): тоді лишається знижувати кількість хибних спрацювань підписом Authenticode й, за потреби, звертатися за допомогою на Microsoft Q&A.
+
+Порядок дій:
+1. Зафіксуйте виявлення: назва (наприклад, `Trojan:Win32/…`), точний шлях файлу, версія антивірусних визначень, SHA-256 (береться з `SHA256SUMS.txt` релізу або `Get-FileHash`).
+2. Відкрийте форму, оберіть **Software developer**, продукт, яким бачили виявлення, укажіть компанію (W3IR) і кількість пристроїв.
+3. Додайте файл (≤ 50 МБ), укажіть назву виявлення, класифікацію **Incorrectly detected as malware/malicious**, пріоритет **Medium**.
+4. У «Additional information» вставте текст нижче, підставивши версію, хеш і назву виявлення.
+5. Увійдіть під тим самим акаунтом Microsoft, щоб стежити за статусом; повторіть подачу для кожного нового хешу (нова збірка = новий файл).
+
+Текст для «Additional information» (англійською, як вимагає форма):
+
+```
+W3IR Browser is an open-source (MIT) Windows browser built on Electron/Chromium. Source: https://github.com/ech2corrosionrrd/w3ir-browser
+Release: https://github.com/ech2corrosionrrd/w3ir-browser/releases/tag/v<VERSION>
+File: <FILE NAME>, SHA-256 <HASH> (matches SHA256SUMS.txt and the release asset digest).
+Detected as: <DETECTION NAME> by <PRODUCT> (definitions <VERSION>).
+This is a false positive: the build is made from the public repository, SHA-256 checksums are published with every release, the application contains no telemetry, and the executables are not packed with executable packers. Auto-updates are signed with an Ed25519 key and verified before install.
+Please re-analyse and remove the detection.
+```
+
+Після позитивного рішення Microsoft оновлює антивірусні визначення, і виявлення знімається в Defender у користувачів (терміни різні). Якщо виявлення повторюються для нових збірок, головним рішенням лишається підпис Authenticode (див. вище).
+
+Джерела: [форма подачі WDSI](https://www.microsoft.com/wdsi/filesubmission).

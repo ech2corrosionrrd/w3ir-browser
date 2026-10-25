@@ -236,6 +236,18 @@ async function walletTests(ctx) {
   const apUnl = await waitApproval();
   ok(apUnl.spec.lines.some(l => l[0] === 'Сума дозволу' && l[1] === 'НЕОБМЕЖЕНО') && apUnl.spec.danger === true, 'tokens: необмежений approve лишається червоним попередженням');
   await decide(false); await apr;
+  // дозвіл понад баланс: пропонуємо обмежити його балансом; вибір перевіряється, а нове значення рахує сам гаманець
+  ok(!apApprove.spec.choice, 'tokens: approve у межах балансу — без вибору суми дозволу');
+  ok(apUnl.spec.choice && apUnl.spec.choice.options.map(o => o.value).join() === 'asked,balance' && /1234.5/.test(apUnl.spec.choice.options[1].label) && apUnl.spec.choice.value === 'asked', 'tokens: необмежений approve — варіанти «як просить сайт» і «до вашого балансу», типово без змін');
+  apr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: TOKEN, data: iface2.encodeFunctionData('approve', [spender, MAX]) }]);
+  const apCap = await waitApproval();
+  const badChoice = await w.decide(apCap.id, true, MASTER, 'довільне значення');
+  ok(!badChoice.ok && /Некоректний вибір/.test(badChoice.error) && !!w.approval, 'tokens: вибір поза запропонованими варіантами відхиляється, запит лишається');
+  await w.decide(apCap.id, true, MASTER, 'balance');
+  await apr;
+  const capTx = E.Transaction.from(rawTxs[rawTxs.length - 1]);
+  const capDec = iface2.decodeFunctionData('approve', capTx.data);
+  ok(capDec[0] === spender && capDec[1] === 1_234_500_000n && capTx.to === TOKEN && capTx.value === 0n, 'tokens: дозвіл обмежено до балансу — підписано approve(spender, баланс), а не необмежену суму');
   // ліміти політики діють на transferFrom / safeTransferFrom від сайту, якщо токени йдуть зі СВОГО рахунку
   const iface3 = new E.Interface(['function transferFrom(address,address,uint256)', 'function safeTransferFrom(address,address,uint256)']);
   const realUsdSite = wal.usdValue;
@@ -432,7 +444,7 @@ async function walletTests(ctx) {
   ok(ap4.spec.warnings.some(x => /Необмежений/.test(x)) && ap4.spec.danger === true, 'wallet: необмежений approve — червоне попередження');
   await decide(false);
   res = await pr;
-  ok(res.err === 4001 && rawTxs.length === 10, 'wallet: відхилення → код 4001, нічого не надіслано');
+  ok(res.err === 4001 && rawTxs.length === 11, 'wallet: відхилення → код 4001, нічого не надіслано');
   pr = call(wcA, 'eth_sendTransaction', [{ from: addr0, to: token, data: iface.encodeFunctionData('setApprovalForAll', [spender, true]) }]);
   const ap5 = await waitApproval();
   ok(ap5.spec.warnings.some(x => /ВСІ/.test(x)), 'wallet: setApprovalForAll — попередження про ВСІ NFT');
@@ -474,7 +486,7 @@ async function walletTests(ctx) {
   w.exec('switchTab', w.tabs.find(t => t.view.webContents === wcA).id);
   ok((await call(wcA, 'eth_accounts')).ok.length === 0, 'wallet: при блокуванні сховища сайти не бачать рахунків');
   res = await call(wcA, 'eth_sendTransaction', [{ from: addr0, to, value: '0x1' }]);
-  ok(res.err === 4100 && rawTxs.length === 10, 'wallet: заблокований гаманець нічого не підписує');
+  ok(res.err === 4100 && rawTxs.length === 11, 'wallet: заблокований гаманець нічого не підписує');
   pr = call(wcA, 'eth_requestAccounts');
   const ap6 = await waitApproval();
   ok(ap6.spec.kind === 'connect' && w.approvalPayload(ap6).needsUnlock === true, 'wallet: запит при заблокованому сховищі вимагає майстер-пароль');
