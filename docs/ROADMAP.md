@@ -4,7 +4,7 @@ _Оновлено: 2026-10-25, версія 1.44.0._
 
 ## Де ми зараз
 
-- У розробці **1.44.0** (не випущено): Glance, Tab Stash, ШІ-дії з виділеним текстом, посайтові перемикачі Shield (No-JS, сторонні кадри), провайдер Arweave Wallet, комісії Solana за завантаженістю. Останній випуск — **v1.43.6**.
+- Випущено **v1.44.0**: Glance, Tab Stash, ШІ-дії з виділеним текстом, посайтові перемикачі Shield (No-JS, сторонні кадри), провайдер Arweave Wallet, комісії Solana за завантаженістю.
 - Випущено **v1.43.0** (GitHub Releases `ech2corrosionrrd/w3ir-browser`, Electron 44.9.0 / Chromium 152). Повний реліз функціоналу: центр контролю приватності **W3IR Shield Privacy Center**, нативний стейкінг Solana та захист від дрейнерів (Issue #7), AI SignGuard (100% локальне пояснення транзакцій через Ollama для EVM і Solana), архітектурний рефакторинг `wallet-evm-core.js` та `wallet-solana-staking.js`, SSRF-захист custom RPC, default-deny політика IPC, резервний Ed25519-ключ оновлень, захист від LFI/CSV, ізоляція підсистем preload через `safeRun`, кросплатформні збірки Linux/macOS у CI з OpenSSF Attestations.
 - **~1324 автоматичні перевірки** (`npm test`), 100 unit-тестів без Electron (`npm run test:unit`), 0 помилок лінтера `npm run lint`. `npm audit --omit=dev` — 0 вразливостей.
 
@@ -18,7 +18,7 @@ _Оновлено: 2026-10-25, версія 1.44.0._
 
 ## Зроблено
 
-- **1.44.0 (у розробці):** Glance (Alt+клік, Esc), Tab Stash (Ctrl+Shift+S), ШІ-дії з виділеним текстом (Ollama), перемикачі Shield для сайту (No-JS, сторонні кадри), провайдер `window.arweaveWallet` (адреси, `signature`), антифінгерпринт AudioContext/WebGL, комісії Solana за завантаженістю мережі.
+- **1.44.0:** Glance (Alt+клік, Esc), Tab Stash (Ctrl+Shift+S), ШІ-дії з виділеним текстом (Ollama), перемикачі Shield для сайту (No-JS, сторонні кадри), провайдер `window.arweaveWallet` (адреси, `signature`), антифінгерпринт AudioContext/WebGL, комісії Solana за завантаженістю мережі.
 - **1.43.2–1.43.6:** джерела списків загроз незалежні, імпорт з Opera/Opera GX/Arc та Firefox-форків, картка «Сховище профілю», `ipfs://` й `ipns://`, темний вигляд для сайту, експериментальна підтримка Ledger (EVM), меню й панелі на малих екранах.
 - **1.43.0:** центр приватності Shield Privacy Center, повний життєвий цикл стейкінгу Solana (делегування, виведення SOL), AI SignGuard (Ollama), SSRF-захист RPC, default-deny IPC, Ed25519 резервний ключ, безпечні межі preload, CSV-санітизація, 100 unit / 1324 e2e-тестів.
 - **1.42.0:** базові інструкції Solana Stake Program, перевірка підписів Ed25519, розширення тестів гаманця.
