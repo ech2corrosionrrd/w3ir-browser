@@ -307,7 +307,21 @@ async function dashboardTests(ctx) {
   ok(st && st.ok && st.protection && st.wallet && Array.isArray(st.networks) && Array.isArray(st.events) && st.agent, 'dashboard: стан відображається зі сторінки панелі');
   ok(!/mnemonic|phrase|token|privateKey/i.test(JSON.stringify(st)), 'dashboard: у відповіді немає токенів і секретів гаманця');
   const shape = await wc.executeJavaScript(`({ kpi: document.querySelectorAll('.kpis .kpi').length, cards: document.querySelectorAll('.bento .bcard').length, rows: document.querySelectorAll('.ptable tbody tr').length })`);
-  ok(shape.kpi === 4 && shape.cards === 6, `dashboard: сторінка малює 4 показники й 6 карток (${JSON.stringify(shape)})`);
+  ok(shape.kpi === 4 && shape.cards === 7, `dashboard: сторінка малює 4 показники й 7 карток (${JSON.stringify(shape)})`);
+  // --- сховище профілю ---
+  const sroot = tmp('dash-storage');
+  fs.mkdirSync(path.join(sroot, 'Cache', 'Cache_Data'), { recursive: true });
+  fs.mkdirSync(path.join(sroot, 'IndexedDB'), { recursive: true });
+  fs.mkdirSync(path.join(sroot, 'Cookies-like'), { recursive: true });
+  fs.writeFileSync(path.join(sroot, 'Cache', 'Cache_Data', 'f1'), Buffer.alloc(1000));
+  fs.writeFileSync(path.join(sroot, 'IndexedDB', 'f2'), Buffer.alloc(300));
+  fs.writeFileSync(path.join(sroot, 'Cookies-like', 'f3'), Buffer.alloc(5000));
+  const sm = await require('../../src/dashboard').measureStorage(sroot);
+  ok(sm.cache === 1000 && sm.site === 300, 'dashboard: підрахунок кешу й даних сайтів лише за відомими каталогами профілю');
+  const ss = await wc.executeJavaScript(`w3ir.invoke('dashboard:storage')`);
+  ok(ss && ss.ok && typeof ss.cacheBytes === 'number' && typeof ss.siteBytes === 'number' && Array.isArray(ss.log), 'dashboard: сховище профілю повертає розміри й журнал');
+  const cc = await wc.executeJavaScript(`w3ir.invoke('dashboard:cacheClear')`);
+  ok(cc && cc.ok && typeof cc.freed === 'number' && cc.freed >= 0 && cc.log.length >= 1 && cc.log[0].freed === cc.freed, 'dashboard: очищення кешу записує звільнене місце в журнал');
   const cp = await wc.executeJavaScript(`w3ir.invoke('dashboard:copy', { address: '0x0000000000000000000000000000000000000001' })`);
   ok(cp && cp.ok === false, 'dashboard: копіюються лише адреси власних рахунків');
   tab.view.webContents.loadURL('w3ir://history').catch(() => {});

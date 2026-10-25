@@ -1,6 +1,8 @@
 'use strict';
 // Сторінка «Панель» (w3ir://dashboard): зведений стан браузера в Bento-картках.
 // Логіка в головному процесі: сторінка отримує лише готові дані (без токенів, ключів і мнемоніки).
+const fs = require('fs');
+const path = require('path');
 const { isSafeRpc } = require('./wallet');
 
 const PING_TIMEOUT = 6000;
@@ -33,6 +35,43 @@ async function pingNetworks(networks, { timeout = PING_TIMEOUT, fetchFn = fetch 
     }
     return last;
   }));
+}
+
+// ---------- сховище профілю: кеш і дані сайтів ----------
+// Кеш (його можна безпечно скинути: перебудовується сам) і дані сайтів (cookie-сховища, IndexedDB тощо: лише показуються).
+// Чіпаємо тільки каталоги власного профілю браузера, нічого поза ним.
+const CACHE_DIRS = ['Cache', 'Code Cache'];
+const SITE_DIRS = ['Local Storage', 'IndexedDB', 'Session Storage', 'Service Worker', 'Shared Dictionary'];
+const SCAN_LIMIT = 50000; // не більше файлів за один підрахунок
+const STORAGE_TTL = 30000;
+const LOG_KEEP = 10;
+
+async function dirSize(dir, budget) {
+  let total = 0;
+  const stack = [dir];
+  while (stack.length) {
+    const d = stack.pop();
+    let ents;
+    try { ents = await fs.promises.readdir(d, { withFileTypes: true }); } catch { continue; }
+    for (const e of ents) {
+      if (--budget.left < 0) return total;
+      if (e.isSymbolicLink()) continue; // посилання не відстежуємо
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) stack.push(p);
+      else if (e.isFile()) { try { total += (await fs.promises.stat(p)).size; } catch { /* зник під час підрахунку */ } }
+    }
+  }
+  return total;
+}
+
+async function measureStorage(root) {
+  const sum = async (names) => {
+    const budget = { left: SCAN_LIMIT };
+    let n = 0;
+    for (const x of names) n += await dirSize(path.join(root, x), budget);
+    return n;
+  };
+  return { cache: await sum(CACHE_DIRS), site: await sum(SITE_DIRS) };
 }
 
 // ---------- метрики роботи браузера ----------
@@ -133,6 +172,20 @@ function state(ctx) {
 function createApi(ctx, { fetchFn } = {}) {
   let lastPing = { t: 0, data: null };
   let clipTimer = null;
+  let storageCache = { t: 0, data: null };
+  const baseCtx = () => (ctx.manager ? ctx.manager.ctx('default') : ctx);
+  const cleanupStore = () => {
+    const b = baseCtx();
+    if (!b.cleanupStore) { const { Store } = require('./store'); b.cleanupStore = new Store('cleanup', { log: [] }, b.dir); }
+    return b.cleanupStore;
+  };
+  async function storageSnapshot(force) {
+    const ses = baseCtx().session;
+    const root = ses && ses.getStoragePath && ses.getStoragePath();
+    if (!root) return { ok: false, error: 'Недоступно.' };
+    if (force || !storageCache.data || Date.now() - storageCache.t > STORAGE_TTL) storageCache = { t: Date.now(), data: await measureStorage(root) };
+    return { ok: true, cacheBytes: storageCache.data.cache, siteBytes: storageCache.data.site, log: cleanupStore().data.log.slice(0, LOG_KEEP) };
+  }
   return async function dashboardApi(name, arg) {
     try {
       switch (name) {
@@ -143,6 +196,21 @@ function createApi(ctx, { fetchFn } = {}) {
           const results = await pingNetworks(ctx.wallet && !ctx.wallet.hidden() ? ctx.wallet.networks() : [], { fetchFn });
           lastPing = { t: Date.now(), data: results };
           return { ok: true, results };
+        }
+        case 'dashboard:storage': return storageSnapshot(false);
+        case 'dashboard:cacheClear': {
+          const ses = baseCtx().session;
+          const before = await storageSnapshot(true);
+          if (!before.ok) return before;
+          await ses.clearCache();
+          await ses.clearCodeCaches({});
+          const after = await storageSnapshot(true);
+          const freed = Math.max(0, before.cacheBytes - after.cacheBytes);
+          const st = cleanupStore();
+          st.data.log.unshift({ t: Date.now(), freed });
+          st.data.log.length = Math.min(st.data.log.length, LOG_KEEP);
+          st.save();
+          return { ...(await storageSnapshot(false)), freed };
         }
         case 'dashboard:copy': {
           const addr = String(arg && arg.address || '');
@@ -175,4 +243,4 @@ function createApi(ctx, { fetchFn } = {}) {
   };
 }
 
-module.exports = { pingNetworks, state, metrics, aggregateProcesses, tabRows, createApi, CLIP_CLEAR_MS };
+module.exports = { measureStorage, pingNetworks, state, metrics, aggregateProcesses, tabRows, createApi, CLIP_CLEAR_MS };

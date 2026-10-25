@@ -258,6 +258,32 @@ function cardLog(st) {
   return h('div', { class: 'bcard span2' }, h('h2', null, 'Журнал'), log);
 }
 
+// ---------- сховище профілю ----------
+const sizeText = (b) => (b >= 1048576 ? mbText(b / 1048576) : t('{0} КБ', Math.round(b / 1024)));
+const storageBody = h('div');
+async function paintStorage(freedNow) {
+  const r = await call('dashboard:storage');
+  storageBody.textContent = '';
+  if (!r || !r.ok) { storageBody.append(h('div', { class: 'empty' }, 'Дані недоступні.')); return; }
+  const msg = h('span', { class: 'sub' }, freedNow === undefined ? '' : t('Звільнено {0}', sizeText(freedNow)));
+  const btn = h('button', { onclick: async () => {
+    btn.disabled = true; btn.textContent = t('Очищення…');
+    const c = await call('dashboard:cacheClear');
+    await paintStorage(c && c.ok ? c.freed : 0);
+  } }, 'Очистити кеш');
+  storageBody.append(
+    h('div', { class: 'kv' },
+      h('span', { class: 'k' }, 'Кеш сторінок і коду'), h('span', null, sizeText(r.cacheBytes)),
+      h('span', { class: 'k' }, 'Дані сайтів'), h('span', null, sizeText(r.siteBytes))),
+    h('div', { class: 'actions' }, btn, msg, h('a', { href: 'w3ir://settings' }, 'Керування даними сайтів')),
+    h('div', { class: 'foot' }, 'Очищується лише кеш: паролі, cookie та збережені дані сайтів не чіпаються.'));
+  if (r.log.length) {
+    const log = h('div', { class: 'log' });
+    for (const e of r.log) log.append(h('div', { class: 'ln' }, h('span', { class: 't' }, clock(e.t)), t('Звільнено {0}', sizeText(e.freed))));
+    storageBody.append(h('h3', { class: 'csub' }, 'Журнал очищення'), log);
+  }
+}
+
 const statics = h('div', { class: 'bento' });
 let lastState = null;
 async function renderStatic() {
@@ -285,9 +311,12 @@ app.append(
   h('div', { class: 'bento' },
     cardOf('Процеси браузера', procBody, 'span2', 'Приватна пам’ять за типами процесів'),
     cardOf('Вкладки за пам’яттю', tabsBody, '', 'Найважчі вкладки звичайних вікон'),
-    cardOf('Система та оновлення', sysBody, 'span3')),
+    cardOf('Система та оновлення', sysBody, 'span3'),
+    cardOf('Сховище профілю', storageBody, 'span3', 'Основний профіль: кеш і дані сайтів')),
   statics);
 
 renderStatic().then(tick);
+paintStorage();
+setInterval(() => { if (document.visibilityState === 'visible') paintStorage(); }, 30000);
 setInterval(tick, 2000);
 setInterval(() => { if (document.visibilityState === 'visible') renderStatic(); }, 5000);
