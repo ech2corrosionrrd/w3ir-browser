@@ -7,7 +7,7 @@ async function main() {
   const sources = await w3ir.invoke('import:detect');
   const box = h('div', { class: 'list' });
   if (!sources.length) {
-    box.append(h('div', { class: 'row' }, 'Профілі Chrome, Edge, Brave, Vivaldi або Firefox не знайдено на цьому комп’ютері.'));
+    box.append(h('div', { class: 'row' }, 'Профілі Chrome, Edge, Brave, Vivaldi, Opera, Firefox та інших підтримуваних браузерів не знайдено на цьому комп’ютері.'));
   }
   for (const s of sources) {
     const bm = h('input', { type: 'checkbox', checked: true });
