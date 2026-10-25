@@ -336,7 +336,7 @@ async function renderDashboard(st) {
     tokAddMsg.textContent = r.partial ? t('Пошук неповний (обмеження RPC): додайте решту вручну.') : '';
     if (!r.tokens.length) { tokAddMsg.textContent = t('Нових токенів з балансом не знайдено.') + (r.partial ? ' ' + t('Пошук неповний (обмеження RPC): додайте решту вручну.') : ''); return; }
     const box = h('div', { class: 'modal', onmousedown: (e) => { if (e.target === box) box.remove(); } });
-    const list = h('div', { class: 'list' }, r.tokens.map((tk) => {
+    const rowFor = (tk) => {
       const btn = h('button', { onclick: async () => {
         btn.disabled = true;
         const a = await call('wallet:addToken', { address: tk.address });
@@ -344,9 +344,13 @@ async function renderDashboard(st) {
       } }, 'Додати');
       return h('div', { class: 'row' }, h('div', null, h('div', null, `${tk.symbol}${tk.name ? ' — ' + tk.name : ''}`, tk.suspicious ? h('span', { class: 'note' }, ' ⚠ ' + t('схоже на розсилку')) : ''),
         h('div', { class: 'd' }, `${tk.amount} · ${tk.address}`)), btn);
-    }));
+    };
+    const list = h('div', { class: 'list' }, r.tokens.filter(tk => !tk.suspicious).map(rowFor));
+    const spamTokens = r.tokens.filter(tk => tk.suspicious);
+    const spamList = spamTokens.length ? h('details', { class: 'spam-box' }, h('summary', null, t('Схожі на розсилку: {0}', spamTokens.length)), h('div', { class: 'list' }, spamTokens.map(rowFor))) : null;
     box.append(h('div', { class: 'mbox' }, h('h2', { class: 'mtitle' }, 'Знайдені токени'),
       h('p', { class: 'note' }, 'Токени з недавніх переказів на цей рахунок. Додавайте лише ті, які впізнаєте: шахраї надсилають токени-приманки.'), list,
+      ...(spamList ? [spamList] : []),
       h('div', { class: 'mbtns' }, h('button', { class: 'primary', onclick: () => box.remove() }, 'Закрити'))));
     document.body.append(box);
   };

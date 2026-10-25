@@ -178,3 +178,28 @@ test('assertPublicRpc: ім\'я, що вказує на непублічну а�
   await assertPublicRpc('https://cached.example/', async () => { calls++; return [{ address: '10.1.1.1' }]; });
   assert.equal(calls, 1);
 });
+
+// ---- Solana: зміна токенів за симуляцією ----
+test('solTokenDeltas: зміна токенів лише зі своїх акаунтів, сміття ігнорується', () => {
+  const { solTokenDeltas } = src('wallet-solana.js');
+  const me = 'Owner1111111111111111111111111111111111111';
+  const mint = S.PROGRAMS.TOKEN;
+  const mint2 = S.PROGRAMS.TOKEN22;
+  const acc = (owner, m, amount, decimals = 6) => ({ data: { parsed: { info: { owner, mint: m, tokenAmount: { amount: String(amount), decimals } } } } });
+  // зменшення, нове надходження (акаунт створюється), закритий акаунт
+  const d = solTokenDeltas(
+    [acc(me, mint, 5_000_000), null, acc(me, mint2, 700, 0)],
+    [acc(me, mint, 2_500_000), acc(me, mint2, 40, 0), null],
+    me,
+  );
+  const by = Object.fromEntries(d.map(x => [x.mint, x.delta]));
+  assert.equal(by[mint], -2_500_000n);
+  assert.equal(by[mint2], 40n - 700n);
+  // зміни на ЧУЖОМУ токен-акаунті й акаунти без змін не показуються
+  assert.deepEqual(solTokenDeltas([acc('Someone', mint, 5)], [acc('Someone', mint, 1)], me), []);
+  assert.deepEqual(solTokenDeltas([acc(me, mint, 5)], [acc(me, mint, 5)], me), []);
+  // недовірені дані: не-адреса mint, нечислова сума, надмірні decimals, відсутні поля
+  const bad = [acc(me, 'не-адреса', 5), acc(me, mint, 'abc'), acc(me, mint, 5, 99), { data: {} }, null];
+  assert.deepEqual(solTokenDeltas(bad, bad.map(() => acc(me, mint, 1)), me).length <= 1, true);
+  assert.deepEqual(solTokenDeltas(bad, bad, me), []);
+});

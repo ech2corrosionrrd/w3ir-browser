@@ -8,6 +8,30 @@ const { csvCell } = require('./wallet-history-evm');
 const { truncationWarning } = require('./wallet-signguard');
 const { assertPublicRpc } = require('./rpc-guard');
 
+// Зміна токенів на своїх токен-акаунтах за результатом симуляції: pre/post — паралельні масиви значень getMultipleAccounts
+// (jsonParsed) до й після. Відповіді вузла недовірені: приймаються лише акаунти з власником owner, коректним mint і сумою
+function solTokenDeltas(pre, post, owner) {
+  const read = (acc) => {
+    const info = acc && acc.data && acc.data.parsed && acc.data.parsed.info;
+    if (!info || info.owner !== owner || typeof info.mint !== 'string' || !S.isAddress(info.mint)) return null;
+    const ta = info.tokenAmount;
+    if (!ta || !/^\d{1,30}$/.test(String(ta.amount)) || !Number.isInteger(ta.decimals) || ta.decimals < 0 || ta.decimals > 30) return null;
+    return { mint: info.mint, amount: BigInt(ta.amount), decimals: ta.decimals };
+  };
+  const byMint = new Map();
+  for (let i = 0; i < pre.length; i++) {
+    const a = read(pre[i]), b = read(post[i]);
+    const base = b || a;
+    if (!base) continue;
+    const d = (b ? b.amount : 0n) - (a ? a.amount : 0n);
+    if (d === 0n) continue;
+    const cur = byMint.get(base.mint) || { mint: base.mint, delta: 0n, decimals: base.decimals };
+    cur.delta += d;
+    byMint.set(base.mint, cur);
+  }
+  return [...byMint.values()].filter(t => t.delta !== 0n).slice(0, 10);
+}
+
 function solToCsv(items, { cluster = '', tr: translate = (x) => x } = {}) {
   const head = ['Час (UTC)', 'Мережа', 'Статус', 'Зміна SOL', 'Токени SPL', 'Транзакція'];
   const fmtSolDelta = (v) => {
@@ -36,6 +60,7 @@ const CLUSTERS = {
 const MAX_TXS = 10;
 const MAX_SHOWN_LINES = 40; // скільки рядків дій показує вікно підтвердження; більше — вважаємо підозрілим
 const SIM_TIMEOUT = 9000;
+const MAX_WATCH = 40; // скільки акаунтів транзакції перевіряємо на зміну токенів
 
 function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   const proto = Wallet.prototype;
@@ -572,16 +597,23 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   proto._solSimulate = async function (cluster, tx, address) {
     try {
       const wire = S.unsignedWire(tx.message).toString('base64');
-      const [sim, bal] = await Promise.all([
-        this.solRpc(cluster, 'simulateTransaction', [wire, { encoding: 'base64', sigVerify: false, replaceRecentBlockhash: true, commitment: 'processed', accounts: { encoding: 'base64', addresses: [address] } }], SIM_TIMEOUT),
+      // акаунти транзакції (крім підписувачів), які можуть бути токен-акаунтами: стан до симуляції й після неї
+      const watch = tx.parsed.keys.slice(tx.parsed.numSigs, tx.parsed.numSigs + MAX_WATCH);
+      const [sim, bal, pre] = await Promise.all([
+        this.solRpc(cluster, 'simulateTransaction', [wire, { encoding: 'base64', sigVerify: false, replaceRecentBlockhash: true, commitment: 'processed', accounts: { encoding: 'jsonParsed', addresses: [address, ...watch] } }], SIM_TIMEOUT),
         this.solRpc(cluster, 'getBalance', [address, { commitment: 'processed' }], SIM_TIMEOUT),
+        watch.length ? this.solRpc(cluster, 'getMultipleAccounts', [watch, { encoding: 'jsonParsed', commitment: 'processed' }], SIM_TIMEOUT, { fallbackOnError: true }).catch(() => null) : null,
       ]);
       const v = sim && sim.value;
       if (!v) return { ok: false, text: 'немає відповіді' };
       if (v.err) return { ok: false, failed: true, text: clip(JSON.stringify(v.err), 160) };
       const after = v.accounts && v.accounts[0] ? BigInt(v.accounts[0].lamports) : null;
       const delta = after === null ? null : after - BigInt(bal.value);
-      return { ok: true, delta, text: 'успішно' };
+      // зміну токенів показуємо лише коли відомий стан ДО (інакше весь баланс виглядав би як надходження)
+      const preList = pre && Array.isArray(pre.value) && pre.value.length === watch.length ? pre.value : null;
+      const postList = v.accounts && v.accounts.length === watch.length + 1 ? v.accounts.slice(1) : null;
+      const tokens = preList && postList ? solTokenDeltas(preList, postList, address) : null;
+      return { ok: true, delta, tokens, text: 'успішно' };
     } catch (e) { return { ok: false, text: clip(e.message || 'не вдалося виконати', 120) }; }
   };
 
@@ -648,6 +680,10 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       const sim = sims[i];
       lines.push([head + 'Симуляція', sim.ok ? 'успішно' : `${sim.failed ? 'ПОМИЛКА' : 'не виконано'}: ${sim.text}`]);
       if (sim.ok && sim.delta !== null) lines.push([head + 'Зміна балансу SOL', `${sim.delta >= 0n ? '+' : '-'}${S.sol(sim.delta >= 0n ? sim.delta : -sim.delta)} SOL (разом із комісією)`]);
+      if (sim.ok && sim.tokens) {
+        for (const tk of sim.tokens.slice(0, 5)) lines.push([head + 'Зміна токенів', `${tk.delta >= 0n ? '+' : '-'}${S.formatUnits(tk.delta >= 0n ? tk.delta : -tk.delta, tk.decimals)} (mint ${S.short(tk.mint)})`]);
+        if (sim.tokens.some(tk => tk.delta < 0n) && d.tokenTransfers.length === 0) warnings.push(head + 'Токени на вашому рахунку зменшаться, хоча явного переказу токенів в інструкціях немає (так працюють і обміни, але так діють і шахраї): перевірте дію.');
+      }
       if (sim.failed) { warnings.push(head + 'Симуляція показала, що транзакція завершиться помилкою — гроші можуть бути втрачені на комісію.'); danger = true; }
       else if (!sim.ok) warnings.push(head + 'Не вдалося симулювати транзакцію — наслідки не перевірено.');
       if (sim.ok && sim.delta !== null && sim.delta < 0n && -sim.delta > 0n && d.outgoing === 0n && -sim.delta > 5_000_000n) {
@@ -692,4 +728,4 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   require('./wallet-solana-staking').installStaking(proto, { S, RpcError, clip, unauthorized });
 }
 
-module.exports = { install, CLUSTERS, solToCsv };
+module.exports = { install, CLUSTERS, solToCsv, solTokenDeltas };
