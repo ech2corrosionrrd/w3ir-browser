@@ -46,6 +46,13 @@ CREATE TRIGGER IF NOT EXISTS places_au AFTER UPDATE OF title, url ON places BEGI
   INSERT INTO places_fts(rowid, title, url) VALUES (new.id, new.title, new.url);
 END;
 CREATE TABLE IF NOT EXISTS bookmarks (url TEXT PRIMARY KEY, title TEXT NOT NULL, added INTEGER NOT NULL, mod INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS tab_stashes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  tabs_json TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS stashes_created ON tab_stashes(created_at DESC);
 `;
 
 const places = new Set();
@@ -139,6 +146,11 @@ class Places {
       placeTotal: p('SELECT count(*) AS n FROM places'),
       meta: p('SELECT value FROM meta WHERE key = ?'),
       setMeta: p('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)'),
+      insStash: p('INSERT INTO tab_stashes(title, tabs_json, created_at) VALUES (?, ?, ?)'),
+      listStashes: p('SELECT id, title, tabs_json, created_at FROM tab_stashes ORDER BY created_at DESC LIMIT ?'),
+      getStash: p('SELECT id, title, tabs_json, created_at FROM tab_stashes WHERE id = ?'),
+      delStash: p('DELETE FROM tab_stashes WHERE id = ?'),
+      latestStash: p('SELECT id, title, tabs_json, created_at FROM tab_stashes ORDER BY created_at DESC LIMIT 1'),
     };
   }
 
@@ -353,6 +365,54 @@ class Places {
         ins.run(b.url, clip(b.title, TITLE_MAX) || b.url, Number(b.added) || 0, Number(b.mod) || 0);
       }
     });
+  }
+
+  // ---------- набори вкладок (Tab Stash) ----------
+  saveStash(title, tabs) {
+    if (!Array.isArray(tabs) || !tabs.length) return null;
+    const t = clip(title || `Вкладки (${tabs.length})`, TITLE_MAX);
+    const valid = tabs.map(tab => ({
+      url: clip(tab.url, URL_MAX),
+      title: clip(tab.title, TITLE_MAX),
+      pinned: !!tab.pinned,
+    })).filter(x => x.url);
+    if (!valid.length) return null;
+    const json = JSON.stringify(valid);
+    const now = Date.now();
+    const info = this.st.insStash.run(t, json, now);
+    // Лишаємо 50 останніх наборів: старі набори не мають накопичуватися без кінця
+    this.db.exec('DELETE FROM tab_stashes WHERE id NOT IN (SELECT id FROM tab_stashes ORDER BY created_at DESC, id DESC LIMIT 50)');
+    return { id: Number(info.lastInsertRowid), title: t, tabs: valid, createdAt: now };
+  }
+
+  listStashes(limit = 50) {
+    const rows = this.st.listStashes.all(Math.max(1, Math.min(200, Number(limit) || 50)));
+    return rows.map(r => {
+      let tabs = [];
+      try { tabs = JSON.parse(r.tabs_json); } catch { /* ignore */ }
+      return { id: r.id, title: r.title, tabs, createdAt: r.created_at };
+    });
+  }
+
+  getStash(id) {
+    const r = this.st.getStash.get(Number(id));
+    if (!r) return null;
+    let tabs = [];
+    try { tabs = JSON.parse(r.tabs_json); } catch { /* ignore */ }
+    return { id: r.id, title: r.title, tabs, createdAt: r.created_at };
+  }
+
+  deleteStash(id) {
+    this.st.delStash.run(Number(id));
+    return true;
+  }
+
+  latestStash() {
+    const r = this.st.latestStash.get();
+    if (!r) return null;
+    let tabs = [];
+    try { tabs = JSON.parse(r.tabs_json); } catch { /* ignore */ }
+    return { id: r.id, title: r.title, tabs, createdAt: r.created_at };
   }
 
   // ---------- міграція з history.json / bookmarks.json (одноразово; старі файли лишаються як *.migrated) ----------

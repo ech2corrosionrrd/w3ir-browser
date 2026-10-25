@@ -32,6 +32,43 @@ const methods = {
         this.tabs.slice(i + 1).forEach(x => this.closeTab(x.id));
         break;
       }
+      case 'stashTabs': {
+        if (this.incognito || this.agent) { this.toast(tr('У приватному вікні набори вкладок не зберігаються')); break; }
+        const unpinned = this.tabs.filter(x => !x.pinned);
+        const list = unpinned.map(x => ({
+          url: this.tabUrl(x),
+          title: x.sleep ? x.sleep.title : (x.view ? x.view.webContents.getTitle() : '') || this.tabUrl(x),
+          pinned: false,
+        })).filter(x => x.url && !x.url.startsWith('about:blank'));
+        if (!list.length) {
+          this.toast(tr('Немає вкладок для збереження'));
+          break;
+        }
+        const now = new Date();
+        const dateStr = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        const title = `Набір (${list.length}) — ${dateStr}`;
+        ctx.places.saveStash(title, list);
+        const hadPinned = this.tabs.some(x => x.pinned);
+        if (!hadPinned) {
+          this.createTab(NEWTAB);
+        }
+        unpinned.forEach(x => this.closeTab(x.id));
+        this.toast(tr('Вкладки відкладено у Tab Stash ({0})', list.length));
+        break;
+      }
+      case 'restoreStash': {
+        if (this.incognito || this.agent) break;
+        const stash = (arg && arg.id) ? ctx.places.getStash(arg.id) : ctx.places.latestStash();
+        if (!stash || !stash.tabs || !stash.tabs.length) {
+          this.toast(tr('Немає збережених наборів'));
+          break;
+        }
+        stash.tabs.forEach(tab => {
+          if (tab.url && /^(https?|w3ir|ar|ipfs|ipns):/i.test(tab.url)) this.createTab(tab.url, { activate: false });
+        });
+        this.toast(tr('Відновлено {0} вкладок', stash.tabs.length));
+        break;
+      }
       case 'selectTab': {
         const vis = this.visibleTabs();
         const i = arg === 9 ? vis.length - 1 : arg - 1;
@@ -296,6 +333,22 @@ const methods = {
         if (u) { this.ctx.setAdblockAllowed(u.hostname, !!(arg && arg.allowed)); const wc2 = this.wc(); if (wc2) wc2.reload(); }
         this.ctx.pushAll();
         this.refreshSiteOverlay();
+        return this.refreshShieldOverlay();
+      }
+      case 'siteNoJs': {
+        const u = this.siteTarget();
+        if (u && /^https?:$/.test(u.protocol)) {
+          this.ctx.setNoJs(u.hostname, !!(arg && arg.on));
+          const wc2 = this.wc(); if (wc2) wc2.reload();
+        }
+        return this.refreshShieldOverlay();
+      }
+      case 'siteBlockIframes': {
+        const u = this.siteTarget();
+        if (u && /^https?:$/.test(u.protocol)) {
+          this.ctx.setBlockIframes(u.hostname, !!(arg && arg.on));
+          const wc2 = this.wc(); if (wc2) wc2.reload();
+        }
         return this.refreshShieldOverlay();
       }
       case 'siteClear': {

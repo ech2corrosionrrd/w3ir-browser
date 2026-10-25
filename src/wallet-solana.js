@@ -252,20 +252,52 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   };
 
   // Переказ SOL зі сторінки гаманця: транзакцію будує сам гаманець, а користувач підтверджує її у довіреному вікні з симуляцією
-  // Пріоритетна комісія Solana: «standard»/«low» — без неї (типова поведінка), «fast» — 1,5 × медіана недавніх ненульових комісій
-  // (мікро-лампортів за одиницю обчислень) у межах [1 000; 1 000 000]. Ліміт одиниць задає сам гаманець для цього типу переказу.
-  proto.solPriorityFee = async function (cluster, speed, limit) {
-    if (speed === undefined || speed === 'standard' || speed === 'low') return { micro: 0n, extra: 0n, instructions: [] };
-    if (speed !== 'fast') throw new RpcError(-32602, 'Невідомий рівень швидкості.');
-    let micro = 5000n;
+  // Пріоритетна комісія Solana: «low» — без неї; «standard» — автоматичний захисний поріг при завантаженій мережі;
+  // «fast» — 1,5 × медіана недавніх ненульових комісій (мікро-лампортів за одиницю обчислень) у межах [1 000; 1 000 000].
+  proto.solPriorityFee = async function (cluster, speed = 'standard', limit = 1000) {
+    if (typeof speed !== 'string' && speed !== undefined) throw new RpcError(-32602, 'Невідомий рівень швидкості.');
+    const s = speed === undefined ? 'standard' : speed;
+    if (!['low', 'standard', 'fast', 'auto', 'dynamic'].includes(s)) throw new RpcError(-32602, 'Невідомий рівень швидкості.');
+
+    if (s === 'low') return { micro: 0n, extra: 0n, instructions: [], congested: false };
+
+    let fees = [];
     try {
-      const fees = (await this.solRpc(cluster, 'getRecentPrioritizationFees', [], 8000, { fallbackOnError: true }) || [])
+      fees = (await this.solRpc(cluster, 'getRecentPrioritizationFees', [], 8000, { fallbackOnError: true }) || [])
         .map(f => Number(f && f.prioritizationFee)).filter(n => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
-      if (fees.length) micro = BigInt(Math.round(fees[Math.floor(fees.length / 2)] * 1.5));
     } catch { /* лишаємо запасне значення */ }
-    if (micro < 1000n) micro = 1000n;
+
+    const hasData = fees.length > 0;
+    const median = hasData ? BigInt(fees[Math.floor(fees.length / 2)]) : 0n;
+    const congested = fees.length >= 20 && median >= 10000n;
+
+    let micro = 0n;
+    if (s === 'fast') {
+      micro = hasData ? BigInt(Math.round(fees[Math.floor(fees.length / 2)] * 1.5)) : 5000n;
+      if (micro < 1000n) micro = 1000n;
+    } else if (s === 'dynamic' || s === 'auto') {
+      if (hasData) {
+        micro = BigInt(Math.round(fees[Math.floor(fees.length / 2)] * 1.0));
+        if (micro < 1000n) micro = 1000n;
+      }
+    } else if (s === 'standard') {
+      // При сильній завантаженості мережі встановлюємо мінімальний захисний поріг комісії,
+      // щоб транзакція не зависала й не відкидалася валідаторами
+      if (congested) {
+        micro = BigInt(Math.max(1000, Math.round(Number(median) * 0.25)));
+      }
+    }
+
     if (micro > 1000000n) micro = 1000000n;
-    return { micro, extra: (micro * BigInt(limit) + 999999n) / 1000000n, instructions: [S.ixSetComputeUnitLimit(limit), S.ixSetComputeUnitPrice(micro)] };
+    if (micro === 0n) return { micro: 0n, extra: 0n, instructions: [], congested };
+
+    const extra = (micro * BigInt(limit) + 999999n) / 1000000n;
+    return {
+      micro,
+      extra,
+      congested,
+      instructions: [S.ixSetComputeUnitLimit(limit), S.ixSetComputeUnitPrice(micro)],
+    };
   };
 
   // Домени .sol (Solana Name Service): лише Mainnet; токенізовані домени (власник — PDA) не розв'язуються, щоб не надіслати не туди

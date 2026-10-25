@@ -176,6 +176,7 @@ const POLICY = {
   'profiles:': { profiles: '*' },
   'dashboard:': { dashboard: '*' },
   'vault:': { passwords: '*', import: ['vault:status', 'vault:importCsv'], wallet: ['vault:status', 'vault:unlock', 'vault:lock'] },
+  'stash:': { newtab: '*' },
   'safe:': { warning: ['safe:proceed', 'safe:trust'], settings: ['safe:status', 'safe:update'] },
 };
 // Окремі команди без групи: назва → сторінки
@@ -188,6 +189,7 @@ const PAGE_ONLY = {
   'downloads:get': ['downloads'], 'downloads:action': ['downloads'],
 };
 // Сторінки, що відкриваються із запитом в адресі (попередження, службові); решта — лише точна адреса
+const STASH_URL_RE = /^(https?|w3ir|ar|ipfs|ipns):/i;
 const QUERY_OK = new Set(['warning', 'history', 'bookmarks', 'downloads', 'newtab', 'reader', 'help']);
 
 function permitted(name, url) {
@@ -307,6 +309,15 @@ function registerIpc(resolve) {
     if (win.agent || Date.now() - (win._waToast || 0) < 30000) return;
     win._waToast = Date.now();
     win.toast('Passkeys і ключі безпеки поки не підтримуються в W3IR Browser: увійдіть паролем (🔑 менеджер паролів) або іншим способом.');
+  });
+
+  // Glance / Peek preview
+  ipcMain.on('browser:glance', (e, data) => {
+    const ctx = resolve(e.sender);
+    if (!ctx) return;
+    const entry = ctx.entryFor(e.sender);
+    if (!entry || !entry.win || !data || typeof data.url !== 'string') return;
+    entry.win.openGlance(data.url);
   });
 
   // Команди з інтерфейсу браузера (панель вкладок / оверлей).
@@ -465,6 +476,17 @@ function registerIpc(resolve) {
       case 'bookmarks:remove': {
         ctx.bookmarkDelete(arg.url);
         return true;
+      }
+      case 'stash:list': return ctx.places.listStashes(arg && arg.limit);
+      case 'stash:get': return ctx.places.getStash(arg && arg.id);
+      case 'stash:delete': return ctx.places.deleteStash(arg && arg.id);
+      case 'stash:restore': {
+        const s = ctx.places.getStash(arg && arg.id);
+        if (s && s.tabs && entry.win) {
+          s.tabs.forEach(tab => { if (tab.url && STASH_URL_RE.test(tab.url)) entry.win.createTab(tab.url, { activate: false }); });
+          return true;
+        }
+        return false;
       }
       case 'downloads:get': return ctx.downloads.list();
       case 'downloads:action': ctx.downloads.action(arg.id, arg.action, entry.win); return true;

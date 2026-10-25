@@ -212,6 +212,21 @@ async function placesTests(ctx) {
   site.close();
   ctx.places = realP; ctx.bookmarksStore = realB;
   tp.close();
+
+  // ---------- Tab Stash ----------
+  const sp = new Places(tmp('places-stash'));
+  ok(sp.saveStash('порожній', []) === null && sp.saveStash('без адрес', [{ url: '', title: 'x' }]) === null && sp.listStashes().length === 0, 'stash: порожній набір не зберігається');
+  const s1 = sp.saveStash('Набір 1', [{ url: 'https://a.example/', title: 'A' }, { url: 'https://b.example/', title: 'B', pinned: true }]);
+  ok(s1 && s1.tabs.length === 2 && sp.getStash(s1.id).tabs[1].pinned === true && sp.getStash(s1.id).tabs[0].title === 'A', 'stash: набір зберігається й читається з вкладками');
+  await sleep(5);
+  const s2 = sp.saveStash('Набір 2', [{ url: 'https://c.example/', title: 'C' }]);
+  ok(sp.latestStash().id === s2.id && sp.listStashes()[0].id === s2.id && sp.listStashes().length === 2, 'stash: останній набір — найновіший, список від нових до старих');
+  sp.deleteStash(s1.id);
+  ok(sp.getStash(s1.id) === null && sp.listStashes().length === 1, 'stash: набір видаляється');
+  for (let i = 0; i < 55; i++) sp.saveStash('N' + i, [{ url: 'https://n' + i + '.example/', title: 'n' }]);
+  ok(sp.listStashes(200).length === 50, 'stash: зберігається не більше 50 наборів');
+  ok(sp.getStash('1; DROP TABLE tab_stashes') === null && sp.db.prepare("SELECT name FROM sqlite_master WHERE name = 'tab_stashes'").get(), 'stash: некоректний id не шкодить');
+  sp.close();
   for (const x of [p, q, r, imp]) x.close();
 }
 

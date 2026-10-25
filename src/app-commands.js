@@ -18,6 +18,8 @@ const methods = {
       ...this.aiCommands(),
       { label: tr('Закрити вкладку'), hint: 'Ctrl+W', cmd: 'closeTab', arg: this.activeId },
       { label: tr('Відновити закриту вкладку'), hint: 'Ctrl+Shift+T', cmd: 'reopenClosed' },
+      { label: tr('Відкласти вкладки (Tab Stash)'), hint: 'Ctrl+Shift+S', cmd: 'stashTabs' },
+      { label: tr('Відновити останній набір вкладок'), cmd: 'restoreStash' },
       { label: tr('Закріпити / відкріпити вкладку'), cmd: 'pinTab', arg: this.activeId },
       { label: tr('Дублювати вкладку'), cmd: 'duplicateTab', arg: this.activeId },
       ...(this.tabs.length > 1 && !this.incognito && !this.agent ? [{ label: tr('Перемістити вкладку в нове вікно'), cmd: 'tabToWindow', arg: { id: this.activeId } }] : []),
@@ -62,6 +64,7 @@ const methods = {
     return [
       ...(up && up.state === 'ready' ? [{ label: tr('Оновити браузер до {0} (перезапуск)', up.version), cmd: 'updateInstall' }, { sep: true }] : []),
       { label: tr('Нова вкладка'), hint: 'Ctrl+T', cmd: 'newTab' },
+      { label: tr('Відкласти вкладки (Tab Stash)'), hint: 'Ctrl+Shift+S', cmd: 'stashTabs' },
       { label: tr('Нове вікно'), hint: 'Ctrl+N', cmd: 'newWindow' },
       { label: tr('Нове вікно інкогніто'), hint: 'Ctrl+Shift+N', cmd: 'newIncognito' },
       { label: tr('Профілі…'), cmd: 'openPage', arg: 'profiles' },

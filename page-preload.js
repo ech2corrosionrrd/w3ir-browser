@@ -158,6 +158,18 @@ function setupPasswordManager() {
     const b = e.target.closest('button:not([type]), button[type=submit], input[type=submit]');
     if (b) report(b.form || document);
   }, true);
+
+  // Glance / Peek preview за Alt+Клік по посиланню
+  document.addEventListener('click', (e) => {
+    if (!e.isTrusted || !e.altKey || !(e.target instanceof Element)) return;
+    const a = e.target.closest('a[href]');
+    if (!a || !a.href) return;
+    if (/^(https?:|ar:\/\/|ipfs:\/\/|ipns:\/\/)/i.test(a.href)) {
+      e.preventDefault();
+      e.stopPropagation();
+      ipcRenderer.send('browser:glance', { url: a.href });
+    }
+  }, true);
 }
 
 // ============================================================================
@@ -340,7 +352,45 @@ function installSolana(b) {
   try { window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', { detail: (api) => { try { api.register(wallet); } catch (err) { console.error(err); } } })); } catch { /* ignore */ }
 }
 
-// --- 4.3. Anti-Fingerprinting (Canvas noise + Screen/Navigator rounding) ---
+// --- 4.3. Arweave-провайдер (ArConnect / Wander API стандарт) ---
+function installArweave(b) {
+  if (!b || window.arweaveWallet) return;
+  const listeners = {};
+  const emit = (ev, ...a) => (listeners[ev] || []).slice().forEach(fn => { try { fn(...a); } catch (e) { console.error(e); } });
+  const call = async (method, params) => {
+    const r = await b.request({ method, params });
+    if (r && r.error) throw Object.assign(new Error(r.error.message), { code: r.error.code });
+    return r ? r.result : null;
+  };
+
+  const wallet = {
+    walletName: 'W3IR Arweave Wallet',
+    connect: async (permissions, appInfo, gateway) => call('arweave_connect', { permissions, appInfo, gateway }),
+    disconnect: async () => call('arweave_disconnect'),
+    getActiveAddress: async () => call('arweave_getActiveAddress'),
+    getAllAddresses: async () => call('arweave_getAllAddresses'),
+    getWalletNames: async () => call('arweave_getWalletNames'),
+    getPermissions: async () => call('arweave_getPermissions'),
+    getActivePublicKey: async () => call('arweave_getActivePublicKey'),
+    sign: async (tx, options) => call('arweave_sign', { transaction: tx, options }),
+    signature: async (data, algorithm) => call('arweave_signature', { data, algorithm }),
+    dispatch: async (tx) => call('arweave_dispatch', { transaction: tx }),
+    on: (ev, fn) => { (listeners[ev] = listeners[ev] || []).push(fn); return wallet; },
+    removeListener: (ev, fn) => { listeners[ev] = (listeners[ev] || []).filter(f => f !== fn); return wallet; },
+  };
+
+  b.onEvent((ev, data) => {
+    if (ev === 'ar:disconnect') emit('disconnect');
+    else if (ev === 'ar:connect') emit('connect', data);
+  });
+
+  Object.defineProperty(window, 'arweaveWallet', { value: wallet, writable: false, configurable: false });
+  try {
+    window.dispatchEvent(new CustomEvent('arweaveWalletLoaded', { detail: { wallet } }));
+  } catch { /* ignore */ }
+}
+
+// --- 4.4. Anti-Fingerprinting (Canvas noise + Screen/Navigator rounding) ---
 function installFingerprintProtection() {
   try {
     const r100 = (n) => Math.max(100, Math.round(Number(n || 0) / 100) * 100);
@@ -403,6 +453,52 @@ function installFingerprintProtection() {
       };
     }
   } catch { /* ignore */ }
+
+  // WebGL Unmasked Vendor / Renderer Spoofing
+  try {
+    const spoofExt = (proto) => {
+      if (!proto || !proto.getParameter) return;
+      const origGetParam = proto.getParameter;
+      proto.getParameter = function (p) {
+        if (p === 0x9245) return 'Google Inc. (Intel)';
+        if (p === 0x9246) return 'ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0)';
+        return origGetParam.call(this, p);
+      };
+    };
+    if (typeof WebGLRenderingContext !== 'undefined') spoofExt(WebGLRenderingContext.prototype);
+    if (typeof WebGL2RenderingContext !== 'undefined') spoofExt(WebGL2RenderingContext.prototype);
+  } catch { /* ignore */ }
+
+  // AudioContext Acoustic Hash Protection (micro-noise)
+  try {
+    if (typeof AudioBuffer !== 'undefined' && AudioBuffer.prototype && AudioBuffer.prototype.getChannelData) {
+      const origGetChannel = AudioBuffer.prototype.getChannelData;
+      const noised = new WeakSet();
+      AudioBuffer.prototype.getChannelData = function (channel) {
+        const data = origGetChannel.call(this, channel);
+        if (data && data.length > 0 && !noised.has(data)) {
+          noised.add(data);
+          const step = Math.max(16, Math.floor(data.length / 64));
+          for (let i = 0; i < data.length; i += step) {
+            data[i] = data[i] + ((i % 2 === 0) ? 0.0000001 : -0.0000001);
+          }
+        }
+        return data;
+      };
+    }
+    if (typeof AnalyserNode !== 'undefined' && AnalyserNode.prototype && AnalyserNode.prototype.getFloatFrequencyData) {
+      const origGetFloatFreq = AnalyserNode.prototype.getFloatFrequencyData;
+      AnalyserNode.prototype.getFloatFrequencyData = function (array) {
+        origGetFloatFreq.call(this, array);
+        if (array && array.length > 0) {
+          const step = Math.max(8, Math.floor(array.length / 32));
+          for (let i = 0; i < array.length; i += step) {
+            array[i] = array[i] + ((i % 2 === 0) ? 0.00001 : -0.00001);
+          }
+        }
+      };
+    }
+  } catch { /* ignore */ }
 }
 
 // ============================================================================
@@ -442,6 +538,9 @@ function setupWeb3AndProtection() {
     } catch { /* ignore */ }
     try {
       contextBridge.executeInMainWorld({ func: installSolana, args: [bridge] });
+    } catch { /* ignore */ }
+    try {
+      contextBridge.executeInMainWorld({ func: installArweave, args: [bridge] });
     } catch { /* ignore */ }
   }
 }

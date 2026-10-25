@@ -43,6 +43,9 @@ test('urlrules: прибирає трекінгові параметри й за
   const { stripTracking } = src('urlrules.js');
   assert.equal(stripTracking('https://a.com/p?utm_source=x&id=7&fbclid=1'), 'https://a.com/p?id=7');
   assert.equal(stripTracking('https://a.com/p?ttclid=123&twclid=456&mtm_campaign=spring&pk_source=news&q=ok'), 'https://a.com/p?q=ok');
+  assert.equal(stripTracking('https://a.com/search?si=3&action_type=1&q=ok'), 'https://a.com/search?si=3&action_type=1&q=ok', 'загальні назви параметрів не чіпаємо');
+  assert.equal(stripTracking('https://instagram.com/p/abc?igsh=tracker_xyz&view=1'), 'https://instagram.com/p/abc?view=1');
+  assert.equal(stripTracking('https://shop.com/item?wickedid=99&hsa_cam=promo&valid_param=test'), 'https://shop.com/item?valid_param=test');
   assert.equal(stripTracking('https://a.com/p?id=7'), 'https://a.com/p?id=7');
   assert.equal(stripTracking('not a url'), 'not a url');
   assert.equal(stripTracking('ftp://a.com/?utm_source=x'), 'ftp://a.com/?utm_source=x');

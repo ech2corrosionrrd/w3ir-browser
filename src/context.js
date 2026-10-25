@@ -227,6 +227,24 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     if (!on && i >= 0) list.splice(i, 1);
     ctx.settingsStore.save();
   };
+  ctx.noJsAllowed = (host) => !!host && (ctx.cfg().noJsSites || []).includes(ctx.siteKey(host));
+  ctx.setNoJs = (host, on) => {
+    const key = ctx.siteKey(host);
+    const list = ctx.cfg().noJsSites = ctx.cfg().noJsSites || [];
+    const i = list.indexOf(key);
+    if (on && i < 0 && list.length < 500) list.push(key);
+    if (!on && i >= 0) list.splice(i, 1);
+    ctx.settingsStore.save();
+  };
+  ctx.blockIframesAllowed = (host) => !!host && (ctx.cfg().blockIframesSites || []).includes(ctx.siteKey(host));
+  ctx.setBlockIframes = (host, on) => {
+    const key = ctx.siteKey(host);
+    const list = ctx.cfg().blockIframesSites = ctx.cfg().blockIframesSites || [];
+    const i = list.indexOf(key);
+    if (on && i < 0 && list.length < 500) list.push(key);
+    if (!on && i >= 0) list.splice(i, 1);
+    ctx.settingsStore.save();
+  };
   // Дозволи: у звичайних сеансах — у файлі профілю, в інкогніто — лише в пам'яті сеансу
   ctx.permStore = (ses) => ses.__w3irPerms || ctx.permsStore.data;
   ctx.permDecision = (ses, origin, permission) => { const v = ctx.permStore(ses)[origin + '|' + permission]; return typeof v === 'boolean' ? v : null; };
@@ -482,7 +500,18 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
         }
         return cb({});
       }
-      if (cfg.adblock && /^https?:/i.test(url) && !ctx.adblockAllowed(ctx.topHost(details.webContentsId))) {
+      const topHost = ctx.topHost(details.webContentsId);
+      if (details.resourceType === 'subFrame' && topHost && ctx.blockIframesAllowed(topHost)) {
+        if (prot.isThirdParty(url, topHost, ctx.siteKey)) {
+          if (details.webContentsId) ctx.onBlocked(details.webContentsId);
+          return cb({ cancel: true });
+        }
+      }
+      if (details.resourceType === 'script' && topHost && ctx.noJsAllowed(topHost)) {
+        if (details.webContentsId) ctx.onBlocked(details.webContentsId);
+        return cb({ cancel: true });
+      }
+      if (cfg.adblock && /^https?:/i.test(url) && !ctx.adblockAllowed(topHost)) {
         if (ctx.blocker) {
           return ctx.blocker.onBeforeRequest(details, (resp) => {
             if ((resp.cancel || resp.redirectURL) && details.webContentsId) ctx.onBlocked(details.webContentsId);
@@ -518,6 +547,18 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       return !!top && !ctx.adblockAllowed(top) && prot.isThirdParty(details.url, top, ctx.siteKey);
     };
     ses.webRequest.onHeadersReceived((details, cb) => {
+      if (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame') {
+        try {
+          const host = details.resourceType === 'mainFrame' ? new URL(details.url).hostname : ctx.topHost(details.webContentsId);
+          if (host && ctx.noJsAllowed(host)) {
+            // Кілька політик діють разом (найсуворіша виграє), тож CSP самого сайту лишається
+            const h = details.responseHeaders || {};
+            const key = Object.keys(h).find(k => k.toLowerCase() === 'content-security-policy') || 'content-security-policy';
+            h[key] = [...(h[key] || []), "script-src 'none'"];
+            return cb({ responseHeaders: h });
+          }
+        } catch { /* ignore */ }
+      }
       if (thirdParty(details) && prot.stripSetCookie(details.responseHeaders)) {
         ctx.stats.cookies++;
         const done = cb;

@@ -420,6 +420,40 @@ function renderShield(p) {
     };
     mainToggle.append(toggleInfo, toggleSwitch);
     box.append(mainToggle);
+
+    const siteOpts = el('div', 'shld-site-opts');
+    siteOpts.style.display = 'flex';
+    siteOpts.style.flexDirection = 'column';
+    siteOpts.style.gap = '6px';
+    siteOpts.style.marginBottom = '10px';
+
+    const noJsToggle = el('label', 'shld-row');
+    noJsToggle.style.cursor = 'pointer';
+    const noJsInfo = el('div', 'shld-item-info');
+    noJsInfo.append(el('span', 'shld-label-title', '🛑 Вимкнути JavaScript'));
+    noJsInfo.append(el('div', 'shld-label-desc', p.noJs ? 'Скрипти заблоковано для домену' : 'Дозволено виконання скриптів'));
+    const noJsCb = el('input');
+    noJsCb.type = 'checkbox';
+    noJsCb.checked = !!p.noJs;
+    noJsCb.title = 'Вимкнути виконання JavaScript на цьому сайті (перезавантажить сторінку)';
+    noJsCb.onchange = () => { api.cmd('siteNoJs', { on: noJsCb.checked }); };
+    noJsToggle.append(noJsInfo, noJsCb);
+    siteOpts.append(noJsToggle);
+
+    const ifrToggle = el('label', 'shld-row');
+    ifrToggle.style.cursor = 'pointer';
+    const ifrInfo = el('div', 'shld-item-info');
+    ifrInfo.append(el('span', 'shld-label-title', '🖼 Блокувати сторонні кадри'));
+    ifrInfo.append(el('div', 'shld-label-desc', p.blockIframes ? 'Сторонні iFrames блокуються' : 'Дозволено сторонні кадри'));
+    const ifrCb = el('input');
+    ifrCb.type = 'checkbox';
+    ifrCb.checked = !!p.blockIframes;
+    ifrCb.title = 'Блокувати сторонні iFrames для поточного сайту (перезавантажить сторінку)';
+    ifrCb.onchange = () => { api.cmd('siteBlockIframes', { on: ifrCb.checked }); };
+    ifrToggle.append(ifrInfo, ifrCb);
+    siteOpts.append(ifrToggle);
+
+    box.append(siteOpts);
   } else {
     box.append(el('div', 'vtxt', 'Внутрішня сторінка або файл: зовнішні трекери відсутні.'));
   }

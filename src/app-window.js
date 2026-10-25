@@ -9,6 +9,7 @@ const appCommands = require('./app-commands');
 const appVaultUi = require('./app-vault-ui');
 const appMenus = require('./app-menus');
 const appExec = require('./app-exec');
+const glance = require('./glance');
 const { chromeIdentity } = require('./chrome-identity');
 const fs = require('fs');
 const path = require('path');
@@ -96,6 +97,7 @@ class AppWindow {
 
     this.win.on('resize', () => {
       this.layout();
+      if (this.glanceView) this.closeGlance();
       const v = this.vertical();
       if (v !== this._lastVertical) { this._lastVertical = v; this.push(); }
     });
@@ -639,6 +641,7 @@ class AppWindow {
     if (ctrl && !input.alt) {
       if (input.shift) {
         if (key === 't') return run('reopenClosed');
+        if (key === 's') return run('stashTabs');
         if (key === 'n') return run('newIncognito');
         if (key === 'o') return run('openPage', 'bookmarks');
         if (key === 'a') return run('palette', 'tabs');
@@ -719,6 +722,6 @@ class AppWindow {
   }
 }
 
-Object.assign(AppWindow.prototype, tabGroups.methods, splitView.methods, aiTabs.methods, tabSleep.methods, appCommands.methods, appVaultUi.methods, appMenus.methods, appExec.methods);
+Object.assign(AppWindow.prototype, tabGroups.methods, splitView.methods, aiTabs.methods, tabSleep.methods, appCommands.methods, appVaultUi.methods, appMenus.methods, appExec.methods, glance.methods);
 
 module.exports = { AppWindow, SIDEBAR_W };

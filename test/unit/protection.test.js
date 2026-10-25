@@ -56,6 +56,19 @@ test('protection: мікрошум Canvas (applyCanvasNoise)', () => {
   assert.equal(p.applyCanvasNoise(null), false);
 });
 
+test('protection: мікрошум AudioContext (applyAudioNoise) та WebGL спуфінг', () => {
+  const buf = new Float32Array(64).fill(0.5);
+  const copy = new Float32Array(buf);
+  assert.equal(p.applyAudioNoise(buf), true);
+  assert.notDeepEqual(buf, copy);
+  for (let i = 0; i < buf.length; i++) {
+    assert.ok(Math.abs(buf[i] - copy[i]) < 0.0001);
+  }
+  assert.equal(p.applyAudioNoise(new Float32Array(8)), false);
+  assert.equal(p.applyAudioNoise(null), false);
+  assert.ok(p.WEBGL_SPOOF.vendor && p.WEBGL_SPOOF.renderer);
+});
+
 test('protection: стороннім вважається запит на інший сайт', () => {
   assert.equal(p.isThirdParty('https://cdn.tracker.net/a.js', 'news.example.com', siteKey), true);
   assert.equal(p.isThirdParty('https://static.example.com/a.js', 'news.example.com', siteKey), false, 'піддомен того ж сайту');

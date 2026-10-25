@@ -64,6 +64,17 @@ async function solanaExtrasTests() {
   ok((await w.solPriorityFee('mainnet-beta', 'fast', 1000)).micro === 1000n, 'priority: сміттєві значення ігноруються, мінімум 1 000');
   w._fees = [];
   ok((await w.solPriorityFee('mainnet-beta', 'fast', 1000)).micro === 5000n, 'priority: без даних про комісії — запасне значення 5 000');
+  w._fees = Array.from({ length: 25 }, () => ({ prioritizationFee: 40000 }));
+  const busy = await w.solPriorityFee('mainnet-beta', 'standard', 1000);
+  ok(busy.congested === true && busy.micro === 10000n && busy.instructions.length === 2, 'priority: standard при завантаженій мережі (≥20 записів, медіана ≥ 10 000) — захисний поріг ¼ медіани');
+  ok((await w.solPriorityFee('mainnet-beta', 'low', 1000)).micro === 0n, 'priority: low лишається без пріоритетної комісії навіть при завантаженій мережі');
+  w._fees = Array.from({ length: 25 }, () => ({ prioritizationFee: 100 }));
+  const calm = await w.solPriorityFee('mainnet-beta', 'standard', 1000);
+  ok(calm.congested === false && calm.micro === 0n && calm.instructions.length === 0, 'priority: standard при спокійній мережі — без комісії');
+  w._fees = [{ prioritizationFee: 2000 }, { prioritizationFee: 4000 }, { prioritizationFee: 6000 }];
+  ok((await w.solPriorityFee('mainnet-beta', 'dynamic', 1000)).micro === 4000n && (await w.solPriorityFee('mainnet-beta', 'auto', 1000)).micro === 4000n, 'priority: dynamic/auto — медіана недавніх комісій');
+  w._fees = Array.from({ length: 25 }, () => ({ prioritizationFee: 9_999_999_999 }));
+  ok((await w.solPriorityFee('mainnet-beta', 'standard', 1000)).micro === 1000000n && (await w.solPriorityFee('mainnet-beta', 'dynamic', 1000)).micro === 1000000n, 'priority: стеля 1 000 000 діє й для standard/dynamic');
   w.solRpc = async () => { throw new Error('мережа'); };
   ok((await w.solPriorityFee('mainnet-beta', 'fast', 1000)).micro === 5000n, 'priority: помилка RPC не блокує — запасне значення');
   ok(/Невідомий рівень/.test(await fails(() => w.solPriorityFee('mainnet-beta', 'warp', 1000))) && /Невідомий рівень/.test(await fails(() => w.solPriorityFee('mainnet-beta', {}, 1000))), 'priority: невідомий рівень відхиляється');

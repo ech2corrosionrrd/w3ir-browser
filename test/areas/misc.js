@@ -485,6 +485,94 @@ async function smallScreenTests(ctx) {
 }
 
 // Темний вигляд сайту: вмикається лише для вибраного домену, застосовується без перезавантаження й знімається
+// Glance (швидкий перегляд), Tab Stash та посайтові перемикачі Shield (No-JS, сторонні кадри)
+async function productivityTests(ctx) {
+  const w = [...ctx.windows].find(x => !x.incognito);
+  const hits = { inner: 0 };
+  const site = http.createServer((req, res) => {
+    res.setHeader('content-type', 'text/html; charset=utf-8');
+    if (req.url.startsWith('/inner')) { hits.inner++; return res.end('<title>inner</title>'); }
+    if (req.url.startsWith('/frame')) return res.end('<title>fr</title><iframe src="http://localhost:' + site.address().port + '/inner"></iframe>');
+    res.end('<title>start</title><script>document.title = "js-ran"</script>');
+  });
+  await new Promise(r => site.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + site.address().port;
+  try {
+    // --- Glance ---
+    ok(w.openGlance('javascript:alert(1)') === false && w.openGlance('file:///C:/Windows/win.ini') === false && !w.glanceView, 'glance: небезпечні схеми (javascript:, file:) відхиляються');
+    ok(w.openGlance(base + '/') === true && !!w.glanceView, 'glance: http-адреса відкривається в плаваючому вікні');
+    await sleep(1200);
+    const prefs = w.glanceView.webContents.getLastWebPreferences();
+    ok(prefs.sandbox === true && prefs.contextIsolation === true && !prefs.preload, 'glance: пісочниця й ізоляція контексту, без preload (немає мосту гаманця й IPC браузера)');
+    ok(w.glanceView.webContents.getURL().startsWith(base), 'glance: сторінка завантажилась');
+    w.openGlance(base + '/frame');
+    ok(w.glanceView && w.glanceUrl === base + '/frame', 'glance: новий перегляд замінює попередній');
+    await sleep(800);
+    const before = w.tabs.length;
+    w.glanceToTab();
+    await sleep(300);
+    ok(!w.glanceView && w.tabs.length === before + 1 && w.tabUrl(w.active()).startsWith(base + '/frame'), 'glance: «у вкладку» закриває перегляд і відкриває адресу в новій вкладці');
+    w.closeTab(w.active().id);
+    w.openGlance(base + '/');
+    w.closeGlance();
+    ok(!w.glanceView && !w.glanceUrl, 'glance: закриття прибирає перегляд');
+
+    // --- No-JS ---
+    const page = w.createTab(base + '/', { activate: true });
+    await sleep(1500);
+    const wc = page.view.webContents;
+    ok(await wc.executeJavaScript('document.title') === 'js-ran', 'no-js: типово скрипти виконуються');
+    ctx.setNoJs('127.0.0.1', true);
+    ok(ctx.noJsAllowed('127.0.0.1') && ctx.cfg().noJsSites.includes('127.0.0.1'), 'no-js: сайт додано до списку');
+    wc.reload(); await sleep(1500);
+    ok(await wc.executeJavaScript('document.title') === 'start', 'no-js: скрипти сайту не виконуються');
+    ctx.setNoJs('127.0.0.1', false);
+    wc.reload(); await sleep(1500);
+    ok(await wc.executeJavaScript('document.title') === 'js-ran', 'no-js: вимкнення повертає скрипти');
+    ctx.setNoJs('127.0.0.1', true); ctx.setNoJs('127.0.0.1', false);
+    ok(!(ctx.cfg().noJsSites || []).includes('127.0.0.1'), 'no-js: список очищається');
+
+    // --- сторонні кадри ---
+    hits.inner = 0;
+    wc.loadURL(base + '/frame'); await sleep(1500);
+    ok(hits.inner === 1, 'iframes: типово сторонній кадр завантажується');
+    hits.inner = 0;
+    ctx.setBlockIframes('127.0.0.1', true);
+    ok(ctx.blockIframesAllowed('127.0.0.1'), 'iframes: сайт додано до списку');
+    wc.loadURL(base + '/frame'); await sleep(1500);
+    ok(hits.inner === 0, 'iframes: сторонній кадр не завантажується');
+    ctx.setBlockIframes('127.0.0.1', false);
+    w.closeTab(page.id);
+
+    // --- Tab Stash ---
+    const prevIds = w.tabs.map(x => x.id);
+    const a = w.createTab(base + '/?a', { activate: false });
+    const b = w.createTab(base + '/?b', { activate: true });
+    await sleep(1200);
+    const stashes = ctx.places.listStashes(200).length;
+    w.incognito = true;
+    try { w.exec('stashTabs'); } finally { w.incognito = false; }
+    ok(ctx.places.listStashes(200).length === stashes && w.tabs.some(x => x.id === a.id), 'stash: у приватному вікні набори не зберігаються');
+    w.exec('stashTabs');
+    await sleep(500);
+    const latest = ctx.places.latestStash();
+    ok(ctx.places.listStashes(200).length === stashes + 1 && latest.tabs.some(x => x.url.includes('?a')) && latest.tabs.some(x => x.url.includes('?b')), 'stash: незакріплені вкладки збережено в набір');
+    ok(!w.tabs.some(x => x.id === a.id || x.id === b.id) && w.tabs.length >= 1, 'stash: збережені вкладки закрито, вікно лишилось з вкладкою');
+    const n = w.tabs.length;
+    w.exec('restoreStash');
+    await sleep(800);
+    ok(w.tabs.length === n + latest.tabs.length && w.tabs.some(x => w.tabUrl(x).includes('?a')), 'stash: останній набір відновлюється');
+    ctx.places.deleteStash(latest.id);
+    // Tab Stash закрив і початкові вкладки: лишаємо одну, інакше закриється останнє вікно й застосунок завершиться
+    const keep = w.createTab('w3ir://newtab', { activate: true });
+    w.tabs.filter(x => x.id !== keep.id).forEach(x => w.closeTab(x.id));
+  } finally {
+    if (w.glanceView) w.closeGlance();
+    ctx.setNoJs('127.0.0.1', false); ctx.setBlockIframes('127.0.0.1', false);
+    site.closeAllConnections(); site.close();
+  }
+}
+
 async function darkTests(ctx) {
   const w = [...ctx.windows].find(x => !x.incognito);
   const site = http.createServer((req, res) => { res.setHeader('content-type', 'text/html'); res.end('<title>dk</title><p>text</p>'); });
@@ -512,4 +600,4 @@ async function darkTests(ctx) {
   site.closeAllConnections(); site.close();
 }
 
-module.exports = { smallScreenTests, ledgerBridgeTests, ipfsSchemeTests, darkTests, failoverTests, auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };
+module.exports = { productivityTests, smallScreenTests, ledgerBridgeTests, ipfsSchemeTests, darkTests, failoverTests, auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests };

@@ -27,7 +27,7 @@ const { pdfTests } = require('./areas/pdf');
 const { stabilityTests } = require('./areas/stability');
 const { protectionTests } = require('./areas/protection');
 const { historyEvmTests } = require('./areas/history-evm');
-const { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests, darkTests, ipfsSchemeTests, ledgerBridgeTests, smallScreenTests } = require('./areas/misc');
+const { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTests, brandTests, dashboardTests, rpcListTests, darkTests, ipfsSchemeTests, ledgerBridgeTests, smallScreenTests, productivityTests } = require('./areas/misc');
 
 // W3IR_ONLY=updateTests,agentTests — запустити лише названі області (швидка перевірка окремих тестів)
 const only = process.env.W3IR_ONLY ? new Set(process.env.W3IR_ONLY.split(',')) : null;
@@ -79,6 +79,7 @@ module.exports = async function run(ctx) {
     await step('ipfsSchemeTests', () => ipfsSchemeTests(ctx));
     await step('ledgerBridgeTests', () => ledgerBridgeTests(ctx));
     await step('smallScreenTests', () => smallScreenTests(ctx));
+    await step('productivityTests', () => productivityTests(ctx));
     await step('brandTests', () => brandTests());
     await step('designTests', () => designTests());
     await step('guardTests', () => guardTests());

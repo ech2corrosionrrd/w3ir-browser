@@ -375,6 +375,7 @@ class Wallet {
 }
 
 require('./wallet-solana').install(Wallet, { RpcError, isSafeRpc, clip, unauthorized });
+require('./wallet-arweave').install(Wallet, { RpcError, unauthorized, clip });
 require('./wallet-evm-tokens').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-evm-nft').install(Wallet, { RpcError, clip, unauthorized });
 require('./wallet-extras').install(Wallet, { RpcError, clip, unauthorized });

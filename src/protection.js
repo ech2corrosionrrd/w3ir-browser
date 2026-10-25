@@ -30,6 +30,21 @@ function applyCanvasNoise(uint8Arr) {
   return true;
 }
 
+// Внесення мікрошуму в аудіобуфер для захисту від акустичних відбитків AudioContext
+function applyAudioNoise(floatArr) {
+  if (!floatArr || floatArr.length < 16) return false;
+  const step = Math.max(8, Math.floor(floatArr.length / 32));
+  for (let i = 0; i < floatArr.length; i += step) {
+    floatArr[i] = floatArr[i] + ((i % 2 === 0) ? 0.0000001 : -0.0000001);
+  }
+  return true;
+}
+
+const WEBGL_SPOOF = {
+  vendor: 'Google Inc. (Intel)',
+  renderer: 'ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0)',
+};
+
 function webrtcPolicy(v) {
   return { standard: 'default', strict: 'default_public_interface_only', maximum: 'disable_non_proxied_udp' }[level(v)];
 }
@@ -78,4 +93,4 @@ function shieldSummary({ adblock = true, siteAllowed = false, protection = 'stan
   };
 }
 
-module.exports = { LEVELS, PRESETS, level, isStrict, webrtcPolicy, isThirdParty, stripCookieRequest, stripSetCookie, dropReferrer, roundDimension, applyCanvasNoise, shieldSummary };
+module.exports = { LEVELS, PRESETS, level, isStrict, webrtcPolicy, isThirdParty, stripCookieRequest, stripSetCookie, dropReferrer, roundDimension, applyCanvasNoise, applyAudioNoise, WEBGL_SPOOF, shieldSummary };

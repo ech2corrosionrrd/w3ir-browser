@@ -36,6 +36,7 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
       this.touchSite(origin);
       const sameTab = () => win.tabs.includes(tab) && (() => { try { return new URL(tab.view.webContents.getURL()).origin === origin; } catch { return false; } })();
       if (method.startsWith('solana_')) return this.solRequest(win, tab, origin, method, params[0], sameTab);
+      if (method.startsWith('arweave_')) return this.arRequest(win, tab, origin, method, params[0], sameTab);
 
       const blocked = guard.rejectReason(method);
       if (blocked) throw new RpcError(4200, blocked);
