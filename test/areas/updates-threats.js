@@ -323,6 +323,7 @@ async function threatTests(ctx) {
   // --- оновлення списків із сервера, збереження, відновлення ---
   let status = 200;
   const srv = http.createServer((req, res) => {
+    if (req.url === '/gone') { res.writeHead(410); return res.end(); }
     if (status !== 200) { res.writeHead(status); return res.end(); }
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end(req.url === '/hosts' ? '# URLhaus\n127.0.0.1\tmalware-host.test\n127.0.0.1\tphish.localhost\n' : 'phish-one.test\nphish-two.test\n');
@@ -343,6 +344,9 @@ async function threatTests(ctx) {
   await up.update();
   ok(/HTTP 500/.test(up.meta.error) && up.check('https://phish-one.test/'), 'threats: помилка оновлення не стирає чинні списки');
   status = 200;
+  const mixed = mk({ dir: tmp('threats-mixed'), allowInsecure: true, sources: [{ id: 'u', kind: 'malware', title: 'U', url: base + '/gone' }, { id: 'p', kind: 'phishing', title: 'P', url: base + '/plain' }] });
+  await mixed.update();
+  ok(/u: HTTP 410/.test(mixed.meta.error) && mixed.status().counts.phishing === 2 && mixed.check('https://phish-two.test/'), 'threats: збій одного джерела не блокує оновлення інших');
 
   // --- інтеграція: сторінка-попередження, обхід, довіра, вимкнення ---
   const w = [...ctx.windows][0];

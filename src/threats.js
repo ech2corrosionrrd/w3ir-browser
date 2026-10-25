@@ -132,6 +132,7 @@ class Threats {
   set meta(v) { this.shared.meta = v; }
 
   file(kind) { return path.join(this.dir, `threats-${kind}.bin`); }
+  srcFile(id) { return path.join(this.dir, `threats-src-${id.replace(/[^a-z0-9_-]/gi, '_')}.bin`); }
   metaFile() { return path.join(this.dir, 'threats-meta.json'); }
 
   load() {
@@ -142,6 +143,13 @@ class Threats {
         this.lists[kind] = new BigUint64Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength - (buf.byteLength % 8)));
       }
     } catch { /* списків ще немає */ }
+    const bySrc = (this.shared.bySrc = this.shared.bySrc || {});
+    for (const src of this.sources) {
+      try {
+        const buf = fs.readFileSync(this.srcFile(src.id));
+        bySrc[src.id] = new BigUint64Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength - (buf.byteLength % 8)));
+      } catch { /* збереженого списку джерела ще немає */ }
+    }
   }
 
   setLists({ malware = [], phishing = [] }) {
@@ -166,32 +174,51 @@ class Threats {
     this.running = (async () => {
       await null;
       try {
-        const fresh = {};
-        const counts = {};
+        // Кожне джерело незалежне: збій одного не скасовує інші, а його попередній список лишається чинним
+        const bySrc = (this.shared.bySrc = this.shared.bySrc || {});
+        const counts = { ...(this.meta.counts || {}) };
+        const errors = [];
+        let loaded = 0;
         for (const src of this.sources) {
-          if (!this.allowInsecure && !src.url.startsWith('https://')) throw new Error('insecure source');
-          const res = await fetch(src.url, { signal: AbortSignal.timeout(90000), redirect: 'follow', headers: { 'User-Agent': 'W3IR-Browser' } });
-          if (!res.ok) throw new Error(`${src.id}: HTTP ${res.status}`);
-          if (!this.allowInsecure && res.url && !res.url.startsWith('https://')) throw new Error('insecure redirect');
-          const len = Number(res.headers.get('content-length') || 0);
-          if (len > MAX_LIST_BYTES) throw new Error(`${src.id}: список надто великий`);
-          const text = await readCapped(res, MAX_LIST_BYTES, src.id);
-          const set = src.format === 'json-blacklist' ? parseBlacklistJson(text) : parseList(text);
-          if (set.size < 1) throw new Error(`${src.id}: порожній список`);
-          const target = (fresh[src.kind] = fresh[src.kind] || new Set());
-          for (const d of set) target.add(hash8(d));
-          counts[src.id] = set.size;
+          try {
+            if (!this.allowInsecure && !src.url.startsWith('https://')) throw new Error(`${src.id}: insecure source`);
+            const res = await fetch(src.url, { signal: AbortSignal.timeout(90000), redirect: 'follow', headers: { 'User-Agent': 'W3IR-Browser' } });
+            if (!res.ok) throw new Error(`${src.id}: HTTP ${res.status}`);
+            if (!this.allowInsecure && res.url && !res.url.startsWith('https://')) throw new Error(`${src.id}: insecure redirect`);
+            const len = Number(res.headers.get('content-length') || 0);
+            if (len > MAX_LIST_BYTES) throw new Error(`${src.id}: список надто великий`);
+            const text = await readCapped(res, MAX_LIST_BYTES, src.id);
+            const set = src.format === 'json-blacklist' ? parseBlacklistJson(text) : parseList(text);
+            if (set.size < 1) throw new Error(`${src.id}: порожній список`);
+            const arr = BigUint64Array.from(new Set([...set].map(hash8)));
+            arr.sort();
+            writeAtomic(fs, this.srcFile(src.id), Buffer.from(arr.buffer, arr.byteOffset, arr.byteLength));
+            bySrc[src.id] = arr;
+            counts[src.id] = set.size;
+            loaded++;
+          } catch (e) {
+            errors.push(String(e.message || e));
+          }
         }
-        for (const kind of Object.keys(fresh)) {
-          const arr = BigUint64Array.from(fresh[kind]);
-          arr.sort();
-          writeAtomic(fs, this.file(kind), Buffer.from(arr.buffer, arr.byteOffset, arr.byteLength));
-          this.lists[kind] = arr;
+        if (loaded) {
+          for (const kind of new Set(this.sources.map(x => x.kind))) {
+            const mine = this.sources.filter(x => x.kind === kind);
+            const union = new Set();
+            // джерело без збереженого списку (перший запуск після оновлення): лишаємо чинний список виду, щоб не втратити записи
+            if (mine.some(x => !bySrc[x.id])) for (const h of this.lists[kind]) union.add(h);
+            for (const x of mine) if (bySrc[x.id]) for (const h of bySrc[x.id]) union.add(h);
+            const arr = BigUint64Array.from(union);
+            arr.sort();
+            writeAtomic(fs, this.file(kind), Buffer.from(arr.buffer, arr.byteOffset, arr.byteLength));
+            this.lists[kind] = arr;
+          }
+          this.meta = { updated: Date.now(), counts, error: errors.join('; ').slice(0, 200) };
+          writeAtomic(fs, this.metaFile(), JSON.stringify(this.meta));
+        } else {
+          this.meta.error = errors.join('; ').slice(0, 200); // старі списки лишаються в силі
         }
-        this.meta = { updated: Date.now(), counts, error: '' };
-        writeAtomic(fs, this.metaFile(), JSON.stringify(this.meta));
       } catch (e) {
-        this.meta.error = String(e.message || e).slice(0, 200); // старі списки лишаються в силі
+        this.meta.error = String(e.message || e).slice(0, 200);
       } finally {
         this.running = null;
         this.onChange();
