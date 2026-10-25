@@ -56,7 +56,7 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   const newtab = await waitFor(async () => (await find(t => t.url.startsWith('w3ir://newtab')))[0], 10000);
   ok(!!newtab, 'нова вкладка відкрита');
   if (newtab) {
-    ok(await ev(newtab, `document.querySelector('.brand .mark') && document.querySelector('.brand .mark').naturalWidth > 100 && document.querySelector('.brand .wordmark').naturalWidth > 100`), 'нова вкладка: знак і вордмарк бренду завантажені');
+    ok(await ev(newtab, `document.querySelector('.brand-s .mark') && document.querySelector('.brand-s .mark').naturalWidth > 100 && document.querySelector('.brand-s .wordmark').naturalWidth > 100`), 'нова вкладка: знак і вордмарк бренду завантажені');
     ok(await ev(newtab, `document.documentElement.classList.contains('newtab') && getComputedStyle(document.documentElement).backgroundImage.includes('gradient')`), 'нова вкладка: фірмовий фон (градієнт)');
     await shot(newtab, 'i-newtab');
   }
@@ -99,10 +99,10 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   const st = await (async () => { const s = (await find(t => /^w3ir:\/\/settings\/?$/.test(t.url)))[0]; return s ? await ev(s, `w3ir.invoke('safe:status')`) : null; })();
   if (st) { await waitFor(async () => { const s = (await find(t => /^w3ir:\/\/settings\/?$/.test(t.url)))[0]; const r = await ev(s, `w3ir.invoke('safe:update')`); return r && r.counts && r.counts.phishing > 1000 ? r : null; }, 90000, 1000); }
   const st2 = await (async () => { const s = (await find(t => /^w3ir:\/\/settings\/?$/.test(t.url)))[0]; return s ? await ev(s, `w3ir.invoke('safe:status')`) : null; })();
-  ok(st2 && st2.counts.phishing > 100000 && st2.counts.malware >= 0 && st2.sources.length === 3, 'захист: списки (URLhaus, Phishing.Database, MetaMask) завантажені з мережі', st2);
+  ok(st2 && st2.counts.phishing > 100000 && st2.counts.malware >= 0 && st2.sources.length === 4, 'захист: списки (URLhaus, Phishing.Database, MetaMask, Polkadot-JS) завантажені з мережі', st2);
   const dash = (await find(t => /^w3ir:\/\/dashboard\/?$/.test(t.url)))[0];
   if (dash) {
-    await ev(dash, `[...document.querySelectorAll('button')].find(b => b.textContent.includes('Перевірити вузли')).click()`);
+    await ev(dash, `[...document.querySelectorAll('button')].find(b => b.textContent.includes('Перевірити мережі')).click()`);
     const greens = await waitFor(async () => { const n = await ev(dash, `document.querySelectorAll('.net .dot.ok').length`); return n >= 7 ? n : null; }, 20000);
     ok(greens >= 7, `Панель: пінг RPC — зелених вузлів ${greens || 0} з 8`);
     await sleep(500); await shot(dash, 'i-dashboard-ping');
@@ -209,7 +209,7 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   // ---- темна тема ----
   await ev(settings, `w3ir.invoke('settings:set', { theme: 'dark' })`); await sleep(1500);
   const bgUi = await ev(ui, `getComputedStyle(document.body).backgroundColor`);
-  ok(bgUi === 'rgb(20, 18, 47)', 'дизайн: темна тема — фон інтерфейсу індиго (#14122F)', bgUi);
+  ok(bgUi === 'rgb(16, 20, 26)', 'дизайн: темна тема — фон інтерфейсу Obsidian (#10141A)', bgUi);
   await shot(ui, 'i-dark-ui');
 
   // ---- вкладки: закриття повільним кліком і вигляд закріпленої вкладки ----
