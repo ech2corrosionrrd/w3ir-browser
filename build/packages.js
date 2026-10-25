@@ -58,7 +58,7 @@ fs.writeFileSync(path.join(choco, 'w3ir-browser.nuspec'), `<?xml version="1.0" e
     <authors>W3IR</authors>
     <owners>ech2corrosionrrd</owners>
     <copyright>Copyright (c) 2026 W3IR</copyright>
-    <iconUrl>https://raw.githubusercontent.com/${REPO}/e5f32a4e08e23714983a2d8b23cdf4b083957c6f/build/brand/icon-512.png</iconUrl>
+    <iconUrl>https://cdn.jsdelivr.net/gh/${REPO}@e5f32a4e08e23714983a2d8b23cdf4b083957c6f/build/brand/icon-512.png</iconUrl>
     <projectUrl>https://github.com/${REPO}</projectUrl>
     <licenseUrl>https://github.com/${REPO}/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
