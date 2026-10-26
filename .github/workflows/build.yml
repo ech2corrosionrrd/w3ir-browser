@@ -15,9 +15,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version: 24, cache: npm }
       - run: npm ci --ignore-scripts
       - name: Завантажити Electron (скрипти встановлення вимкнено вище)
@@ -52,13 +52,13 @@ jobs:
         # манифест оновлення: latest.yml для стабільних версій, beta.yml для пре-релізів (v*-beta.*)
         run: cd dist && sha256sum *.exe $(ls latest.yml beta.yml 2>/dev/null) | tee SHA256SUMS.txt
       - name: Підтвердження походження збірок (Build Provenance Attestation)
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-path: |
             dist/*.exe
             dist/latest.yml
             dist/beta.yml
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: dist
           if-no-files-found: error
@@ -74,9 +74,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version: 24, cache: npm }
       - run: npm ci --ignore-scripts
       - name: Завантажити Electron (скрипти встановлення вимкнено вище)
@@ -88,12 +88,12 @@ jobs:
       - name: Контрольні суми
         run: cd dist && sha256sum *.AppImage *.deb | tee SHA256SUMS-linux.txt
       - name: Підтвердження походження збірок (Build Provenance Attestation)
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-path: |
             dist/*.AppImage
             dist/*.deb
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: dist-linux
           if-no-files-found: error
@@ -107,9 +107,9 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version: 24, cache: npm }
       - run: npm ci --ignore-scripts
       - name: Завантажити Electron (скрипти встановлення вимкнено вище)
@@ -123,12 +123,12 @@ jobs:
       - name: Контрольні суми
         run: cd dist && shasum -a 256 *.dmg *.zip | tee SHA256SUMS-mac.txt
       - name: Підтвердження походження збірок (Build Provenance Attestation)
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-path: |
             dist/*.dmg
             dist/*.zip
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: dist-macos
           if-no-files-found: error
