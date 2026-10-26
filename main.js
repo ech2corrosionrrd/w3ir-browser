@@ -25,6 +25,9 @@ protocol.registerSchemesAsPrivileged([
 // Лише для розробки/тестів: окрема тека даних (ізоляція від встановленої копії та власне блокування одного екземпляра)
 if (!app.isPackaged && process.env.W3IR_USER_DATA) app.setPath('userData', process.env.W3IR_USER_DATA);
 
+// Лише для розробки: запис вихідних запитів у файл (npm run net-audit), у пакованій збірці не вмикається
+if (!app.isPackaged && process.env.W3IR_NET_AUDIT) require('./src/net-audit').install(app, process.env.W3IR_NET_AUDIT);
+
 // Crash log without secrets + handlers: errors are logged (not swallowed silently); repeated fatal errors end the app safely
 const { CrashLog, install: installCrashHandlers } = require('./src/crash-log');
 const crashLog = new CrashLog(path.join(app.getPath('userData'), 'crash.log'));

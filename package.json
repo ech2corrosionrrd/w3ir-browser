@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "test": "node build/run-tests.js",
     "test:unit": "node build/run-unit.js",
+    "net-audit": "node build/net-audit.js",
     "test:coverage": "node build/run-unit.js --coverage",
     "ci": "node build/ci-local.js",
     "smoke": "electron .",
