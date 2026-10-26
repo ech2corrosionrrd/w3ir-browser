@@ -187,3 +187,10 @@ test('places: ftsQuery робить безпечний запит FTS5', { skip:
   assert.equal(ftsQuery(null), null);
   assert.equal(ftsQuery('1 2 3 4 5 6 7 8 9 10').split(' ').length, 8);
 });
+
+test('crash-log: TOTP-секрети та otpauth-посилання не потрапляють у журнал', () => {
+  const { redact } = require(path.join(__dirname, '..', '..', 'src', 'crash-log.js'));
+  for (const s of ['bad totp: JBSWY3DPEHPK3PXP in entry', 'otpauth://totp/GitHub:me?secret=JBSWY3DPEHPK3PXP&issuer=GitHub', '{"totp":"JBSWY3DPEHPK3PXP"}']) {
+    assert.ok(!redact(s).includes('JBSWY3DPEHPK3PXP'), s);
+  }
+});

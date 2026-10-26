@@ -8,7 +8,7 @@ const PER_MINUTE = 30;
 function redact(input) {
   let s = String(input == null ? '' : input);
   s = s.replace(/[A-Za-z]:\\Users\\[^\\/\s'"]+/gi, '<home>');
-  s = s.replace(/(bearer|authorization|token|password|passphrase|seed|mnemonic|secret|private[_ -]?key|api[_-]?key)(["'\s:=]+)[^\s,;"'}]+/gi, '$1$2[redacted]');
+  s = s.replace(/(bearer|authorization|token|password|passphrase|seed|mnemonic|secret|totp|otp|private[_ -]?key|api[_-]?key)(["'\s:=]+)[^\s,;"'}]+/gi, '$1$2[redacted]');
   s = s.replace(/\b(?:[a-z]{3,8}\s+){11,}[a-z]{3,8}\b/g, '[words]');
   s = s.replace(/\b0x[0-9a-fA-F]{40,}\b/g, '[hex]');
   s = s.replace(/\b[0-9a-fA-F]{40,}\b/g, '[hex]');

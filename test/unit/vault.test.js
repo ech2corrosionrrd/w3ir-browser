@@ -219,3 +219,72 @@ test('vault: життєвий цикл сховища (create, lock, unlock, CRU
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+// ---------- міграція, відкат .bak і цілісність файлу сховища ----------
+const FIXTURE = path.join(__dirname, 'fixtures', 'vault-v1.fixture.json'); // заморожений файл формату v1 (тестовий пароль)
+const FIXTURE_MASTER = 'Fixture-Master-2026!';
+const withVaultDir = async (fn) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'v-mig-'));
+  try { return await fn(dir); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+};
+
+test('vault: заморожена фікстура формату v1 відкривається поточним кодом (захист від випадкової зміни формату)', async () => {
+  await withVaultDir(async (dir) => {
+    fs.copyFileSync(FIXTURE, path.join(dir, 'vault.bin'));
+    const v = new Vault({ dir, usePepper: false });
+    const r = await v.unlock(FIXTURE_MASTER);
+    assert.equal(r.ok, true, 'фікстуру v1 має бути можливо відкрити');
+    const [e] = v.list();
+    assert.equal(e.host, 'example.com');
+    assert.equal(v.get(e.id).password, 'fixture-pass-1');
+    assert.equal(v.get(e.id).totp, 'JBSWY3DPEHPK3PXP');
+  });
+});
+
+test('vault: змінений заголовок чи шифртекст не відкривається; неправильний пароль не відкриває', async () => {
+  await withVaultDir(async (dir) => {
+    const file = path.join(dir, 'vault.bin');
+    const orig = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
+    const tries = {
+      'змінено параметр KDF (r)': { ...orig, kdf: { ...orig.kdf, r: orig.kdf.r * 2 } },
+      'змінено сіль': { ...orig, kdf: { ...orig.kdf, salt: Buffer.alloc(16, 1).toString('base64') } },
+      'змінено шифртекст': { ...orig, ct: Buffer.from(orig.ct, 'base64').map((b, i) => (i === 3 ? b ^ 1 : b)).toString('base64') },
+    };
+    for (const [name, doc] of Object.entries(tries)) {
+      fs.writeFileSync(file, JSON.stringify(doc));
+      const v = new Vault({ dir, usePepper: false });
+      assert.equal((await v.unlock(FIXTURE_MASTER)).ok, false, name);
+      assert.equal(v.status(), 'locked', name);
+    }
+    fs.copyFileSync(FIXTURE, file);
+    const v = new Vault({ dir, usePepper: false });
+    assert.equal((await v.unlock('Wrong-Master-2026!')).ok, false);
+  });
+});
+
+test('vault: обрізаний файл відновлюється з .bak, пошкоджений зберігається окремо', async () => {
+  await withVaultDir(async (dir) => {
+    const file = path.join(dir, 'vault.bin');
+    fs.copyFileSync(FIXTURE, file + '.bak');
+    fs.writeFileSync(file, fs.readFileSync(FIXTURE, 'utf8').slice(0, 80)); // обрив запису посеред JSON
+    const v = new Vault({ dir, usePepper: false });
+    const r = await v.unlock(FIXTURE_MASTER);
+    assert.equal(r.ok, true, 'має відкритися з резервної копії');
+    assert.equal(v.recoveredFromBackup, true);
+    assert.ok(fs.readdirSync(dir).some(n => n.startsWith('vault.bin.corrupt-')), 'пошкоджений файл збережено для розбору');
+  });
+});
+
+test('vault: файл із хибною структурою не підміняється резервною копією (немає примусового відкату)', async () => {
+  await withVaultDir(async (dir) => {
+    const file = path.join(dir, 'vault.bin');
+    fs.copyFileSync(FIXTURE, file + '.bak');
+    const tampered = JSON.stringify({ v: 1, kdf: { n: 2, r: 1, p: 1, salt: 'AAAA' }, pepper: false, iv: '', tag: '', ct: '' }); // небезпечно слабкий KDF
+    fs.writeFileSync(file, tampered);
+    const v = new Vault({ dir, usePepper: false });
+    const r = await v.unlock(FIXTURE_MASTER);
+    assert.equal(r.ok, false, 'слабкі параметри KDF відхиляються');
+    assert.equal(fs.readFileSync(file, 'utf8'), tampered, 'файл не перезаписано з .bak');
+    assert.ok(!fs.readdirSync(dir).some(n => n.includes('.corrupt-')));
+  });
+});
