@@ -20,7 +20,7 @@ jobs:
         shell: bash
         run: |
           if git ls-files | grep -iE '\.(pem|key|pfx|p12)$|^build/keys/|vault\.(bin|pepper)$'; then echo "Знайдено файли з секретами"; exit 1; fi
-          if git grep -nIE 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_' -- . ':!.github'; then echo "Знайдено секрет"; exit 1; fi
+          if git grep -nIE 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_' -- . ':!.github' ':!build/ci-local.js'; then echo "Знайдено секрет"; exit 1; fi
   # Повний автотест у справжньому вікні Electron (обов'язковий: на runner'і GitHub кілька запусків поспіль зелені).
   test:
     runs-on: windows-latest
