@@ -2813,5 +2813,6 @@
  "W3IR Shield вимкнено. Клік — деталі захисту": "W3IR Shield deaktiviert. Klick für Schutzdetails",
  "W3IR Shield Privacy Center (клік на 🛡)": "W3IR Shield Privacy Center (Klick auf 🛡)",
  "W3IR Shield: захист приватності (заблоковано: {0}). Клік — деталі захисту": "W3IR Shield: Datenschutz ({0} blockiert). Klick für Schutzdetails",
- "Windows попереджає (SmartScreen) під час встановлення": "Windows warnt (SmartScreen) bei der Installation"
+ "Windows попереджає (SmartScreen) під час встановлення": "Windows warnt (SmartScreen) bei der Installation",
+ "Вбудований рушій Chromium застарів: оновіть браузер, щоб отримати виправлення безпеки.": "Die integrierte Chromium-Engine ist veraltet: Aktualisieren Sie den Browser, um Sicherheitskorrekturen zu erhalten."
 }

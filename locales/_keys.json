@@ -58,7 +58,7 @@
   "src/app-window.js:265"
  ],
  "(керування)": [
-  "pages/dashboard.js:243"
+  "pages/dashboard.js:244"
  ],
  "(Керує ШІ)": [
   "src/app-window.js:265"
@@ -70,7 +70,7 @@
   "pages/profiles.js:15"
  ],
  "(читання)": [
-  "pages/dashboard.js:243"
+  "pages/dashboard.js:244"
  ],
  "(F1). Наведіть курсор на параметр, щоб побачити пояснення.": [
   "pages/settings.js:348"
@@ -192,7 +192,7 @@
   "src/wallet-solana.js:671"
  ],
  "{0} КБ": [
-  "pages/dashboard.js:262"
+  "pages/dashboard.js:263"
  ],
  "{0} МБ": [
   "pages/dashboard.js:22"
@@ -205,7 +205,7 @@
   "src/wallet-solana.js:448"
  ],
  "{0} мс": [
-  "pages/dashboard.js:226"
+  "pages/dashboard.js:227"
  ],
  "{0} Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам.": [
   "src/downloads.js:96"
@@ -603,7 +603,7 @@
   "pages/help-data.js:260"
  ],
  "Адресу не знайдено (розблокуйте сховище).": [
-  "src/dashboard.js:220"
+  "src/dashboard.js:234"
  ],
  "Акаунт інструкції поза списком": [
   "src/solana.js:143"
@@ -742,7 +742,7 @@
   "pages/settings.js:57"
  ],
  "Блокування реклами вимкнено.": [
-  "pages/dashboard.js:192"
+  "pages/dashboard.js:193"
  ],
  "Блокування реклами й трекерів (🛡)": [
   "pages/help-data.js:109"
@@ -853,6 +853,9 @@
  ],
  "Вбудований помічник використовує модель Ollama на вашому ж комп’ютері: ваші запити й вміст сторінок не йдуть до сторонніх ШІ-сервісів. Сервер керування браузером для Claude Code слухає лише `127.0.0.1` (ваш комп’ютер), вимкнений за замовчуванням і захищений токеном.": [
   "pages/help-data.js:180"
+ ],
+ "Вбудований рушій Chromium застарів: оновіть браузер, щоб отримати виправлення безпеки.": [
+  "pages/dashboard.js:191"
  ],
  "Вбудовані: gh owner/repo, ghi, ghp, gha, ghc, npm, mdn, yt, wiki, crates, pypi": [
   "pages/settings.js:433"
@@ -1104,7 +1107,7 @@
   "pages/settings.js:459"
  ],
  "Вимкнено": [
-  "pages/dashboard.js:237",
+  "pages/dashboard.js:238",
   "ui/overlay.js:489",
   "ui/overlay.js:490"
  ],
@@ -1127,7 +1130,7 @@
   "ui/overlay.js:90"
  ],
  "Вимкнути": [
-  "pages/dashboard.js:247",
+  "pages/dashboard.js:248",
   "pages/settings.js:215"
  ],
  "Вимкнути блокування реклами": [
@@ -1247,7 +1250,7 @@
   "pages/help-data.js:443"
  ],
  "відкрите": [
-  "pages/dashboard.js:240"
+  "pages/dashboard.js:241"
  ],
  "Відкрити": [
   "src/app-window.js:473",
@@ -1381,7 +1384,7 @@
   "pages/help-data.js:60"
  ],
  "Вікно ШІ": [
-  "pages/dashboard.js:240"
+  "pages/dashboard.js:241"
  ],
  "вікон: {0} · закріплено: {1} · зі звуком: {2}": [
   "pages/dashboard.js:122"
@@ -1437,7 +1440,7 @@
   "src/app-exec.js:56"
  ],
  "Вкладки за пам’яттю": [
-  "pages/dashboard.js:313"
+  "pages/dashboard.js:314"
  ],
  "Вкладки та вікна": [
   "pages/help-data.js:40",
@@ -1562,8 +1565,8 @@
   "pages/common.js:34"
  ],
  "Гаманець": [
-  "src/dashboard.js:161",
-  "pages/dashboard.js:257",
+  "src/dashboard.js:175",
+  "pages/dashboard.js:258",
   "pages/newtab.js:50"
  ],
  "Гаманець — це програма, яка зберігає ваші «ключі» від криптовалюти. Самі монети лежать не в гаманці, а в блокчейні — спільній книзі записів, яку ведуть тисячі комп’ютерів. Гаманець лише доводить, що саме ви власник адреси, і підписує ваші операції. У W3IR Browser гаманець уже вбудований, окреме розширення не потрібне.": [
@@ -1638,7 +1641,7 @@
   "pages/help-data.js:249"
  ],
  "Гаманець Web3 ще не створено.": [
-  "pages/dashboard.js:209"
+  "pages/dashboard.js:210"
  ],
  "Гаманець Web3: рахунки, мережі, підключені сайти, журнал дій.": [
   "src/tips.js:49"
@@ -1739,14 +1742,14 @@
   "src/wallet-dapp.js:226"
  ],
  "Дані недоступні.": [
-  "pages/dashboard.js:267"
+  "pages/dashboard.js:268"
  ],
  "Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.": [
   "src/wallet-dapp.js:208",
   "src/wallet-solana.js:588"
  ],
  "Дані сайтів": [
-  "pages/dashboard.js:277"
+  "pages/dashboard.js:278"
  ],
  "Дані сайту очищено": [
   "src/app-exec.js:358"
@@ -2179,7 +2182,7 @@
   "src/assistant.js:32"
  ],
  "Є зауваження": [
-  "pages/dashboard.js:196"
+  "pages/dashboard.js:197"
  ],
  "Єдиний пошук по відкритих вкладках, командах, закладках та історії.": [
   "src/tips.js:22"
@@ -2191,7 +2194,7 @@
   "pages/wallet.js:600"
  ],
  "Журнал": [
-  "pages/dashboard.js:258"
+  "pages/dashboard.js:259"
  ],
  "Журнал дій": [
   "pages/wallet.js:960"
@@ -2200,7 +2203,7 @@
   "pages/settings.js:107"
  ],
  "Журнал очищення": [
-  "pages/dashboard.js:283"
+  "pages/dashboard.js:284"
  ],
  "Журнал crash.log": [
   "pages/help-data.js:426"
@@ -2422,7 +2425,7 @@
   "pages/help.js:74"
  ],
  "закрите": [
-  "pages/dashboard.js:240"
+  "pages/dashboard.js:241"
  ],
  "Закрити": [
   "src/app-menus.js:162",
@@ -2546,7 +2549,7 @@
   "src/assistant.js:79"
  ],
  "Запит eth_chainId лише до RPC ваших мереж, за натисканням": [
-  "pages/dashboard.js:229"
+  "pages/dashboard.js:230"
  ],
  "Запитати": [
   "pages/assistant.js:7"
@@ -2622,7 +2625,7 @@
   "pages/help-data.js:144"
  ],
  "Захист від шахрайських сайтів вимкнено.": [
-  "pages/dashboard.js:191"
+  "pages/dashboard.js:192"
  ],
  "Захист за сеанс": [
   "pages/dashboard.js:96"
@@ -2766,7 +2769,7 @@
   "pages/passwords.js:179"
  ],
  "Збій": [
-  "pages/dashboard.js:248"
+  "pages/dashboard.js:249"
  ],
  "Збій вкладки чи інтерфейсу": [
   "pages/help-data.js:424"
@@ -2793,8 +2796,8 @@
   "pages/wallet.js:1087"
  ],
  "Звільнено {0}": [
-  "pages/dashboard.js:268",
-  "pages/dashboard.js:282"
+  "pages/dashboard.js:269",
+  "pages/dashboard.js:283"
  ],
  "Звісно, браузер звертається до сайтів, які ви відкриваєте. Крім того, він сам: перевіряє оновлення (у GitHub Releases, раз на 6 годин; кожне оновлення перевіряється цифровим підписом) і завантажує списки блокування реклами та небезпечних сайтів із публічних джерел. Списки перевіряються на вашому комп’ютері, а адреси, які ви відвідуєте, нікуди не надсилаються.": [
   "pages/help-data.js:168"
@@ -3145,7 +3148,7 @@
   "src/assistant.js:83"
  ],
  "Керування браузером ШІ": [
-  "pages/dashboard.js:235"
+  "pages/dashboard.js:236"
  ],
  "Керування браузером ШІ (MCP)": [
   "pages/settings.js:429",
@@ -3156,7 +3159,7 @@
   "src/app-exec.js:272"
  ],
  "Керування даними сайтів": [
-  "pages/dashboard.js:278"
+  "pages/dashboard.js:279"
  ],
  "Керування профілями": [
   "src/app-commands.js:43"
@@ -3174,7 +3177,7 @@
   "pages/settings.js:469"
  ],
  "Кеш сторінок і коду": [
-  "pages/dashboard.js:276"
+  "pages/dashboard.js:277"
  ],
  "Кілька рахунків (до 10) з іменами, підключені сайти з кнопкою «Відключити», журнал дій зі статусами й посиланнями на оглядач, історія Solana з блокчейну (з експортом у CSV, контакти підписуються іменами), перегляд фрази (з майстер-паролем), вимкнення провайдера для сайтів і видалення гаманця.": [
   "pages/help-data.js:291"
@@ -3200,7 +3203,7 @@
   "src/wallet-history-evm.js:22"
  ],
  "Клієнт": [
-  "pages/dashboard.js:242"
+  "pages/dashboard.js:243"
  ],
  "Клієнт підключався: {0}.": [
   "pages/settings.js:162"
@@ -3593,7 +3596,7 @@
   "src/wallet-import.js:261"
  ],
  "Мережа не вибрана": [
-  "pages/dashboard.js:213"
+  "pages/dashboard.js:214"
  ],
  "мережа не відповідає": [
   "src/wallet-portfolio.js:43"
@@ -3614,7 +3617,7 @@
   "pages/wallet.js:191"
  ],
  "Мережі та гаманець": [
-  "pages/dashboard.js:207"
+  "pages/dashboard.js:208"
  ],
  "Мережі та RPC": [
   "pages/wallet.js:962",
@@ -3842,7 +3845,7 @@
   "pages/wallet.js:391"
  ],
  "Найважчі вкладки звичайних вікон": [
-  "pages/dashboard.js:313"
+  "pages/dashboard.js:314"
  ],
  "Найнадійніше — з фрази відновлення: на новому комп’ютері створіть сховище й на сторінці гаманця виберіть «Імпортувати фразу», введіть 12 слів (і фразу-пароль та шлях деривації, якщо ви їх задавали). Або збережіть зашифровану резервну копію (розділ «Безпека») й відновіть її на екрані створення гаманця. Імпортовані за приватним ключем рахунки з фрази не відновлюються — вони є лише в резервній копії.": [
   "pages/help-data.js:494"
@@ -3865,7 +3868,7 @@
   "ui/overlay.js:517"
  ],
  "Налаштувати гаманець": [
-  "pages/dashboard.js:209"
+  "pages/dashboard.js:210"
  ],
  "Напишіть «gh власник/репозиторій» в адресному рядку, щоб одразу відкрити репозиторій на GitHub.": [
   "pages/newtab.js:70"
@@ -4114,7 +4117,7 @@
   "pages/import.js:45"
  ],
  "Не запущений": [
-  "pages/dashboard.js:237"
+  "pages/dashboard.js:238"
  ],
  "Не знайдено встановлених моделей Ollama.": [
   "src/app-vault-ui.js:192"
@@ -4282,9 +4285,9 @@
   "src/ipc.js:233"
  ],
  "Недоступно.": [
-  "src/dashboard.js:187",
-  "src/dashboard.js:229",
-  "src/dashboard.js:235"
+  "src/dashboard.js:201",
+  "src/dashboard.js:243",
+  "src/dashboard.js:249"
  ],
  "Незалежного аудиту ще немає: не тримайте великі суми.": [
   "pages/settings.js:450",
@@ -4501,7 +4504,7 @@
   "src/solana.js:208"
  ],
  "немає": [
-  "pages/dashboard.js:243"
+  "pages/dashboard.js:244"
  ],
  "Немає адреси": [
   "ui/overlay.js:60"
@@ -4860,7 +4863,7 @@
   "src/profiles.js:69"
  ],
  "Основний профіль: кеш і дані сайтів": [
-  "pages/dashboard.js:315"
+  "pages/dashboard.js:316"
  ],
  "Особлива сторінка": [
   "ui/overlay.js:60"
@@ -4869,7 +4872,7 @@
   "pages/settings.js:193"
  ],
  "Остання дія": [
-  "pages/dashboard.js:244"
+  "pages/dashboard.js:245"
  ],
  "Остання синхронізація: {0}": [
   "pages/settings.js:211"
@@ -4928,7 +4931,7 @@
   "pages/history.js:5"
  ],
  "Очистити кеш": [
-  "pages/dashboard.js:273"
+  "pages/dashboard.js:274"
  ],
  "Очистити список": [
   "pages/downloads.js:4",
@@ -4947,10 +4950,10 @@
   "pages/help-data.js:148"
  ],
  "Очищення…": [
-  "pages/dashboard.js:270"
+  "pages/dashboard.js:271"
  ],
  "Очищується лише кеш: паролі, cookie та збережені дані сайтів не чіпаються.": [
-  "pages/dashboard.js:279"
+  "pages/dashboard.js:280"
  ],
  "Очікує": [
   "pages/wallet.js:632"
@@ -4975,7 +4978,7 @@
   "pages/newtab.js:51"
  ],
  "Панель": [
-  "pages/dashboard.js:309",
+  "pages/dashboard.js:310",
   "pages/newtab.js:51",
   "pages/dashboard.html:5"
  ],
@@ -5096,14 +5099,14 @@
   "pages/settings.js:457"
  ],
  "Перевірити": [
-  "pages/dashboard.js:248",
+  "pages/dashboard.js:249",
   "pages/wallet.js:126"
  ],
  "Перевірити зараз": [
   "pages/wallet.js:930"
  ],
  "Перевірити мережі": [
-  "pages/dashboard.js:228"
+  "pages/dashboard.js:229"
  ],
  "Перевірити на витоки": [
   "pages/passwords.js:155"
@@ -5145,12 +5148,12 @@
   "pages/dashboard.js:174"
  ],
  "Перевірка…": [
-  "pages/dashboard.js:228",
-  "pages/dashboard.js:248",
+  "pages/dashboard.js:229",
+  "pages/dashboard.js:249",
   "pages/settings.js:160"
  ],
  "Перевірку пройдено ✓": [
-  "pages/dashboard.js:248"
+  "pages/dashboard.js:249"
  ],
  "Перевірте в налаштуваннях «Джерело оновлень» (потрібна https-адреса або github:власник/репозиторій) і з’єднання з інтернетом. Оновлення працюють лише у встановленій версії, не в режимі розробки.": [
   "pages/help-data.js:487"
@@ -5432,7 +5435,7 @@
   "src/wallet-solana.js:566"
  ],
  "Підключення…": [
-  "pages/dashboard.js:250"
+  "pages/dashboard.js:251"
  ],
  "Підключити": [
   "pages/settings.js:137",
@@ -5669,7 +5672,7 @@
   "pages/wallet.js:978"
  ],
  "Подій поки немає: тут з’являться дії ШІ та операції гаманця.": [
-  "pages/dashboard.js:256"
+  "pages/dashboard.js:257"
  ],
  "Подій поки немає.": [
   "pages/wallet.js:613"
@@ -5823,7 +5826,7 @@
   "pages/settings.js:399"
  ],
  "Порт": [
-  "pages/dashboard.js:239"
+  "pages/dashboard.js:240"
  ],
  "Портфель": [
   "pages/wallet.js:891",
@@ -5974,7 +5977,7 @@
   "pages/dashboard.js:180"
  ],
  "Працює {0}": [
-  "pages/dashboard.js:198"
+  "pages/dashboard.js:199"
  ],
  "Працює на вашому комп’ютері через Ollama: запити й вміст сторінок не залишають ПК. Нові сайти він відкриває лише з вашого дозволу у тимчасовому вікні без ваших входів; паролі й картки не вводить.": [
   "pages/assistant.js:17"
@@ -6014,7 +6017,7 @@
   "pages/pdftools.js:148"
  ],
  "Приватна пам’ять за типами процесів": [
-  "pages/dashboard.js:312"
+  "pages/dashboard.js:313"
  ],
  "Приватне вікно": [
   "pages/help-data.js:467"
@@ -6073,13 +6076,13 @@
   "src/ipc.js:223"
  ],
  "припинено з панелі": [
-  "src/dashboard.js:239"
+  "src/dashboard.js:253"
  ],
  "Припинити всі": [
   "pages/settings.js:190"
  ],
  "Припинити спільні вкладки": [
-  "pages/dashboard.js:249"
+  "pages/dashboard.js:250"
  ],
  "Прискорення транзакції": [
   "src/wallet-extras.js:117",
@@ -6188,7 +6191,7 @@
   "src/ipc.js:134"
  ],
  "Процеси браузера": [
-  "pages/dashboard.js:312"
+  "pages/dashboard.js:313"
  ],
  "Процесів": [
   "pages/dashboard.js:150"
@@ -6280,7 +6283,7 @@
   "pages/help-data.js:386"
  ],
  "Режим захисту: {0}": [
-  "pages/dashboard.js:197"
+  "pages/dashboard.js:198"
  ],
  "Режим розробки: оновлення працюють лише в встановленій версії.": [
   "pages/settings.js:108"
@@ -6449,7 +6452,7 @@
   "pages/dashboard.js:181"
  ],
  "Рушій блокувальника ще завантажується.": [
-  "pages/dashboard.js:193"
+  "pages/dashboard.js:194"
  ],
  "рушій завантажено": [
   "pages/dashboard.js:183"
@@ -6552,7 +6555,7 @@
   "pages/wallet.js:208"
  ],
  "Сайтів дозволено": [
-  "pages/dashboard.js:241"
+  "pages/dashboard.js:242"
  ],
  "Сама модель працює без інтернету, але щоб помічник відкривав сайти, з’єднання потрібне.": [
   "pages/help-data.js:372"
@@ -6582,7 +6585,7 @@
   "pages/error.js:10"
  ],
  "Сервер працює": [
-  "pages/dashboard.js:237"
+  "pages/dashboard.js:238"
  ],
  "Сервер працює: {0}": [
   "pages/settings.js:168"
@@ -6652,7 +6655,7 @@
   "pages/settings.js:214"
  ],
  "Система та оновлення": [
-  "pages/dashboard.js:314"
+  "pages/dashboard.js:315"
  ],
  "сірий": [
   "src/tab-groups.js:15"
@@ -6756,7 +6759,7 @@
   "pages/passwords.js:235"
  ],
  "Скопійовано (буфер очиститься за {0} с)": [
-  "pages/dashboard.js:219"
+  "pages/dashboard.js:220"
  ],
  "Скопіюйте його вручну": [
   "pages/passwords.js:104"
@@ -6837,7 +6840,7 @@
   "src/solana.js:571"
  ],
  "Спільні вкладки": [
-  "pages/dashboard.js:243",
+  "pages/dashboard.js:244",
   "pages/settings.js:189"
  ],
  "Сплячі": [
@@ -6894,7 +6897,7 @@
   "pages/settings.js:168"
  ],
  "Стан браузера в реальному часі: ресурси, вкладки, захист і оновлення.": [
-  "pages/dashboard.js:309"
+  "pages/dashboard.js:310"
  ],
  "Стан модулів приватності": [
   "ui/overlay.js:461"
@@ -7101,7 +7104,7 @@
   "pages/passwords.js:60"
  ],
  "Сховище заблоковано: розблокуйте його на сторінці паролів чи гаманця, щоб побачити адресу.": [
-  "pages/dashboard.js:211"
+  "pages/dashboard.js:212"
  ],
  "Сховище заблоковано.": [
   "src/ipc.js:42"
@@ -7116,7 +7119,7 @@
   "src/vault.js:177"
  ],
  "Сховище профілю": [
-  "pages/dashboard.js:315"
+  "pages/dashboard.js:316"
  ],
  "Сховище розблоковано": [
   "pages/wallet.js:203"
@@ -7223,7 +7226,7 @@
   "pages/settings.js:173"
  ],
  "Токен і команда підключення Claude Code — у налаштуваннях": [
-  "pages/dashboard.js:250"
+  "pages/dashboard.js:251"
  ],
  "Токен має розширення ({0}), які змінюють перекази: гаманець їх не підтримує.": [
   "src/wallet-solana.js:399"
@@ -7471,7 +7474,7 @@
   "pages/help-data.js:395"
  ],
  "Увімкнути": [
-  "pages/dashboard.js:247"
+  "pages/dashboard.js:248"
  ],
  "Увімкнути блокування": [
   "pages/settings.js:58"
@@ -7510,7 +7513,7 @@
   "pages/warning.js:43"
  ],
  "Усе працює": [
-  "pages/dashboard.js:196"
+  "pages/dashboard.js:197"
  ],
  "усе працює локально, без телеметрії": [
   "pages/newtab.js:198"
@@ -7939,7 +7942,7 @@
   "pages/settings.js:406"
  ],
  "ШІ": [
-  "src/dashboard.js:160",
+  "src/dashboard.js:174",
   "pages/settings.js:242",
   "ui/renderer.js:121"
  ],
@@ -8054,7 +8057,7 @@
   "pages/settings.js:69"
  ],
  "ще не підключався": [
-  "pages/dashboard.js:242"
+  "pages/dashboard.js:243"
  ],
  "Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.": [
   "pages/settings.js:170"

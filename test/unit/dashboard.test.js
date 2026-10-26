@@ -52,3 +52,13 @@ test('dashboard: вкладки — інкогніто не показуєтьс
   assert.equal(t.rows[0].mb, 120);
   assert.ok(t.rows.some(r => r.host === 'w3ir://settings'));
 });
+
+test('dashboard: відставання вбудованого Chromium оцінюється офлайн', () => {
+  const day = Date.UTC(2026, 9, 17); // опорна точка: Chromium 152
+  assert.deepEqual(d.engineLag('152.0.1.2', day), { lagMajors: 0, stale: false });
+  assert.equal(d.engineLag('152.0.1.2', day + 28 * 864e5 * 4).stale, true, '4 мажори позаду — застарів');
+  assert.equal(d.engineLag('152.0.1.2', day + 28 * 864e5 * 3).stale, false, '3 мажори — ще допустимо');
+  assert.equal(d.engineLag('999.0', day).lagMajors, 0, 'новіший за очікуваний не дає відʼємних значень');
+  assert.deepEqual(d.engineLag(undefined, day), { lagMajors: 0, stale: false });
+  assert.deepEqual(d.engineLag('abc', NaN), { lagMajors: 0, stale: false });
+});

@@ -123,6 +123,20 @@ function tabRows(ctx, privByPid = new Map()) {
   return { total, sleeping, pinned, playing, windows, rows: rows.slice(0, 8) };
 }
 
+// Вік вбудованого Chromium без мережі. Опорна точка — Chromium 152 у актуальному на той момент Electron 44.9.0 (2026-10-17):
+// далі рахуємо мажори по 4 тижні. Оцінка навмисно щедра (Electron сам відстає від Chrome на 1–3 мажори), тож попередження
+// з'являється лише коли збірку давно не оновлювали. Опорну точку треба зсувати при кожному оновленні мажора Electron.
+const CHROME_ANCHOR = { major: 152, ms: Date.UTC(2026, 9, 17) };
+const CHROME_CYCLE_MS = 28 * 24 * 3600 * 1000;
+const STALE_MAJORS = 4;
+function engineLag(chromeVersion, now = Date.now()) {
+  const major = parseInt(String(chromeVersion || '').split('.')[0], 10);
+  if (!Number.isFinite(major) || !Number.isFinite(now)) return { lagMajors: 0, stale: false };
+  const current = CHROME_ANCHOR.major + Math.floor((now - CHROME_ANCHOR.ms) / CHROME_CYCLE_MS);
+  const lagMajors = Math.max(0, current - major);
+  return { lagMajors, stale: lagMajors >= STALE_MAJORS };
+}
+
 function metrics(ctx, deps = {}) {
   const os = require('os');
   const appMetrics = deps.appMetrics || (() => require('electron').app.getAppMetrics());
@@ -137,6 +151,7 @@ function metrics(ctx, deps = {}) {
     now: Date.now(),
     uptimeSec: Math.round(process.uptime()),
     versions: { app: deps.version || require('electron').app.getVersion(), chrome: process.versions.chrome, electron: process.versions.electron },
+    engine: engineLag(process.versions.chrome, deps.now),
     memory: { privMb: proc.privMb, wsMb: proc.wsMb, totalGb: Math.round(os.totalmem() / 2 ** 30) },
     cpu: proc.cpu,
     groups: proc.groups,
@@ -245,4 +260,4 @@ function createApi(ctx, { fetchFn } = {}) {
   };
 }
 
-module.exports = { measureStorage, pingNetworks, state, metrics, aggregateProcesses, tabRows, createApi, CLIP_CLEAR_MS };
+module.exports = { engineLag, measureStorage, pingNetworks, state, metrics, aggregateProcesses, tabRows, createApi, CLIP_CLEAR_MS };

@@ -188,6 +188,7 @@ function paintLive(m, st) {
   const notes = [];
   if (up && up.state === 'ready') notes.push(t('Оновлення {0} готове до встановлення.', up.version || ''));
   if (up && up.state === 'error') notes.push(t('Не вдалося перевірити оновлення.'));
+  if (m.engine && m.engine.stale) notes.push(t('Вбудований рушій Chromium застарів: оновіть браузер, щоб отримати виправлення безпеки.'));
   if (st && !st.protection.safe) notes.push(t('Захист від шахрайських сайтів вимкнено.'));
   if (st && !st.protection.adblock) notes.push(t('Блокування реклами вимкнено.'));
   if (st && st.protection.adblock && !m.protection.engine) notes.push(t('Рушій блокувальника ще завантажується.'));
