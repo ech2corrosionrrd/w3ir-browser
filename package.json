@@ -12,6 +12,7 @@
     "test": "node build/run-tests.js",
     "test:unit": "node build/run-unit.js",
     "net-audit": "node build/net-audit.js",
+    "net-audit:packaged": "node build/net-audit-packaged.js",
     "test:coverage": "node build/run-unit.js --coverage",
     "ci": "node build/ci-local.js",
     "smoke": "electron .",
