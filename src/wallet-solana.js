@@ -133,7 +133,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     if (!s) return [];
     if (!Array.isArray(s.solAddresses) || s.solAddresses.length !== s.addresses.length) {
       const seed = this._solSeed();
-      s.solAddresses = s.addresses.map((_, i) => S.deriveAccount(seed, i, s.solPath || 'phantom').address);
+      try { s.solAddresses = s.addresses.map((_, i) => S.deriveAccount(seed, i, s.solPath || 'phantom').address); } finally { seed.fill(0); }
       this.vault.persist();
     }
     return s.solAddresses.slice();
@@ -143,9 +143,11 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     if (i < 0) {
       const secret = this._importedSecret(address, 'sol'); // імпортований за приватним ключем
       if (!secret) throw unauthorized('Невідомий рахунок');
-      return S.keypairFromSeed(Buffer.from(secret, 'base64'));
+      const raw = Buffer.from(secret, 'base64');
+      try { return S.keypairFromSeed(raw); } finally { raw.fill(0); }
     }
-    return S.deriveAccount(this._solSeed(), i, (this.data() || {}).solPath || 'phantom');
+    const seed = this._solSeed();
+    try { return S.deriveAccount(seed, i, (this.data() || {}).solPath || 'phantom'); } finally { seed.fill(0); }
   };
   proto.solAccountsFor = function (origin) {
     if (!this.unlocked() || !this.data()) return [];

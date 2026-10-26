@@ -146,10 +146,12 @@ class Wallet {
     const S = require('./solana');
     const seed = Buffer.from(Mnemonic.fromPhrase(phrase, o.passphrase).computeSeed().slice(2), 'hex');
     const evm = [], sol = [];
-    for (let i = 0; i < count; i++) {
-      evm.push(HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(phrase, o.passphrase), EVM_PATHS[o.evmPath](i)).address);
-      sol.push(S.deriveAccount(seed, i, o.solPath).address);
-    }
+    try {
+      for (let i = 0; i < count; i++) {
+        evm.push(HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(phrase, o.passphrase), EVM_PATHS[o.evmPath](i)).address);
+        sol.push(S.deriveAccount(seed, i, o.solPath).address);
+      }
+    } finally { seed.fill(0); }
     return { evm, sol };
   }
 

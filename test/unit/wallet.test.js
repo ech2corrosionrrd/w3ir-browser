@@ -443,3 +443,19 @@ test('evm: describeCall показує кількість для ERC-1155 safeTr
   const data = IFACE.encodeFunctionData('safeTransferFrom(address,address,uint256,uint256,bytes)', [a, b, 7n, 25n, '0x']);
   assert.ok(describeCall(data).lines.some(l => l[1] === '#7 × 25'));
 });
+
+test('solana: обнулення проміжних буферів не змінює ключі й не чіпає вхідні дані викликача', () => {
+  const s = require('../../src/solana');
+  const seed = Buffer.alloc(64, 7);
+  const copy = Buffer.from(seed);
+  const a = s.deriveAccount(seed, 0, 'phantom');
+  const b = s.deriveAccount(seed, 0, 'phantom');
+  assert.equal(a.address, b.address, 'деривація детермінована');
+  assert.notEqual(a.address, s.deriveAccount(seed, 1, 'phantom').address);
+  assert.ok(seed.equals(copy), 'deriveAccount не змінює seed викликача');
+  const seed32 = Buffer.alloc(32, 5);
+  const k1 = s.keypairFromSeed(seed32);
+  assert.ok(seed32.equals(Buffer.alloc(32, 5)), 'keypairFromSeed не змінює вхідний seed');
+  const msg = Buffer.from('перевірка підпису');
+  assert.ok(require('crypto').verify(null, msg, require('crypto').createPublicKey({ key: Buffer.concat([Buffer.from('302a300506032b6570032100', 'hex'), k1.publicKey]), format: 'der', type: 'spki' }), s.sign ? s.sign(k1.secret, msg) : require('crypto').sign(null, msg, k1.secret)), 'підпис перевіряється публічним ключем');
+});

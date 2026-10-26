@@ -46,23 +46,31 @@ function slip10(seed, path) {
     const data = Buffer.alloc(37);
     k.copy(data, 1);
     data.writeUInt32BE((idx | HARDENED) >>> 0, 33);
+    const prev = I;
     I = crypto.createHmac('sha512', c).update(data).digest();
     k = I.subarray(0, 32); c = I.subarray(32);
+    data.fill(0); prev.fill(0); // проміжні ключові буфери не лишаються в купі до збирача сміття
   }
-  return Buffer.from(k);
+  const out = Buffer.from(k);
+  I.fill(0);
+  return out;
 }
 
 const PKCS8_ED25519 = Buffer.from('302e020100300506032b657004220420', 'hex');
 
+// seed32 викликач обнуляє сам (його можуть використовувати далі); тимчасову DER-копію обнуляємо тут
 function keypairFromSeed(seed32) {
-  const secret = crypto.createPrivateKey({ key: Buffer.concat([PKCS8_ED25519, seed32]), format: 'der', type: 'pkcs8' });
+  const der = Buffer.concat([PKCS8_ED25519, seed32]);
+  let secret;
+  try { secret = crypto.createPrivateKey({ key: der, format: 'der', type: 'pkcs8' }); } finally { der.fill(0); }
   const spki = crypto.createPublicKey(secret).export({ format: 'der', type: 'spki' });
   const publicKey = Buffer.from(spki.subarray(spki.length - 32));
   return { secret, publicKey, address: b58encode(publicKey) };
 }
 
 function generateKeypair() {
-  return keypairFromSeed(crypto.randomBytes(32));
+  const seed = crypto.randomBytes(32);
+  try { return keypairFromSeed(seed); } finally { seed.fill(0); }
 }
 
 // Рахунок №index: m/44'/501'/index'/0' (перший рахунок збігається з Phantom/Solflare для тієї самої фрази)
@@ -71,7 +79,8 @@ const SOL_PATHS = { phantom: (i) => [44, 501, i, 0], bip44: (i) => [44, 501, i] 
 function deriveAccount(bip39Seed, index, kind = 'phantom') {
   const f = SOL_PATHS[kind];
   if (!f) throw new Error('Невідомий шлях деривації Solana');
-  return keypairFromSeed(slip10(bip39Seed, f(index)));
+  const key = slip10(bip39Seed, f(index));
+  try { return keypairFromSeed(key); } finally { key.fill(0); }
 }
 
 const sign = (secret, bytes) => crypto.sign(null, Buffer.from(bytes), secret);
