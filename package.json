@@ -117,7 +117,7 @@
     "@ghostery/adblocker-electron": "2.20.1",
     "@ghostery/adblocker-electron-preload": "2.20.1",
     "@mozilla/readability": "0.6.0",
-    "electron-updater": "6.8.9",
+    "electron-updater": "6.8.11",
     "ethers": "6.17.0",
     "pdf-lib": "1.17.1",
     "tldts-experimental": "7.4.18"
