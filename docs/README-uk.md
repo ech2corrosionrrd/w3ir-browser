@@ -63,11 +63,11 @@ gh attestation verify W3IR-Browser-Setup-<версія>.exe --repo ech2corrosion
 ```
 npm install
 npm start                      # запуск із вихідного коду
-npm test                       # повний автотест у тимчасовому профілі (понад 1300 перевірок)
+npm test                       # повний автотест у тимчасовому профілі (понад 1400 перевірок)
 npm run test:unit              # швидкі headless unit-тести (понад 140 перевірок, node:test)
 npm run test:coverage          # звіт покриття коду V8 (>= 98% для безпеки гаманця)
 npm run lint                   # статичний аналіз коду ESLint (0 помилок, 0 попереджень)
-W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # понад 1300 автоматичних перевірок (W3IR_ONLY=<області> — лише названі)
+W3IR_USER_DATA=<тека> W3IR_SMOKE=security npx electron .   # понад 1400 автоматичних перевірок (W3IR_ONLY=<області> — лише названі)
 ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron.exe build/mainnet-sim-check.js   # транзакції Solana на справжньому mainnet (симуляція, без коштів)
 npm run release                # збірка + підпис оновлення → dist/release
 npm run check:rpc               # онлайн-перевірка вбудованих RPC гаманця
