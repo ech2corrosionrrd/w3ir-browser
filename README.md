@@ -10,6 +10,11 @@ A privacy-focused, Web3-native desktop browser for Windows built on Chromium (El
 - Supported Languages: English, Ukrainian, Polish, German, Spanish, French (switchable in settings) · Platform: Windows 10/11 x64
 - Built-in Browser Help: **F1**
 
+> [!WARNING]
+> **Personal project, provided "as is".** W3IR Browser is built for the author's own use and shared under the MIT License **without warranty of any kind**. You use it at your own risk; the author is not liable for any loss of funds or data. **Do not keep significant funds in the built-in wallet** — use a hardware wallet for that.
+>
+> **Особистий проєкт, надається «як є».** W3IR Browser створено для власних потреб автора й поширюється за ліцензією MIT **без жодних гарантій**. Використання — на ваш власний ризик; автор не несе відповідальності за втрату коштів чи даних. **Не зберігайте значні кошти у вбудованому гаманці** — для цього використовуйте апаратний гаманець.
+
 ## Key Features
 
 | Area | Features |
