@@ -1,12 +1,20 @@
 name: CI
-# Основний CI виконується локально: npm run ci (build/ci-local.js). Тут лише ручний запуск: хвилини GitHub Actions обмежені.
+# Перед комітом CI виконується локально: npm run ci (build/ci-local.js). На GitHub автоматично (push у main і pull_request) йдуть лише
+# швидкі дешеві перевірки на Linux: check + unit-cross. Повний e2e (windows) і macOS — вручну (workflow_dispatch): хвилини Actions обмежені.
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
@@ -23,6 +31,7 @@ jobs:
           if git grep -nIE 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_' -- . ':!.github' ':!build/ci-local.js'; then echo "Знайдено секрет"; exit 1; fi
   # Повний автотест у справжньому вікні Electron (обов'язковий: на runner'і GitHub кілька запусків поспіль зелені).
   test:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -39,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-latest]
+        os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["ubuntu-24.04","macos-latest"]' || '["ubuntu-24.04"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:

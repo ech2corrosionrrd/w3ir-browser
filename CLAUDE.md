@@ -4,7 +4,7 @@
 
 ## Перед комітом
 
-- CI виконується **локально**, а не на GitHub Actions (хвилини обмежені): `npm run ci` (повний, з автотестом Electron) або `npm run ci -- --quick` (без нього). Склад: lint, unit-тести, переклади, `npm audit`, пошук секретів і `npm test`.
+- CI виконується **локально** (хвилини GitHub Actions обмежені): `npm run ci` (повний, з автотестом Electron) або `npm run ci -- --quick` (без нього). Склад: lint, unit-тести, переклади, `npm audit`, пошук секретів і `npm test`. На GitHub автоматично (push у `main`, pull_request) йдуть лише `check` і `unit-cross` на Linux; повний e2e (Windows) і macOS — лише вручну (`workflow_dispatch`).
 - `npm run lint` і `npm test` (повний автотест у вікні Electron; окремі області — `W3IR_ONLY`, див. `docs/TESTING.md`).
 - Нові рядки інтерфейсу пишіть українською цілим реченням і додавайте переклади в усі каталоги `locales/*.json` (`node build/i18n-extract.js --check`).
 - Тимчасові скрипти-патчі з українськими рядками й зворотними скісними рисками створюйте файлом, а не heredoc.
