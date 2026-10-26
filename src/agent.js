@@ -580,6 +580,21 @@ class Agent {
     return false;
   }
 
+  // підресурси (fetch/XHR/зображення/WebSocket) сторінок агента: навігації перевіряє checkUrl, а тут IP-літерали теж, інакше
+  // сторінка могла б звернутися до локальної мережі напряму (http://192.168.0.1/); імена — як у netGuard
+  async subresourceGuard(ses, url) {
+    if (this.allowLocal) return false;
+    let host;
+    try { host = new URL(url).hostname; } catch { return false; }
+    const lit = host.replace(/^\[|\]$/g, '');
+    if (/^[\d.]+$/.test(lit) || lit.includes(':')) {
+      if (!isPrivateAddress(lit)) return false;
+      this.log('block-sub-ip', siteKey(host));
+      return true;
+    }
+    return this.netGuard(ses, url);
+  }
+
   // the peer address actually used for the response: if it is private, stop the page and revoke sharing
   lateIpCheck(details) {
     if (this.allowLocal || !isPrivateAddress(details.ip)) return false;

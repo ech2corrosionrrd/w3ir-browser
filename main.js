@@ -118,7 +118,18 @@ app.whenReady().then(async () => {
   ctx.threats.start();
 
   // Розширення Chrome (експериментально) та розумний блокувальник — у фоні, щоб не гальмувати запуск.
+  // Вміст теки звіряється з хешем, збереженим при додаванні: змінене ззовні розширення не завантажується, доки його не додано знову.
+  const extGuard = require('./src/ext-guard');
   for (const item of ctx.extStore.data.items) {
+    let hash;
+    try { hash = extGuard.hashDir(item.path); } catch (e) { console.error('Extension unreadable', item.path, e.message); continue; }
+    if (item.hash && item.hash !== hash) {
+      console.error('Extension changed outside the browser, not loaded', item.path);
+      const w = [...ctx.windows].pop();
+      if (w) w.toast(tr('Розширення «{0}» змінено поза браузером і не завантажено. Додайте його знову, якщо довіряєте змінам.', item.name || item.path));
+      continue;
+    }
+    if (!item.hash) { item.hash = hash; ctx.extStore.save(); } // розширення, додані до появи хешів: довіра при першому запуску
     ctx.session.extensions.loadExtension(item.path, { allowFileAccess: false })
       .catch(e => console.error('Extension failed', item.path, e.message));
   }

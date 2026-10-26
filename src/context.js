@@ -530,8 +530,9 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     // pages controlled by the AI agent: resolve the host in the network layer and refuse private addresses (DNS rebinding / SSRF)
     ses.webRequest.onBeforeRequest((details, cb) => {
       const a = ctx.agent;
-      if (a && (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame') && /^https?:/i.test(details.url) && a.guardsContents(details.webContentsId)) {
-        return a.netGuard(ses, details.url).then(blocked => (blocked ? cb({ cancel: true }) : baseBeforeRequest(details, cb)), () => baseBeforeRequest(details, cb));
+      if (a && /^(https?|wss?):/i.test(details.url) && a.guardsContents(details.webContentsId)) {
+        const nav = details.resourceType === 'mainFrame' || details.resourceType === 'subFrame';
+        return (nav ? a.netGuard(ses, details.url) : a.subresourceGuard(ses, details.url)).then(blocked => (blocked ? cb({ cancel: true }) : baseBeforeRequest(details, cb)), () => baseBeforeRequest(details, cb));
       }
       baseBeforeRequest(details, cb);
     });
@@ -539,7 +540,7 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
     ses.webRequest.onResponseStarted((details) => {
       try {
         const a = ctx.agent;
-        if (a && details.ip && (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame') && a.guardsContents(details.webContentsId)) a.lateIpCheck(details);
+        if (a && details.ip && a.guardsContents(details.webContentsId)) a.lateIpCheck(details); // усі типи запитів, не лише навігації
       } catch { /* ignore */ }
     });
     // сторонній запит у суворому режимі, якщо для верхнього сайту не вимкнено «щити»

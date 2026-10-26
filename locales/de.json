@@ -2814,5 +2814,16 @@
  "W3IR Shield Privacy Center (клік на 🛡)": "W3IR Shield Privacy Center (Klick auf 🛡)",
  "W3IR Shield: захист приватності (заблоковано: {0}). Клік — деталі захисту": "W3IR Shield: Datenschutz ({0} blockiert). Klick für Schutzdetails",
  "Windows попереджає (SmartScreen) під час встановлення": "Windows warnt (SmartScreen) bei der Installation",
- "Вбудований рушій Chromium застарів: оновіть браузер, щоб отримати виправлення безпеки.": "Die integrierte Chromium-Engine ist veraltet: Aktualisieren Sie den Browser, um Sicherheitskorrekturen zu erhalten."
+ "Вбудований рушій Chromium застарів: оновіть браузер, щоб отримати виправлення безпеки.": "Die integrierte Chromium-Engine ist veraltet: Aktualisieren Sie den Browser, um Sicherheitskorrekturen zu erhalten.",
+ "(особливих дозволів не просить)": "(fordert keine besonderen Berechtigungen an)",
+ "Додавайте лише розширення, яким довіряєте.": "Fügen Sie nur Erweiterungen hinzu, denen Sie vertrauen.",
+ "Додати розширення «{0}» {1}?": "Erweiterung „{0}“ {1} hinzufügen?",
+ "Додати розширення?": "Erweiterung hinzufügen?",
+ "Забагато файлів у розширенні.": "Zu viele Dateien in der Erweiterung.",
+ "Не вдалося прочитати розширення: {0}": "Die Erweiterung konnte nicht gelesen werden: {0}",
+ "Розширення «{0}» змінено поза браузером і не завантажено. Додайте його знову, якщо довіряєте змінам.": "Die Erweiterung „{0}“ wurde außerhalb des Browsers geändert und nicht geladen. Fügen Sie sie erneut hinzu, wenn Sie den Änderungen vertrauen.",
+ "Розширення завелике.": "Die Erweiterung ist zu groß.",
+ "Розширення працює на сторінках з вашими входами. Дозволи, які воно просить:": "Die Erweiterung läuft auf Seiten, auf denen Sie angemeldet sind. Angeforderte Berechtigungen:",
+ "Увага, широкі дозволи: {0}.": "Achtung, weitreichende Berechtigungen: {0}.",
+ "manifest.json пошкоджено.": "manifest.json ist beschädigt."
 }

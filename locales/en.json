@@ -2814,5 +2814,16 @@
  "W3IR Shield Privacy Center (клік на 🛡)": "W3IR Shield Privacy Center (click on 🛡)",
  "W3IR Shield: захист приватності (заблоковано: {0}). Клік — деталі захисту": "W3IR Shield: privacy protection ({0} blocked). Click for protection details",
  "Windows попереджає (SmartScreen) під час встановлення": "Windows warns (SmartScreen) during installation",
- "Вбудований рушій Chromium застарів: оновіть браузер, щоб отримати виправлення безпеки.": "The built-in Chromium engine is out of date: update the browser to get security fixes."
+ "Вбудований рушій Chromium застарів: оновіть браузер, щоб отримати виправлення безпеки.": "The built-in Chromium engine is out of date: update the browser to get security fixes.",
+ "(особливих дозволів не просить)": "(requests no special permissions)",
+ "Додавайте лише розширення, яким довіряєте.": "Only add extensions you trust.",
+ "Додати розширення «{0}» {1}?": "Add the extension “{0}” {1}?",
+ "Додати розширення?": "Add extension?",
+ "Забагато файлів у розширенні.": "Too many files in the extension.",
+ "Не вдалося прочитати розширення: {0}": "Could not read the extension: {0}",
+ "Розширення «{0}» змінено поза браузером і не завантажено. Додайте його знову, якщо довіряєте змінам.": "The extension “{0}” was changed outside the browser and was not loaded. Add it again if you trust the changes.",
+ "Розширення завелике.": "The extension is too large.",
+ "Розширення працює на сторінках з вашими входами. Дозволи, які воно просить:": "The extension runs on pages where you are signed in. Permissions it requests:",
+ "Увага, широкі дозволи: {0}.": "Warning, broad permissions: {0}.",
+ "manifest.json пошкоджено.": "manifest.json is corrupted."
 }

@@ -63,6 +63,9 @@
  "(Керує ШІ)": [
   "src/app-window.js:265"
  ],
+ "(особливих дозволів не просить)": [
+  "src/ipc.js:461"
+ ],
  "(понад рік)": [
   "src/wallet-signguard.js:113"
  ],
@@ -124,7 +127,7 @@
   "pages/newtab.js:95"
  ],
  "{0} (ваш рахунок)": [
-  "src/solana.js:434"
+  "src/solana.js:443"
  ],
  "{0} (токен {1})": [
   "src/wallet-simulate.js:106"
@@ -186,10 +189,10 @@
   "pages/newtab.js:93"
  ],
  "{0} запитує доступ до {1}": [
-  "src/context.js:608"
+  "src/context.js:609"
  ],
  "{0} інструкцій": [
-  "src/wallet-solana.js:671"
+  "src/wallet-solana.js:673"
  ],
  "{0} КБ": [
   "pages/dashboard.js:263"
@@ -198,11 +201,11 @@
   "pages/dashboard.js:22"
  ],
  "{0} мікро-лампортів за одиницю": [
-  "src/solana.js:514"
+  "src/solana.js:523"
  ],
  "{0} мікро-лампортів за одиницю, до ≈{1} SOL понад базову": [
-  "src/wallet-solana.js:365",
-  "src/wallet-solana.js:448"
+  "src/wallet-solana.js:367",
+  "src/wallet-solana.js:450"
  ],
  "{0} мс": [
   "pages/dashboard.js:227"
@@ -225,10 +228,10 @@
   "pages/dashboard.js:16"
  ],
  "{0} SOL (без комісії мережі)": [
-  "src/solana.js:571"
+  "src/solana.js:580"
  ],
  "{0}: інструкція {1}": [
-  "src/solana.js:509"
+  "src/solana.js:518"
  ],
  "{0}: порожній список": [
   "src/threats.js:192"
@@ -238,13 +241,13 @@
   "src/threats.js:189"
  ],
  "{0}{1} SOL (разом із комісією)": [
-  "src/wallet-solana.js:682"
+  "src/wallet-solana.js:684"
  ],
  "{0}Під час роздачі та завантаження торентів ваша IP-адреса видима іншим учасникам. Завантажуйте лише те, на що маєте право.": [
   "src/app-window.js:454"
  ],
  "{0}Транзакція": [
-  "src/wallet-solana.js:671"
+  "src/wallet-solana.js:673"
  ],
  "**←** і **→** — по історії вкладки; **⟳** — оновити (під час завантаження перетворюється на ✕ — зупинити); **⌂** — домашня сторінка (змінюється в налаштуваннях).": [
   "pages/help-data.js:35"
@@ -522,10 +525,10 @@
   "src/wallet-import.js:239"
  ],
  "Авторизація Solana": [
-  "src/wallet-solana.js:561"
+  "src/wallet-solana.js:563"
  ],
  "Авторизація Solana іншим рахунком": [
-  "src/wallet-solana.js:566"
+  "src/wallet-solana.js:568"
  ],
  "Адреса": [
   "src/wallet-signguard.js:97",
@@ -542,7 +545,7 @@
   "pages/help-data.js:324"
  ],
  "Адреса дуже схожа на відому вам адресу {0}, але не збігається з нею: це типовий прийом підміни адрес (address poisoning). Звірте всі символи.": [
-  "src/wallet.js:342"
+  "src/wallet.js:344"
  ],
  "Адреса контракту токена (ERC-20)": [
   "pages/wallet.js:329",
@@ -603,10 +606,10 @@
   "pages/help-data.js:260"
  ],
  "Адресу не знайдено (розблокуйте сховище).": [
-  "src/dashboard.js:234"
+  "src/dashboard.js:235"
  ],
  "Акаунт інструкції поза списком": [
-  "src/solana.js:143"
+  "src/solana.js:152"
  ],
  "Акаунт стейку": [
   "pages/wallet.js:1265"
@@ -644,7 +647,7 @@
   "pages/common.js:20"
  ],
  "Баланс зменшиться на {0} SOL, хоча явного переказу SOL в інструкціях немає (так працюють і обміни через програми, і шахрайські транзакції).": [
-  "src/wallet-solana.js:690"
+  "src/wallet-solana.js:692"
  ],
  "баланс недоступний": [
   "pages/wallet.js:287",
@@ -821,7 +824,7 @@
   "pages/wallet.js:1304"
  ],
  "Бюджет обчислень": [
-  "src/solana.js:515"
+  "src/solana.js:524"
  ],
  "Важку обробку виконує окремий короткоживучий воркер: якщо файл пошкоджено, він завеликий або обробка зависла, браузер і вкладки не страждають — операція завершується повідомленням про помилку (таймаут 120 секунд).": [
   "pages/help-data.js:359"
@@ -929,10 +932,10 @@
   "src/wallet-signguard.js:204"
  ],
  "Ви скопіювали в браузері адресу {0}, а отримувач — {1}. Якщо ви копіювали адресу отримувача, її могла підмінити шкідлива програма в буфері обміну: перевірте адресу.": [
-  "src/wallet.js:349"
+  "src/wallet.js:351"
  ],
  "Ви ще не надсилали на цю адресу. Перевірте її символ за символом.": [
-  "src/wallet.js:338"
+  "src/wallet.js:340"
  ],
  "Виберіть зображення підпису": [
   "src/pdf-tools.js:409"
@@ -984,10 +987,10 @@
   "pages/import.js:47"
  ],
  "Виведення {0} SOL зі стейку {1} на {2}": [
-  "src/solana.js:547"
+  "src/solana.js:556"
  ],
  "Виведення стейку на чужу адресу: застейкані SOL надійдуть НЕ вам.": [
-  "src/solana.js:548"
+  "src/solana.js:557"
  ],
  "Виведення SOL зі стейку": [
   "src/wallet-solana-staking.js:195"
@@ -1066,7 +1069,7 @@
   "ui/overlay.js:107"
  ],
  "Виділення місця в акаунті {0}": [
-  "src/solana.js:456"
+  "src/solana.js:465"
  ],
  "Виділити все": [
   "src/app-menus.js:195"
@@ -1083,7 +1086,7 @@
   "src/wallet-evm-core.js:156"
  ],
  "Виклик програми {0} ({1} акаунтів, {2} байт даних)": [
-  "src/solana.js:564"
+  "src/solana.js:573"
  ],
  "Виконувані й небезпечні типи (`.js`, `.ps1`, `.bat`, HTML, SVG) у переглядач не входять, а розмір обмежено 5 МБ. Сирий HTML у Markdown показується текстом, посилання дозволені лише `http(s)` і `mailto`.": [
   "pages/help-data.js:86"
@@ -1101,7 +1104,7 @@
   "src/tips.js:40"
  ],
  "Вимкнення CPI Guard для токен-акаунта": [
-  "src/solana.js:503"
+  "src/solana.js:512"
  ],
  "Вимкнення JavaScript і кадрів для сайту": [
   "pages/settings.js:459"
@@ -1146,7 +1149,7 @@
   "pages/help-data.js:126"
  ],
  "Випуск токенів (MintTo, {0})": [
-  "src/solana.js:498"
+  "src/solana.js:507"
  ],
  "Вирізати": [
   "src/app-menus.js:194"
@@ -1468,7 +1471,7 @@
   "pages/newtab.js:170"
  ],
  "власник токен-акаунта": [
-  "src/solana.js:424"
+  "src/solana.js:433"
  ],
  "Власник токенів у даних ({0}) не збігається з вашим рахунком.": [
   "src/wallet-signguard.js:155"
@@ -1565,7 +1568,7 @@
   "pages/common.js:34"
  ],
  "Гаманець": [
-  "src/dashboard.js:175",
+  "src/dashboard.js:176",
   "pages/dashboard.js:258",
   "pages/newtab.js:50"
  ],
@@ -1626,10 +1629,10 @@
   "src/wallet-safety.js:209"
  ],
  "Гаманець уже існує. Спершу видаліть його.": [
-  "src/wallet.js:166"
+  "src/wallet.js:168"
  ],
  "Гаманець уже створено.": [
-  "src/wallet.js:157"
+  "src/wallet.js:159"
  ],
  "Гаманець EVM": [
   "pages/settings.js:450"
@@ -1746,7 +1749,7 @@
  ],
  "Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.": [
   "src/wallet-dapp.js:208",
-  "src/wallet-solana.js:588"
+  "src/wallet-solana.js:590"
  ],
  "Дані сайтів": [
   "pages/dashboard.js:278"
@@ -1761,7 +1764,7 @@
   "src/vault.js:182"
  ],
  "Дані схожі на транзакцію — підпис як «повідомлення» заборонено (використовуйте signTransaction)": [
-  "src/wallet-solana.js:581"
+  "src/wallet-solana.js:583"
  ],
  "Дані читаються з копії файлів профілю — оригінальний браузер не змінюється. Якщо з’являється помилка про заблокований файл, закрийте той браузер і повторіть. Повторний імпорт не створює дублікатів.": [
   "pages/import.js:37"
@@ -1788,7 +1791,7 @@
   "src/wallet-solana-staking.js:145"
  ],
  "Деактивація стейку {0} (початок періоду виходу)": [
-  "src/solana.js:542"
+  "src/solana.js:551"
  ],
  "Деактивований стейк стає доступним для виведення після завершення поточної епохи Solana.": [
   "pages/help-data.js:290"
@@ -1806,7 +1809,7 @@
   "pages/wallet.js:1233"
  ],
  "Делегування стейку {0} валідатору {1}": [
-  "src/solana.js:539"
+  "src/solana.js:548"
  ],
  "Делегування SOL (Стейкінг)": [
   "pages/wallet.js:1280"
@@ -1815,7 +1818,7 @@
   "pages/wallet.js:1322"
  ],
  "Депозит за створення токен-акаунта (з вашого рахунку)": [
-  "src/wallet-solana.js:447"
+  "src/wallet-solana.js:449"
  ],
  "Децентралізоване сховище & NFT (Arweave / Irys)": [
   "pages/wallet.js:948"
@@ -1860,7 +1863,7 @@
   "src/wallet-evm-core.js:133"
  ],
  "Дія {0}": [
-  "src/solana.js:440"
+  "src/solana.js:449"
  ],
  "Для {0} збережених паролів немає.": [
   "ui/overlay.js:293"
@@ -1921,7 +1924,7 @@
   "pages/newtab.js:80"
  ],
  "Довговічний nonce (AdvanceNonce): транзакція не втрачає чинності": [
-  "src/solana.js:469"
+  "src/solana.js:478"
  ],
  "Довідка": [
   "src/app-commands.js:54",
@@ -1939,6 +1942,9 @@
  ],
  "довідку": [
   "pages/settings.js:348"
+ ],
+ "Додавайте лише розширення, яким довіряєте.": [
+  "src/ipc.js:463"
  ],
  "Додає поточну сторінку в закладки або прибирає її звідти.": [
   "src/tips.js:20"
@@ -1962,6 +1968,7 @@
   "pages/wallet.js:361"
  ],
  "Додати": [
+  "src/ipc.js:458",
   "pages/wallet.js:344",
   "pages/wallet.js:672"
  ],
@@ -1988,6 +1995,12 @@
  ],
  "Додати підпис до результату": [
   "pages/pdftools.js:145"
+ ],
+ "Додати розширення «{0}» {1}?": [
+  "src/ipc.js:459"
+ ],
+ "Додати розширення?": [
+  "src/ipc.js:459"
  ],
  "Додати розширення…": [
   "pages/settings.js:41"
@@ -2026,7 +2039,7 @@
   "pages/help-data.js:319"
  ],
  "Дозвіл {0} витрачати ваші токени (до {1} у мінімальних одиницях)": [
-  "src/solana.js:486"
+  "src/solana.js:495"
  ],
  "Дозвіл витрачати токени": [
   "src/wallet-evm-core.js:127"
@@ -2078,7 +2091,7 @@
   "pages/help-data.js:301"
  ],
  "Дозволити": [
-  "src/context.js:605",
+  "src/context.js:606",
   "ui/overlay.js:73"
  ],
  "Дозволити ШІ керувати браузером": [
@@ -2110,7 +2123,7 @@
   "src/threats.js:305"
  ],
  "Домен токенізовано (NFT) або належить програмі: гаманець такі імена не розв’язує. Попросіть адресу гаманця одержувача.": [
-  "src/wallet-solana.js:340"
+  "src/wallet-solana.js:342"
  ],
  "Домен у повідомленні": [
   "src/wallet-signguard.js:97"
@@ -2134,7 +2147,7 @@
   "src/wallet-simulate.js:122"
  ],
  "доступ до публічної адреси Solana та право пропонувати підписи": [
-  "src/wallet-solana.js:558"
+  "src/wallet-solana.js:560"
  ],
  "Доступне {0}: натисніть ⬆": [
   "pages/newtab.js:94"
@@ -2245,17 +2258,17 @@
   "src/wallet-simulate.js:119"
  ],
  "Забагато адресних таблиць": [
-  "src/solana.js:130"
+  "src/solana.js:139"
  ],
  "Забагато акаунтів": [
-  "src/solana.js:108",
-  "src/solana.js:285"
+  "src/solana.js:117",
+  "src/solana.js:294"
  ],
  "Забагато запитів": [
   "src/wallet-dapp.js:20"
  ],
  "Забагато інструкцій": [
-  "src/solana.js:115"
+  "src/solana.js:124"
  ],
  "Забагато перенаправлень": [
   "pages/error.js:17"
@@ -2268,6 +2281,9 @@
  ],
  "Забагато сторінок": [
   "pages/pdftools.js:12"
+ ],
+ "Забагато файлів у розширенні.": [
+  "src/ext-guard.js:23"
  ],
  "Забагато файлів у списку": [
   "pages/pdftools.js:12"
@@ -2283,7 +2299,7 @@
   "pages/dashboard.js:167"
  ],
  "Заблокувати": [
-  "src/context.js:605",
+  "src/context.js:606",
   "pages/passwords.js:139",
   "pages/wallet.js:212"
  ],
@@ -2355,7 +2371,7 @@
   "pages/settings.js:353"
  ],
  "Зайві дані після транзакції": [
-  "src/solana.js:139"
+  "src/solana.js:148"
  ],
  "Займають мало місця, лишаються між запусками. Закріплюйте пошту, месенджери, документи.": [
   "pages/help-data.js:46"
@@ -2473,7 +2489,7 @@
   "pages/help-data.js:132"
  ],
  "Закриття токен-акаунта {0}, залишок SOL піде на {1}": [
-  "src/solana.js:495"
+  "src/solana.js:504"
  ],
  "Закріпити / відкріпити вкладку": [
   "src/app-commands.js:23"
@@ -2518,7 +2534,7 @@
   "src/wallet-evm-nft.js:37"
  ],
  "Запам'ятати вибір для цього сайту": [
-  "src/context.js:609"
+  "src/context.js:610"
  ],
  "Запис не знайдено.": [
   "src/ipc.js:59",
@@ -2534,7 +2550,7 @@
   "ui/overlay.js:176"
  ],
  "Запит дозволу": [
-  "src/context.js:607"
+  "src/context.js:608"
  ],
  "Запит заблоковано": [
   "pages/error.js:18"
@@ -2649,7 +2665,7 @@
   "ui/overlay.js:500"
  ],
  "Зачекайте приблизно 30 секунд — браузер запуститься сам після завершення.": [
-  "main.js:87"
+  "main.js:90"
  ],
  "Зачекайте ще {0} с: це велика сума.": [
   "src/app-vault-ui.js:156"
@@ -2848,22 +2864,22 @@
   "src/tips.js:24"
  ],
  "Зміна балансу SOL": [
-  "src/wallet-solana.js:682"
+  "src/wallet-solana.js:684"
  ],
  "Зміна власника акаунта {0} (System Assign)": [
-  "src/solana.js:453"
+  "src/solana.js:462"
  ],
  "Зміна мережі": [
   "src/wallet-dapp.js:137"
  ],
  "Зміна повноважень ({0}) на {1}": [
-  "src/solana.js:492"
+  "src/solana.js:501"
  ],
  "Зміна повноважень стейку {0}: {1} передається на {2}": [
-  "src/solana.js:522"
+  "src/solana.js:531"
  ],
  "Зміна токенів": [
-  "src/wallet-solana.js:684"
+  "src/wallet-solana.js:686"
  ],
  "Зміна SOL": [
   "src/wallet-solana.js:36"
@@ -2979,7 +2995,7 @@
   "pages/passwords.js:82"
  ],
  "Імена .sol розв’язуються лише в Mainnet Beta.": [
-  "src/wallet-solana.js:334"
+  "src/wallet-solana.js:336"
  ],
  "Імпорт даних": [
   "pages/newtab.js:46",
@@ -3041,11 +3057,11 @@
   "ui/overlay.js:100"
  ],
  "Ініціалізація стейк-акаунта {0} (виведення коштів: {1})": [
-  "src/solana.js:530",
-  "src/solana.js:534"
+  "src/solana.js:539",
+  "src/solana.js:543"
  ],
  "Ініціалізація токен-акаунта ({0})": [
-  "src/solana.js:499"
+  "src/solana.js:508"
  ],
  "Інкогніто": [
   "ui/renderer.js:79",
@@ -3055,16 +3071,16 @@
   "pages/help-data.js:496"
  ],
  "інструкція {0}": [
-  "src/solana.js:515"
+  "src/solana.js:524"
  ],
  "Інструкція вимикає CPI Guard: захист, що не дає програмам витрачати токени з акаунта без вашого прямого підпису. Підтверджуйте, лише якщо повністю розумієте наслідки.": [
-  "src/solana.js:504"
+  "src/solana.js:513"
  ],
  "Інструкція дає іншому адресу право витрачати ваші токени без нових підтверджень, доки ви не скасуєте дозвіл (Revoke).": [
-  "src/solana.js:487"
+  "src/solana.js:496"
  ],
  "Інструкція передає власність над ВАШИМ акаунтом іншій програмі — типовий прийом шахраїв для крадіжки коштів.": [
-  "src/solana.js:454"
+  "src/solana.js:463"
  ],
  "Інструменти": [
   "pages/newtab.js:54"
@@ -3165,7 +3181,7 @@
   "src/app-commands.js:43"
  ],
  "керування стейкінгом (Staker)": [
-  "src/solana.js:521"
+  "src/solana.js:530"
  ],
  "Керувати паролями": [
   "ui/overlay.js:304"
@@ -3194,7 +3210,7 @@
   "src/wallet-evm-nft.js:232"
  ],
  "Кількість підписів не збігається із заголовком": [
-  "src/solana.js:158"
+  "src/solana.js:167"
  ],
  "Кількість: {0}": [
   "pages/wallet.js:511"
@@ -3372,10 +3388,10 @@
   "src/wallet-dapp.js:247"
  ],
  "Конфіденційна операція з токенами (Token-2022)": [
-  "src/solana.js:506"
+  "src/solana.js:515"
  ],
  "Конфіденційні операції приховують суми: гаманець не може показати, що саме відбудеться. Підтверджуйте лише на довіреному сайті.": [
-  "src/solana.js:507"
+  "src/solana.js:516"
  ],
  "Копію збережено: {0}": [
   "pages/wallet.js:821"
@@ -3464,7 +3480,7 @@
   "src/wallet-dapp.js:343"
  ],
  "Ліміт обчислень": [
-  "src/solana.js:513"
+  "src/solana.js:522"
  ],
  "Ліміт одного переказу не може перевищувати добовий ліміт.": [
   "src/wallet-safety.js:40"
@@ -3529,7 +3545,7 @@
   "pages/settings.js:381"
  ],
  "Максимум 10 рахунків.": [
-  "src/wallet.js:175"
+  "src/wallet.js:177"
  ],
  "Маскування характеристик пристрою, округлення екрана та захист Canvas від зняття відбитків": [
   "pages/settings.js:391"
@@ -3637,7 +3653,7 @@
  ],
  "Метод не підтримується: {0}": [
   "src/wallet-dapp.js:73",
-  "src/wallet-solana.js:533"
+  "src/wallet-solana.js:535"
  ],
  "Метод не підтримується.": [
   "src/wallet-signguard.js:235"
@@ -3961,7 +3977,7 @@
   "src/updater.js:172"
  ],
  "не вдалося виконати": [
-  "src/wallet-solana.js:617"
+  "src/wallet-solana.js:619"
  ],
  "Не вдалося виконати дію": [
   "pages/pdftools.js:15"
@@ -4001,7 +4017,7 @@
  ],
  "Не вдалося надіслати транзакцію: {0}": [
   "src/wallet-dapp.js:355",
-  "src/wallet-solana.js:721"
+  "src/wallet-solana.js:723"
  ],
  "Не вдалося отримати номер блоку: {0}": [
   "src/wallet-approvals.js:34",
@@ -4015,7 +4031,7 @@
   "pages/wallet.js:1220"
  ],
  "Не вдалося отримати blockhash": [
-  "src/wallet-solana.js:443"
+  "src/wallet-solana.js:445"
  ],
  "Не вдалося отримати blockhash: {0}": [
   "src/wallet-solana-staking.js:76",
@@ -4029,10 +4045,10 @@
   "pages/dashboard.js:190"
  ],
  "Не вдалося перевірити отримувача": [
-  "src/wallet-solana.js:417"
+  "src/wallet-solana.js:419"
  ],
  "Не вдалося перевірити токен-акаунт одержувача": [
-  "src/wallet-solana.js:423"
+  "src/wallet-solana.js:425"
  ],
  "Не вдалося перевірити nonce: {0}": [
   "src/wallet-extras.js:97"
@@ -4062,11 +4078,14 @@
  "Не вдалося прочитати завантажений файл.": [
   "src/update-verify.js:40"
  ],
+ "Не вдалося прочитати розширення: {0}": [
+  "src/ipc.js:455"
+ ],
  "Не вдалося прочитати токен": [
-  "src/wallet-solana.js:392"
+  "src/wallet-solana.js:394"
  ],
  "Не вдалося прочитати токен-акаунти": [
-  "src/wallet-solana.js:405"
+  "src/wallet-solana.js:407"
  ],
  "Не вдалося прочитати файл": [
   "pages/pdftools.js:10"
@@ -4075,7 +4094,7 @@
   "src/importer.js:104"
  ],
  "Не вдалося розв'язати ім'я: {0}": [
-  "src/wallet-solana.js:337"
+  "src/wallet-solana.js:339"
  ],
  "Не вдалося розв’язати ім’я: {0}": [
   "src/wallet-extras.js:200"
@@ -4084,13 +4103,13 @@
   "src/wallet-import.js:103"
  ],
  "Не вдалося розшифрувати інструкцію програми {0}": [
-  "src/solana.js:566"
+  "src/solana.js:575"
  ],
  "Не вдалося розшифрувати файл: хибна парольна фраза або файл змінено.": [
   "src/sync.js:91"
  ],
  "Не вдалося симулювати транзакцію — наслідки не перевірено.": [
-  "src/wallet-solana.js:688"
+  "src/wallet-solana.js:690"
  ],
  "Не вдалося увімкнути режим читання": [
   "src/app-window.js:596"
@@ -4099,7 +4118,7 @@
   "pages/help-data.js:431"
  ],
  "не виконано": [
-  "src/wallet-solana.js:681"
+  "src/wallet-solana.js:683"
  ],
  "Не вистачило пам'яті для обробки PDF": [
   "pages/pdftools.js:16"
@@ -4132,9 +4151,9 @@
   "src/tab-groups.js:140"
  ],
  "Не можна надсилати на той самий рахунок.": [
-  "src/solana.js:399",
+  "src/solana.js:408",
   "src/wallet-evm-nft.js:225",
-  "src/wallet-solana.js:353"
+  "src/wallet-solana.js:355"
  ],
  "Не можна перезаписувати вхідний файл: оберіть інше ім'я": [
   "pages/pdftools.js:14"
@@ -4184,8 +4203,8 @@
  ],
  "Невідома мережа": [
   "src/wallet.js:91",
-  "src/wallet.js:209",
-  "src/wallet.js:218"
+  "src/wallet.js:211",
+  "src/wallet.js:220"
  ],
  "Невідома мережа Solana": [
   "src/wallet-solana.js:81",
@@ -4197,7 +4216,7 @@
   "src/wallet-import.js:309"
  ],
  "Невідома програма токена.": [
-  "src/wallet-solana.js:396"
+  "src/wallet-solana.js:398"
  ],
  "Невідомий виклик контракту: підтверджуйте лише якщо довіряєте сайту.": [
   "src/wallet-evm-core.js:115"
@@ -4217,8 +4236,8 @@
   "src/wallet-extras.js:42"
  ],
  "Невідомий рівень швидкості.": [
-  "src/wallet-solana.js:285",
-  "src/wallet-solana.js:287"
+  "src/wallet-solana.js:287",
+  "src/wallet-solana.js:289"
  ],
  "Невідомий формат файлу синхронізації.": [
   "src/sync.js:87"
@@ -4227,7 +4246,7 @@
   "src/wallet.js:133"
  ],
  "Невідомий шлях деривації Solana": [
-  "src/solana.js:73"
+  "src/solana.js:81"
  ],
  "Невідомий шлях деривації Solana.": [
   "src/wallet.js:134"
@@ -4261,7 +4280,7 @@
   "pages/pdftools.js:10"
  ],
  "Недостатньо токенів: на найбільшому токен-акаунті {0}.": [
-  "src/wallet-solana.js:413"
+  "src/wallet-solana.js:415"
  ],
  "Недостатньо токенів: на рахунку {0} {1}.": [
   "src/wallet-evm-tokens.js:167"
@@ -4285,9 +4304,9 @@
   "src/ipc.js:233"
  ],
  "Недоступно.": [
-  "src/dashboard.js:201",
-  "src/dashboard.js:243",
-  "src/dashboard.js:249"
+  "src/dashboard.js:202",
+  "src/dashboard.js:244",
+  "src/dashboard.js:250"
  ],
  "Незалежного аудиту ще немає: не тримайте великі суми.": [
   "pages/settings.js:450",
@@ -4325,18 +4344,18 @@
  "Некоректна адреса отримувача (або неправильна контрольна сума регістру).": [
   "src/wallet-evm-nft.js:219",
   "src/wallet-evm-tokens.js:154",
-  "src/wallet.js:360"
+  "src/wallet.js:362"
  ],
  "Некоректна адреса отримувача.": [
-  "src/wallet-solana.js:349",
-  "src/wallet-solana.js:381"
+  "src/wallet-solana.js:351",
+  "src/wallet-solana.js:383"
  ],
  "Некоректна адреса стейк-акаунта.": [
   "src/wallet-solana-staking.js:121",
   "src/wallet-solana-staking.js:154"
  ],
  "Некоректна адреса токена (mint).": [
-  "src/wallet-solana.js:382"
+  "src/wallet-solana.js:384"
  ],
  "Некоректна адреса токена або адреса, якій видано дозвіл.": [
   "src/wallet-extras.js:134"
@@ -4357,13 +4376,13 @@
   "src/ledger.js:130"
  ],
  "Некоректна довжина": [
-  "src/solana.js:92"
+  "src/solana.js:101"
  ],
  "Некоректна кількість знаків токена.": [
-  "src/solana.js:255"
+  "src/solana.js:264"
  ],
  "Некоректна кількість транзакцій": [
-  "src/wallet-solana.js:636"
+  "src/wallet-solana.js:638"
  ],
  "Некоректна кількість lamports для виведення.": [
   "src/wallet-solana-staking.js:161"
@@ -4378,15 +4397,15 @@
   "src/wallet-solana-staking.js:65"
  ],
  "Некоректна сума.": [
-  "src/solana.js:245",
-  "src/solana.js:257",
+  "src/solana.js:254",
+  "src/solana.js:266",
   "src/wallet-evm-tokens.js:161"
  ],
  "Некоректна транзакція": [
   "src/wallet-dapp.js:258"
  ],
  "Некоректна транзакція: {0}": [
-  "src/wallet-solana.js:640"
+  "src/wallet-solana.js:642"
  ],
  "Некоректна фраза відновлення (перевірте слова та порядок).": [
   "src/wallet.js:139"
@@ -4419,7 +4438,7 @@
   "pages/pdftools.js:15"
  ],
  "Некоректний заголовок транзакції": [
-  "src/solana.js:111"
+  "src/solana.js:120"
  ],
  "Некоректний запит": [
   "src/wallet-dapp.js:25"
@@ -4437,10 +4456,10 @@
   "src/wallet-import.js:93"
  ],
  "Некоректний розмір повідомлення": [
-  "src/wallet-solana.js:576"
+  "src/wallet-solana.js:578"
  ],
  "Некоректний розмір транзакції": [
-  "src/solana.js:152"
+  "src/solana.js:161"
  ],
  "Некоректний секрет TOTP або посилання otpauth://.": [
   "src/vault.js:257",
@@ -4464,7 +4483,7 @@
   "src/solana.js:26"
  ],
  "Некоректний blockhash": [
-  "src/solana.js:284"
+  "src/solana.js:293"
  ],
  "Некоректний chainId": [
   "src/wallet-dapp.js:133"
@@ -4491,7 +4510,7 @@
   "src/app-vault-ui.js:178"
  ],
  "Некоректні підписи транзакції": [
-  "src/solana.js:155"
+  "src/solana.js:164"
  ],
  "Некоректні типізовані дані": [
   "src/wallet-dapp.js:220",
@@ -4501,7 +4520,7 @@
   "src/wallet-evm-tokens.js:60"
  ],
  "Некоректні seed-и PDA": [
-  "src/solana.js:208"
+  "src/solana.js:217"
  ],
  "немає": [
   "pages/dashboard.js:244"
@@ -4515,7 +4534,7 @@
  "немає відповіді": [
   "src/dashboard.js:22",
   "src/dashboard.js:36",
-  "src/wallet-solana.js:608"
+  "src/wallet-solana.js:610"
  ],
  "Немає вкладки для збереження: відкрийте цей розділ із меню потрібної сторінки": [
   "pages/pdftools.js:14"
@@ -4572,7 +4591,7 @@
   "src/github.js:86"
  ],
  "Непідтримувана версія транзакції": [
-  "src/solana.js:101"
+  "src/solana.js:110"
  ],
  "Нестандартна версія SIWE ({0}).": [
   "src/wallet-signguard.js:86"
@@ -4587,7 +4606,7 @@
   "pages/help-data.js:505"
  ],
  "нікого": [
-  "src/solana.js:492"
+  "src/solana.js:501"
  ],
  "Ніколи для цього сайту": [
   "ui/index.html:41"
@@ -4688,7 +4707,7 @@
   "src/wallet-evm-core.js:129"
  ],
  "Об’єднання стейк-акаунтів {0} та {1}": [
-  "src/solana.js:558"
+  "src/solana.js:567"
  ],
  "Об'єднати вибрані…": [
   "pages/pdftools.js:74"
@@ -4697,10 +4716,10 @@
   "pages/wallet.js:1293"
  ],
  "Обірвана транзакція": [
-  "src/solana.js:88"
+  "src/solana.js:97"
  ],
  "Обірване повідомлення транзакції": [
-  "src/solana.js:97"
+  "src/solana.js:106"
  ],
  "Обманлива адреса": [
   "pages/warning.js:13"
@@ -4790,7 +4809,7 @@
   "pages/dashboard.js:189"
  ],
  "Оновлення {0} готове й перевірене — натисніть ⬆ у панелі, щоб встановити": [
-  "main.js:102"
+  "main.js:105"
  ],
  "Оновлення {0} готове й перевірене. Клік — встановити та перезапустити": [
   "ui/renderer.js:183"
@@ -4829,7 +4848,7 @@
   "src/wallet-approvals.js:117"
  ],
  "Операція з nonce-акаунтом (System {0})": [
-  "src/solana.js:472"
+  "src/solana.js:481"
  ],
  "Опис": [
   "pages/wallet.js:1170"
@@ -4902,10 +4921,10 @@
   "src/wallet-approvals.js:93"
  ],
  "Отримувач — один із ваших власних рахунків.": [
-  "src/wallet.js:335"
+  "src/wallet.js:337"
  ],
  "Отримувач — смарт-контракт: простий переказ на контракт може бути втрачений безповоротно, якщо він не призначений приймати кошти.": [
-  "src/wallet.js:371"
+  "src/wallet.js:373"
  ],
  "Отримувач — смарт-контракт: токени, надіслані на контракт, який не вміє їх повертати, можуть бути втрачені.": [
   "src/wallet-evm-tokens.js:174"
@@ -5265,10 +5284,10 @@
   "src/wallet-evm-tokens.js:178"
  ],
  "Переказ {0} SOL (TransferWithSeed): {1} → {2}": [
-  "src/solana.js:459"
+  "src/solana.js:468"
  ],
  "Переказ {0} SOL: {1} → {2}": [
-  "src/solana.js:446"
+  "src/solana.js:455"
  ],
  "Переказ довго «очікує» — у журналі його можна **прискорити** або **скасувати** (EVM). Баланс не показується — вкажіть інший RPC-вузол на сторінці гаманця. Забули майстер-пароль — його не відновити, але з фрази відновлення або файлу резервної копії гаманець можна створити заново. Втратили і фразу, і копію — доступу до коштів немає ні в кого.": [
   "pages/help-data.js:245"
@@ -5277,10 +5296,10 @@
   "pages/help-data.js:489"
  ],
  "Переказ із похідного акаунта (WithSeed): перевірте суму й отримувача.": [
-  "src/solana.js:460"
+  "src/solana.js:469"
  ],
  "Переказ токена {0}": [
-  "src/wallet-solana.js:450"
+  "src/wallet-solana.js:452"
  ],
  "Переказ токена/NFT": [
   "src/wallet-evm-core.js:144"
@@ -5289,13 +5308,13 @@
   "src/wallet-evm-core.js:138"
  ],
  "Переказ токенів ({0} у мінімальних одиницях): {1} → {2}, підпис {3}": [
-  "src/solana.js:482"
+  "src/solana.js:491"
  ],
  "Переказ токенів {0} (mint {1}): {2} → {3}, підпис {4}": [
-  "src/solana.js:483"
+  "src/solana.js:492"
  ],
  "Переказ токенів {0} із комісією {1} (mint {2}): {3} → {4}, підпис {5}": [
-  "src/solana.js:501"
+  "src/solana.js:510"
  ],
  "Переказ NFT #{0}": [
   "src/wallet-evm-nft.js:252"
@@ -5307,7 +5326,7 @@
   "pages/wallet.js:551"
  ],
  "переказів: {0} (суми — серед дій нижче)": [
-  "src/solana.js:573"
+  "src/solana.js:582"
  ],
  "Переклад (Ollama)": [
   "src/app-menus.js:250"
@@ -5432,7 +5451,7 @@
   "pages/help-data.js:143"
  ],
  "Підключення Solana": [
-  "src/wallet-solana.js:566"
+  "src/wallet-solana.js:568"
  ],
  "Підключення…": [
   "pages/dashboard.js:251"
@@ -5495,19 +5514,19 @@
  "Підпис повідомлення": [
   "src/wallet-dapp.js:206",
   "src/wallet-dapp.js:211",
-  "src/wallet-solana.js:586"
+  "src/wallet-solana.js:588"
  ],
  "Підпис повідомлення Solana": [
-  "src/wallet-solana.js:592"
+  "src/wallet-solana.js:594"
  ],
  "Підпис структурованих даних": [
   "src/wallet-dapp.js:246"
  ],
  "Підпис транзакції": [
-  "src/wallet-solana.js:694"
+  "src/wallet-solana.js:696"
  ],
  "Підпис транзакції Solana ({0})": [
-  "src/wallet-solana.js:715"
+  "src/wallet-solana.js:717"
  ],
  "Підпис Ledger не відповідає адресі рахунку: перевірте, що відкрито правильний пристрій і шлях.": [
   "src/ledger.js:153"
@@ -5532,7 +5551,7 @@
  ],
  "Підтвердження транзакції": [
   "src/wallet-dapp.js:346",
-  "src/wallet-solana.js:694"
+  "src/wallet-solana.js:696"
  ],
  "Підтверджено": [
   "src/wallet-solana.js:47",
@@ -5568,7 +5587,7 @@
   "pages/settings.js:38"
  ],
  "Підтримуються лише прості імена .sol (латиниця, цифри, дефіс).": [
-  "src/wallet-solana.js:333"
+  "src/wallet-solana.js:335"
  ],
  "Підтримуються лише ASCII-імена ENS у зоні .eth (латиниця, цифри, дефіс).": [
   "src/wallet-extras.js:187"
@@ -5599,7 +5618,7 @@
   "pages/help-data.js:316"
  ],
  "Платник комісії має бути першим": [
-  "src/solana.js:282"
+  "src/solana.js:291"
  ],
  "По центру": [
   "pages/pdftools.js:85"
@@ -5618,7 +5637,7 @@
  ],
  "Повідомлення": [
   "src/wallet-dapp.js:207",
-  "src/wallet-solana.js:587"
+  "src/wallet-solana.js:589"
  ],
  "Повідомлення довге: показано лише початок ({0} із {1} байт), а підписується все. Підписуйте лише на довіреному сайті.": [
   "src/wallet-signguard.js:226"
@@ -5756,7 +5775,7 @@
   "src/ipc.js:42"
  ],
  "ПОМИЛКА": [
-  "src/wallet-solana.js:681"
+  "src/wallet-solana.js:683"
  ],
  "Помилка завантаження NFT.": [
   "pages/wallet.js:1126"
@@ -5962,16 +5981,16 @@
   "pages/help-data.js:87"
  ],
  "право виведення коштів (Withdrawer)": [
-  "src/solana.js:521"
+  "src/solana.js:530"
  ],
  "право закриття токен-акаунта": [
-  "src/solana.js:424"
+  "src/solana.js:433"
  ],
  "право заморожування": [
-  "src/solana.js:424"
+  "src/solana.js:433"
  ],
  "право мінтингу": [
-  "src/solana.js:424"
+  "src/solana.js:433"
  ],
  "Працює": [
   "pages/dashboard.js:180"
@@ -6070,13 +6089,13 @@
   "src/wallet-evm-core.js:129"
  ],
  "Примітка (Memo)": [
-  "src/solana.js:517"
+  "src/solana.js:526"
  ],
  "припинено в налаштуваннях": [
   "src/ipc.js:223"
  ],
  "припинено з панелі": [
-  "src/dashboard.js:253"
+  "src/dashboard.js:254"
  ],
  "Припинити всі": [
   "pages/settings.js:190"
@@ -6125,9 +6144,9 @@
   "pages/settings.js:388"
  ],
  "Пріоритетна комісія": [
-  "src/solana.js:514",
-  "src/wallet-solana.js:365",
-  "src/wallet-solana.js:448"
+  "src/solana.js:523",
+  "src/wallet-solana.js:367",
+  "src/wallet-solana.js:450"
  ],
  "Про програму": [
   "pages/help.js:46"
@@ -6142,10 +6161,10 @@
   "pages/settings.js:105"
  ],
  "Програма інструкції поза списком акаунтів": [
-  "src/solana.js:142"
+  "src/solana.js:151"
  ],
  "Програма токена": [
-  "src/wallet-solana.js:449"
+  "src/wallet-solana.js:451"
  ],
  "Прогрес, пауза, відкриття файлів": [
   "pages/newtab.js:45"
@@ -6257,13 +6276,13 @@
  ],
  "Рахунок не підключено до цього сайту": [
   "src/wallet-dapp.js:174",
-  "src/wallet-solana.js:574",
-  "src/wallet-solana.js:634"
+  "src/wallet-solana.js:576",
+  "src/wallet-solana.js:636"
  ],
  "Рахунок Solana": [
-  "src/wallet-solana.js:558",
-  "src/wallet-solana.js:587",
-  "src/wallet-solana.js:665"
+  "src/wallet-solana.js:560",
+  "src/wallet-solana.js:589",
+  "src/wallet-solana.js:667"
  ],
  "Редагувати запис": [
   "pages/passwords.js:92"
@@ -6415,7 +6434,7 @@
   "pages/pdftools.js:150"
  ],
  "Розділення стейку {0}: {1} SOL у новий акаунт {2}": [
-  "src/solana.js:556"
+  "src/solana.js:565"
  ],
  "Розділи гаманця": [
   "pages/wallet.js:1000"
@@ -6438,9 +6457,18 @@
  "Розташування": [
   "pages/pdftools.js:146"
  ],
+ "Розширення «{0}» змінено поза браузером і не завантажено. Додайте його знову, якщо довіряєте змінам.": [
+  "main.js:129"
+ ],
  "Розширення (експериментально)": [
   "pages/settings.js:439",
   "pages/help-data.js:396"
+ ],
+ "Розширення завелике.": [
+  "src/ext-guard.js:37"
+ ],
+ "Розширення працює на сторінках з вашими входами. Дозволи, які воно просить:": [
+  "src/ipc.js:460"
  ],
  "Розширення Chrome": [
   "pages/settings.js:456"
@@ -6534,7 +6562,7 @@
   "src/wallet-dapp.js:86"
  ],
  "Сайт ще не підключено до гаманця": [
-  "src/wallet-solana.js:547"
+  "src/wallet-solana.js:549"
  ],
  "Сайти зі списків шахрайських ресурсів не можна додати в довірені.": [
   "src/ipc-browser.js:34"
@@ -6621,7 +6649,7 @@
   "src/wallet-simulate.js:115"
  ],
  "Симуляція показала, що транзакція завершиться помилкою — гроші можуть бути втрачені на комісію.": [
-  "src/wallet-solana.js:687"
+  "src/wallet-solana.js:689"
  ],
  "Симуляція показує, що транзакція завершиться помилкою: газ буде витрачено даремно. Не підтверджуйте, якщо не розумієте причини.": [
   "src/wallet-simulate.js:112"
@@ -6649,7 +6677,7 @@
   "pages/settings.js:211"
  ],
  "Синхронізація wSOL (SyncNative)": [
-  "src/solana.js:500"
+  "src/solana.js:509"
  ],
  "Синхронізувати зараз": [
   "pages/settings.js:214"
@@ -6678,7 +6706,7 @@
   "src/wallet-extras.js:143"
  ],
  "Скасування дозволу на витрату токенів (Revoke)": [
-  "src/solana.js:488"
+  "src/solana.js:497"
  ],
  "Скасування дозволу токена": [
   "pages/wallet.js:741"
@@ -6783,17 +6811,17 @@
   "src/containers.js:6"
  ],
  "Спалення токенів ({0})": [
-  "src/solana.js:497"
+  "src/solana.js:506"
  ],
  "Спершу виберіть папку.": [
   "pages/settings.js:228"
  ],
  "Спершу відкрийте історію цього рахунку.": [
   "src/wallet-history-evm.js:114",
-  "src/wallet-solana.js:497"
+  "src/wallet-solana.js:499"
  ],
  "Спершу відкрийте список NFT цього рахунку.": [
-  "src/wallet-solana.js:257"
+  "src/wallet-solana.js:259"
  ],
  "Спершу встановіть Ollama та завантажте модель, потім на сторінці помічника вкажіть адресу сервера, натисніть «Оновити список моделей», виберіть модель і «Зберегти».": [
   "pages/help-data.js:369"
@@ -6837,7 +6865,7 @@
   "pages/dashboard.js:167"
  ],
  "Спишеться з ваших рахунків": [
-  "src/solana.js:571"
+  "src/solana.js:580"
  ],
  "Спільні вкладки": [
   "pages/dashboard.js:244",
@@ -6888,7 +6916,7 @@
   "pages/help-data.js:420"
  ],
  "Сталася внутрішня помилка. Подробиці записано в журнал crash.log.": [
-  "main.js:46"
+  "main.js:49"
  ],
  "Сталася помилка під час завантаження.": [
   "pages/error.js:20"
@@ -6937,10 +6965,10 @@
   "pages/help-data.js:252"
  ],
  "Створення акаунта {0} (CreateAccountWithSeed): {1} SOL": [
-  "src/solana.js:466"
+  "src/solana.js:475"
  ],
  "Створення акаунта {0}: {1} SOL, власник-програма {2}": [
-  "src/solana.js:449"
+  "src/solana.js:458"
  ],
  "Створення нового контракту.": [
   "src/wallet-dapp.js:330"
@@ -6949,7 +6977,7 @@
   "pages/help-data.js:186"
  ],
  "Створення токен-акаунта {0} для {1} (mint {2})": [
-  "src/solana.js:511"
+  "src/solana.js:520"
  ],
  "Створити метадані": [
   "pages/wallet.js:1185"
@@ -7066,14 +7094,14 @@
   "src/wallet-evm-core.js:127"
  ],
  "Сума завелика.": [
-  "src/solana.js:261"
+  "src/solana.js:270"
  ],
  "Сума має бути більшою за нуль": [
   "src/wallet-solana-staking.js:63"
  ],
  "Сума має бути більшою за нуль.": [
-  "src/solana.js:248",
-  "src/solana.js:260",
+  "src/solana.js:257",
+  "src/solana.js:269",
   "src/wallet-evm-tokens.js:163"
  ],
  "Сума SOL": [
@@ -7206,7 +7234,7 @@
   "src/wallet-signguard.js:97"
  ],
  "тип {0}": [
-  "src/solana.js:490"
+  "src/solana.js:499"
  ],
  "Тип даних не розпізнано: гаманець не може пояснити, що саме ви підписуєте. Підписуйте лише на довіреному сайті.": [
   "src/wallet-signguard.js:217"
@@ -7229,19 +7257,19 @@
   "pages/dashboard.js:251"
  ],
  "Токен має розширення ({0}), які змінюють перекази: гаманець їх не підтримує.": [
-  "src/wallet-solana.js:399"
+  "src/wallet-solana.js:401"
  ],
  "Токен недійсний або прострочений. Підключіть GitHub заново.": [
   "src/github.js:129"
  ],
  "Токен-акаунт закривається, а SOL надходить НЕ вам.": [
-  "src/solana.js:496"
+  "src/solana.js:505"
  ],
  "Токен-акаунт заморожено: імовірно, це програмований NFT (pNFT) або токен із замороженням. Гаманець такі токени поки не надсилає; скористайтеся маркетплейсом.": [
-  "src/wallet-solana.js:411"
+  "src/wallet-solana.js:413"
  ],
  "Токен-акаунт одержувача заморожено: переказ неможливий.": [
-  "src/wallet-solana.js:424"
+  "src/wallet-solana.js:426"
  ],
  "Токен/кількість": [
   "src/wallet-evm-core.js:144"
@@ -7256,10 +7284,10 @@
   "pages/help-data.js:257"
  ],
  "Токени на вашому рахунку зменшаться, хоча явного переказу токенів в інструкціях немає (так працюють і обміни, але так діють і шахраї): перевірте дію.": [
-  "src/wallet-solana.js:685"
+  "src/wallet-solana.js:687"
  ],
  "Токени підуть з ваших акаунтів": [
-  "src/solana.js:573"
+  "src/solana.js:582"
  ],
  "Токени та NFT": [
   "pages/wallet.js:244",
@@ -7310,25 +7338,25 @@
   "src/wallet-extras.js:98"
  ],
  "Транзакція викликає невідомі програми ({0}): їхню дію гаманець не може пояснити. Підтверджуйте лише на довіреному сайті.": [
-  "src/solana.js:569"
+  "src/solana.js:578"
  ],
  "Транзакція використовує адресні таблиці ({0} акаунтів): частина адрес прихована від попереднього перегляду.": [
-  "src/solana.js:570"
+  "src/solana.js:579"
  ],
  "Транзакція з довговічним nonce не втрачає чинності: той, хто її отримає, зможе надіслати її в будь-який момент пізніше. Підписуйте лише на довіреному сайті.": [
-  "src/solana.js:470"
+  "src/solana.js:479"
  ],
  "Транзакція надто велика, щоб показати всі дії: частину дій приховано від перегляду. Підтверджуйте лише на довіреному сервісі.": [
-  "src/wallet-solana.js:675"
+  "src/wallet-solana.js:677"
  ],
  "Транзакція не вдалася: {0}": [
   "src/wallet-watch.js:38"
  ],
  "Транзакція Solana": [
-  "src/wallet-solana.js:723"
+  "src/wallet-solana.js:725"
  ],
  "Триває встановлення оновлення": [
-  "main.js:87"
+  "main.js:90"
  ],
  "Тут видно, які адреси зараз можуть витрачати ваші токени ERC-20 чи всі NFT колекції. Небезпечні (необмежені чи для звичайного рахунку) угорі. Список складається з недавніх подій блокчейну й перевіряється за поточним станом контрактів.": [
   "pages/wallet.js:868"
@@ -7388,7 +7416,7 @@
   "pages/help-data.js:488"
  ],
  "У одержувача ще немає токен-акаунта для цього токена: його буде створено, а ≈{0} SOL (депозит за зберігання) спишеться з ВАШОГО рахунку.": [
-  "src/wallet-solana.js:430"
+  "src/wallet-solana.js:432"
  ],
  "У основній мережі (mainnet) монети мають реальну вартість. Тестові мережі (Sepolia, Devnet) призначені для випробувань, їхні монети безкоштовні й нічого не коштують: на них зручно навчитися, не ризикуючи грошима.": [
   "pages/help-data.js:322"
@@ -7459,13 +7487,16 @@
  "У W3IR Browser немає телеметрії: розробники не отримують відомостей про те, що ви відкриваєте й робите. Немає облікового запису розробників, реклами чи «статистики використання». Код відкритий, тож це можна перевірити.": [
   "pages/help-data.js:167"
  ],
+ "Увага, широкі дозволи: {0}.": [
+  "src/ipc.js:462"
+ ],
  "Увага: небезпечний сайт": [
   "pages/warning.html:5"
  ],
  "УВАГА: Ця дія передає право виведення коштів зі стейку іншій адресі! Це призведе до повної втрати застейканих SOL.": [
-  "src/solana.js:524",
-  "src/solana.js:531",
-  "src/solana.js:535"
+  "src/solana.js:533",
+  "src/solana.js:540",
+  "src/solana.js:544"
  ],
  "Увімкнено режим «лише адресна книга»: отримувача немає серед ваших рахунків і контактів. Додайте його в адресну книгу або вимкніть режим у налаштуваннях безпеки.": [
   "src/wallet-safety.js:110"
@@ -7534,8 +7565,8 @@
   "pages/wallet.js:855"
  ],
  "успішно": [
-  "src/wallet-solana.js:616",
-  "src/wallet-solana.js:681"
+  "src/wallet-solana.js:618",
+  "src/wallet-solana.js:683"
  ],
  "Усунення проблем: з чого почати": [
   "pages/help-data.js:437"
@@ -7688,13 +7719,13 @@
   "src/wallet-evm-nft.js:224"
  ],
  "Це адреса програми: токени на неї надсилати не можна.": [
-  "src/wallet-solana.js:420"
+  "src/wallet-solana.js:422"
  ],
  "Це адреса самого токена (mint), а не гаманця одержувача: токени було б втрачено.": [
-  "src/wallet-solana.js:385"
+  "src/wallet-solana.js:387"
  ],
  "Це адреса токен-акаунта або токена, а не гаманця одержувача: вкажіть адресу гаманця, токени було б втрачено.": [
-  "src/wallet-solana.js:419"
+  "src/wallet-solana.js:421"
  ],
  "Це вже PDF: збережіть або надрукуйте його кнопками переглядача вгорі": [
   "src/app-exec.js:282"
@@ -7709,7 +7740,7 @@
   "pages/help-data.js:502"
  ],
  "Це ім’я .sol не зареєстроване.": [
-  "src/wallet-solana.js:339"
+  "src/wallet-solana.js:341"
  ],
  "Це ім’я не зареєстровано або не вказує на адресу.": [
   "src/wallet-extras.js:201"
@@ -7736,7 +7767,7 @@
   "src/app-window.js:603"
  ],
  "Це не токен (mint) або його немає в цій мережі.": [
-  "src/wallet-solana.js:394"
+  "src/wallet-solana.js:396"
  ],
  "Це не файл резервної копії W3IR.": [
   "src/vault.js:342",
@@ -7809,8 +7840,8 @@
   "src/wallet-import.js:184"
  ],
  "Ця адреса не має приватного ключа (це адреса програми, PDA): кошти, надіслані на неї, зазвичай неможливо повернути.": [
-  "src/wallet-solana.js:364",
-  "src/wallet-solana.js:433"
+  "src/wallet-solana.js:366",
+  "src/wallet-solana.js:435"
  ],
  "Ця модель не вміє користуватися інструментами. Виберіть іншу (наприклад, llama3.1, qwen2.5, mistral-nemo).": [
   "src/assistant.js:102"
@@ -7822,10 +7853,10 @@
   "src/wallet-simulate.js:123"
  ],
  "Ця транзакція не потребує підпису вашого рахунку": [
-  "src/wallet-solana.js:641"
+  "src/wallet-solana.js:643"
  ],
  "Ця транзакція не потребує підпису цього рахунку": [
-  "src/solana.js:178"
+  "src/solana.js:187"
  ],
  "Час (UTC)": [
   "src/wallet-history-evm.js:22",
@@ -7838,7 +7869,7 @@
   "pages/wallet.js:781"
  ],
  "Частину інструкцій розшифрувати не вдалося — підтверджуйте лише на довірених сайтах.": [
-  "src/solana.js:566"
+  "src/solana.js:575"
  ],
  "Часті запитання та проблеми": [
   "pages/help.js:45"
@@ -7942,7 +7973,7 @@
   "pages/settings.js:406"
  ],
  "ШІ": [
-  "src/dashboard.js:174",
+  "src/dashboard.js:175",
   "pages/settings.js:242",
   "ui/renderer.js:121"
  ],
@@ -7971,7 +8002,7 @@
   "pages/help-data.js:140"
  ],
  "ШІ просить відкрити сайт": [
-  "src/agent.js:614"
+  "src/agent.js:629"
  ],
  "ШІ-дії з виділеним текстом": [
   "pages/help-data.js:88"
@@ -8045,7 +8076,7 @@
   "ui/overlay.js:489"
  ],
  "ще {0} рядків": [
-  "src/wallet-solana.js:674"
+  "src/wallet-solana.js:676"
  ],
  "ще не було": [
   "pages/dashboard.js:13"
@@ -8374,6 +8405,9 @@
  "magnet-посилання та .torrent-файли відкриваються у вашому зовнішньому торент-клієнті": [
   "pages/settings.js:401"
  ],
+ "manifest.json пошкоджено.": [
+  "src/ext-guard.js:46"
+ ],
  "N, напр. 5": [
   "pages/pdftools.js:106"
  ],
@@ -8399,7 +8433,7 @@
   "pages/help-data.js:497"
  ],
  "PDA не знайдено": [
-  "src/solana.js:216"
+  "src/solana.js:225"
  ],
  "PDF відкривається просто у вкладці вбудованим переглядачем Chromium: є пошук по тексту, мініатюри та зміст, масштаб, поворот, друк і кнопка збереження копії. Власного рушія PDF у W3IR немає.": [
   "pages/help-data.js:338"
@@ -8441,7 +8475,7 @@
  ],
  "RPC має бути https:// (або localhost).": [
   "src/wallet-solana.js:98",
-  "src/wallet.js:220"
+  "src/wallet.js:222"
  ],
  "RPC-вузол": [
   "pages/help-data.js:315"
@@ -8456,16 +8490,16 @@
   "src/wallet-evm-core.js:33"
  ],
  "SetAuthority: передає {0} токена чи акаунта. Шахраї використовують це, щоб забрати токен-акаунт назавжди. Підтверджуйте, лише якщо повністю розумієте наслідки.": [
-  "src/solana.js:493"
+  "src/solana.js:502"
  ],
  "Stake Program: інструкція {0}": [
-  "src/solana.js:560"
+  "src/solana.js:569"
  ],
  "Store {0} пошкоджено; відновлено: {1}": [
   "src/store.js:29"
  ],
  "System Program: інструкція {0}": [
-  "src/solana.js:473"
+  "src/solana.js:482"
  ],
  "Tab Stash: відкласти вкладки": [
   "pages/help-data.js:58"

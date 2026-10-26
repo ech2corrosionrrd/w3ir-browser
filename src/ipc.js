@@ -450,9 +450,24 @@ function registerIpc(resolve) {
         if (r.canceled || !r.filePaths[0]) return ctx.extStore.data.items;
         const dir = r.filePaths[0];
         if (!fs.existsSync(path.join(dir, 'manifest.json'))) throw new Error('У папці немає manifest.json');
+        const guard = require('./ext-guard');
+        let sum, hash;
+        try { sum = guard.summarize(guard.readManifest(dir)); hash = guard.hashDir(dir); } catch (e) { throw new Error(tr('Не вдалося прочитати розширення: {0}', e.message)); }
+        // розширення працює на сторінках з вашими входами: показуємо дозволи й просимо підтвердження
+        const box = await dialog.showMessageBox(entry.win.win, {
+          type: 'warning', buttons: [tr('Додати'), tr('Скасувати')], defaultId: 1, cancelId: 1, noLink: true,
+          title: tr('Додати розширення?'), message: tr('Додати розширення «{0}» {1}?', sum.name, sum.version),
+          detail: [tr('Розширення працює на сторінках з вашими входами. Дозволи, які воно просить:'),
+            sum.perms.length ? sum.perms.slice(0, 20).join('\n') + (sum.perms.length > 20 ? '\n…' : '') : tr('(особливих дозволів не просить)'),
+            sum.risky.length ? tr('Увага, широкі дозволи: {0}.', sum.risky.slice(0, 6).join(', ')) : '',
+            tr('Додавайте лише розширення, яким довіряєте.')].filter(Boolean).join('\n\n'),
+        });
+        if (box.response !== 0) return ctx.extStore.data.items;
         const ext = await ctx.session.extensions.loadExtension(dir, { allowFileAccess: false });
         const items = ctx.extStore.data.items;
-        if (!items.some(i => i.path === dir)) items.push({ path: dir, name: ext.name, id: ext.id });
+        const known = items.find(i => i.path === dir);
+        if (known) Object.assign(known, { name: ext.name, id: ext.id, hash }); // повторне додавання після змін = нове підтвердження
+        else items.push({ path: dir, name: ext.name, id: ext.id, hash });
         ctx.extStore.save();
         return items;
       }
