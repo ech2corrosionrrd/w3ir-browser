@@ -118,6 +118,7 @@ function install(Wallet, { RpcError, unauthorized }) {
     const entry = { chain: k.chain, address: k.address, secret: k.secret, name: injectionClean(name, 32), added: Date.now() };
     list.push(entry);
     this.vault.persist();
+    this.signerLock(); // набір ключів змінився: підписувач отримає його при наступному розблокуванні
     return { id: IMP_BASE + list.length - 1, chain: entry.chain, address: entry.address, name: entry.name };
   };
 
@@ -136,6 +137,7 @@ function install(Wallet, { RpcError, unauthorized }) {
     const i = Number(id) - IMP_BASE;
     if (!Number.isInteger(i) || i < 0 || i >= list.length) throw new RpcError(-32602, 'Невідомий рахунок');
     const gone = list.splice(i, 1)[0];
+    this.signerLock();
     const s = this.data();
     // відстежувані транзакції й підключення цього рахунку більше не мають сенсу
     s.pending = (s.pending || []).filter(p => p.from !== gone.address);

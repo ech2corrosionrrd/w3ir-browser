@@ -185,6 +185,7 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
         if (hw) return hw;
         const secret = this._importedSecret(address, 'evm'); // імпортований за приватним ключем
         if (!secret) throw unauthorized('Невідомий рахунок');
+        if (this.signerEnabled()) return this.remoteEvmSigner({ address }, address);
         return new EthWallet(secret);
       }
       if (this.signerEnabled()) return this.remoteEvmSigner(i, address); // ключ виводить і підписує окремий процес

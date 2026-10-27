@@ -150,16 +150,22 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     try { return S.deriveAccount(seed, i, (this.data() || {}).solPath || 'phantom'); } finally { seed.fill(0); }
   };
   // Підписи: за прапором W3IR_SIGNER=1 рахунки, виведені з фрази, підписує процес-підписувач; імпортовані ключі — локально (етап 4)
-  proto._solSignerIndex = function (address) { return this.signerEnabled() ? this.solAddresses().indexOf(address) : -1; };
+  // Посилання на рахунок для підписувача: { index } для похідного, { address } для імпортованого; null — підписати локально
+  proto._solSignerRef = function (address) {
+    if (!this.signerEnabled()) return null;
+    const i = this.solAddresses().indexOf(address);
+    if (i >= 0) return { index: i };
+    return this._importedSecret(address, 'sol') ? { address } : null;
+  };
   proto._solSign = async function (address, bytes) {
-    const i = this._solSignerIndex(address);
-    if (i >= 0) return Buffer.from((await this.signerCall('solSign', { index: i, message: bytes })).signature);
+    const ref = this._solSignerRef(address);
+    if (ref) return Buffer.from((await this.signerCall('solSign', { ...ref, message: bytes })).signature);
     return S.sign(this._solKeypair(address).secret, bytes);
   };
   proto._solSignTx = async function (address, wire) {
-    const i = this._solSignerIndex(address);
-    if (i >= 0) {
-      const r = await this.signerCall('solSignTx', { index: i, address, wire });
+    const ref = this._solSignerRef(address);
+    if (ref) {
+      const r = await this.signerCall('solSignTx', { ...ref, address, wire });
       return { signedWire: Buffer.from(r.signedWire), signature: Buffer.from(r.signature), index: r.index };
     }
     return S.signTransaction(this._solKeypair(address).secret, address, wire);

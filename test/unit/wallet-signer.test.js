@@ -232,3 +232,63 @@ test('signer-sol: чужа адреса, не потрібний підпис, �
   await core.handle({ id: 7, op: 'lock' });
   assert.strictEqual((await core.handle({ id: 8, op: 'solSignTx', args: { index: 0, address: solAt(0), wire } })).error, 'locked');
 });
+
+// ---- імпортовані ключі й ключ Arweave ----
+const { Wallet: EthWallet } = require('ethers');
+const arweave = require('../../src/wallet-arweave');
+
+test('signer-import: імпортовані ключі EVM і Solana підписують так само, як локально', async () => {
+  const evmKey = '0x' + '11'.repeat(32);
+  const evm = new EthWallet(evmKey);
+  const solSeedB64 = Buffer.alloc(32, 7).toString('base64');
+  const solKp = S.keypairFromSeed(Buffer.alloc(32, 7));
+  const core = createCore();
+  const u = await core.handle({ id: 0, op: 'unlock', args: { mnemonic: PHRASE, imported: [{ chain: 'evm', address: evm.address, secret: evmKey }, { chain: 'sol', address: solKp.address, secret: solSeedB64 }] } });
+  assert.ok(u.ok, u.error);
+  let n = 0;
+  const call = async (op, args) => { const r = await core.handle({ id: ++n, op, args }); if (!r.ok) throw new Error(r.error); return r.result; };
+  const signer = new RemoteEvmSigner(call, { address: evm.address }, evm.address);
+  assert.strictEqual(await signer.signMessage('імпорт'), await evm.signMessage('імпорт'));
+  const req = { type: 2, to: evm.address, value: 5n, nonce: 1, gasLimit: 21000n, maxFeePerGas: 10n ** 9n, maxPriorityFeePerGas: 1n, chainId: 1n };
+  assert.strictEqual(await signer.signTransaction(req), await evm.signTransaction(req));
+  const msg = Buffer.from('sol імпорт');
+  assert.deepStrictEqual(Buffer.from((await call('solSign', { address: solKp.address, message: msg })).signature), S.sign(solKp.secret, msg));
+  const wire = solTx(solKp.address);
+  const t = await call('solSignTx', { address: solKp.address, wire });
+  assert.deepStrictEqual(Buffer.from(t.signedWire), S.signTransaction(solKp.secret, solKp.address, wire).signedWire);
+  await assert.rejects(call('solSign', { address: solAt(0), message: msg }), /unknown account/);
+  await assert.rejects(call('evmSignMessage', { address: '0x000000000000000000000000000000000000dEaD', text: 'x' }), /unknown account/);
+});
+
+test('signer-import: некоректний набір ключів відхиляється, lock забуває імпортовані ключі', async () => {
+  const core = createCore();
+  const bad = [
+    { imported: 'x' }, { imported: [{ chain: 'btc', address: 'a', secret: 'b' }] }, { imported: Array.from({ length: 21 }, () => ({ chain: 'evm', address: 'a', secret: 'b' })) },
+    { arweave: { n: 1 } },
+  ];
+  for (const extra of bad) assert.strictEqual((await core.handle({ id: 1, op: 'unlock', args: { mnemonic: PHRASE, ...extra } })).ok, false);
+  const evmKey = '0x' + '22'.repeat(32);
+  const addr = new EthWallet(evmKey).address;
+  await core.handle({ id: 2, op: 'unlock', args: { mnemonic: PHRASE, imported: [{ chain: 'evm', address: addr, secret: evmKey }] } });
+  assert.ok((await core.handle({ id: 3, op: 'evmSignMessage', args: { address: addr, text: 'x' } })).ok);
+  await core.handle({ id: 4, op: 'lock' });
+  await core.handle({ id: 5, op: 'unlock', args: { mnemonic: PHRASE } });
+  assert.strictEqual((await core.handle({ id: 6, op: 'evmSignMessage', args: { address: addr, text: 'x' } })).error, 'unknown account');
+  // ключ, чия адреса не збігається із заявленою, відхиляється
+  await core.handle({ id: 7, op: 'unlock', args: { mnemonic: PHRASE, imported: [{ chain: 'evm', address: '0x000000000000000000000000000000000000dEaD', secret: evmKey }] } });
+  assert.strictEqual((await core.handle({ id: 8, op: 'evmSignMessage', args: { address: '0x000000000000000000000000000000000000dEaD', text: 'x' } })).error, 'key mismatch');
+});
+
+test('signer-arweave: підпис ключем Arweave перевіряється відкритим ключем', async () => {
+  const jwk = arweave.generateArweaveJwk();
+  const core = createCore();
+  assert.strictEqual((await core.handle({ id: 0, op: 'unlock', args: { mnemonic: PHRASE } })).ok, true);
+  assert.strictEqual((await core.handle({ id: 1, op: 'arSign', args: { data: Buffer.from('x') } })).error, 'no arweave key');
+  await core.handle({ id: 2, op: 'unlock', args: { mnemonic: PHRASE, arweave: jwk } });
+  const data = Buffer.from('дані Arweave');
+  const r = await core.handle({ id: 3, op: 'arSign', args: { data } });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(arweave.verifySignature(jwk, data, Buffer.from(r.result.signature)), true);
+  assert.strictEqual(arweave.verifySignature(jwk, Buffer.from('інші'), Buffer.from(r.result.signature)), false);
+  assert.strictEqual((await core.handle({ id: 4, op: 'arSign', args: { data: 'рядок' } })).ok, false);
+});
