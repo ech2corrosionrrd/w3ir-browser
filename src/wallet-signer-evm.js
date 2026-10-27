@@ -1,6 +1,6 @@
 'use strict';
 // EVM-підписувач ethers, що віддає підпис процесу-підписувачу (docs/adr/0001-wallet-signer-process.md). Працює за прапором
-// W3IR_SIGNER=1 (етап 2 плану S1): Wallet.signerFor() повертає RemoteEvmSigner замість HDNodeWallet, тож похідний ключ
+// (S1): Wallet.signerFor() повертає RemoteEvmSigner, тож похідний ключ
 // не створюється в головному процесі. Підписувач ethers тут лише готує запит так само, як LedgerSigner (ledger.js).
 const {
   AbstractSigner, Transaction, getAddress, TypedDataEncoder, resolveProperties, resolveAddress, copyRequest, assertArgument,
@@ -49,22 +49,31 @@ class RemoteEvmSigner extends AbstractSigner {
 
 function install(Wallet, { unauthorized }) {
   Object.assign(Wallet.prototype, {
-    signerEnabled() { return process.env.W3IR_SIGNER !== '0'; }, // підпис у процесі-підписувачі типово увімкнено; W3IR_SIGNER=0 — локальний підпис (діагностика)
     signerClient() { return this._signerClient || (this._signerClient = new SignerClient()); },
     // Розблоковує підписувач поточною фразою, якщо він ще не розблокований (після простою, збою чи блокування сховища)
     async signerCall(op, args) {
+      // блокування між кроками (інший виклик signerLock) скидає процес: одна повторна спроба з розблокуванням заново
+      try { return await this._signerCallOnce(op, args); } catch (e) {
+        if (/^(locked|signer-stopped|signer-crashed)$/.test(String(e && e.message))) return this._signerCallOnce(op, args);
+        throw e;
+      }
+    },
+    async _signerCallOnce(op, args) {
       const c = this.signerClient();
+      const gen = this._signerGen || 0; // змінюється при кожному signerLock: захист від розблокування застарілими даними
       if (!(await c.call('status')).unlocked) {
         const s = this.data();
         if (!s) throw unauthorized('Гаманець не створено');
         // Імпортовані ключі й ключ Arweave передаються разом із фразою; будь-яка зміна їх набору блокує підписувач (signerLock)
         const imported = (s.imported || []).filter(a => !a.hw && a.secret).map(a => ({ chain: a.chain, address: a.address, secret: a.secret }));
         await c.call('unlock', { mnemonic: s.mnemonic, passphrase: s.passphrase || '', evmPath: s.evmPath || 'standard', solPath: s.solPath || 'phantom', imported, arweave: s.arweave ? s.arweave.jwk : null });
+        // за час розблокування було блокування (інша фраза, ключі, видалення): цей стан застарілий, скидаємо його
+        if ((this._signerGen || 0) !== gen) { await c.lock(); throw new Error('signer-stopped'); }
       }
       return c.call(op, args);
     },
     // Блокування сховища, нова фраза чи видалення гаманця: підписувач обнуляє seed і завершується
-    signerLock() { if (this._signerClient) this._signerClient.lock().catch(() => {}); },
+    signerLock() { this._signerGen = (this._signerGen || 0) + 1; return this._signerClient ? this._signerClient.lock().catch(() => {}) : Promise.resolve(); },
     remoteEvmSigner(ref, address) { return new RemoteEvmSigner((op, args) => this.signerCall(op, args), ref, address); },
   });
 }

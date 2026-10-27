@@ -3,12 +3,13 @@
 // Не залежить від Electron, тому тестується в Node; транспорт повідомлень — у wallet-signer.js.
 // Відповідь завжди { id, ok, result | error }; у помилках не буває фрази, seed чи ключів.
 const crypto = require('crypto');
-const { Mnemonic, HDNodeWallet, Wallet, Transaction, getBytes } = require('ethers');
+const { Mnemonic, HDNodeWallet, Wallet, Transaction, getBytes, randomBytes } = require('ethers');
 const { EVM_PATHS } = require('./wallet-evm-core');
 const S = require('./solana');
 
 const MAX_INDEX = 1000;
 const MAX_IMPORTED = 20;
+const MAX_DERIVE = 20;
 
 function createCore() {
   let st = null; // { mnemonic, passphrase, evmPath, solPath, seed: Buffer, evm: Map<індекс, HDNodeWallet> }
@@ -47,8 +48,32 @@ function createCore() {
     return S.deriveAccount(s.seed, index(args && args.index), s.solPath);
   };
 
+  // Параметри деривації для операцій без стану (нова фраза: створення, імпорт, огляд адрес)
+  const deriveOpts = ({ mnemonic, passphrase = '', evmPath = 'standard', solPath = 'phantom' } = {}) => {
+    if (typeof mnemonic !== 'string' || typeof passphrase !== 'string' || !Mnemonic.isValidMnemonic(mnemonic)) throw new Error('bad mnemonic');
+    if (passphrase.length > 128 || !EVM_PATHS[evmPath] || !S.SOL_PATHS[solPath]) throw new Error('bad options');
+    return { mnemonic, passphrase, evmPath, solPath };
+  };
+
   const ops = {
     ping: () => ({ pong: true }),
+    // Нова випадкова фраза (12 слів); у головному процесі фраза не генерується
+    generate: () => ({ phrase: Mnemonic.fromEntropy(randomBytes(16)).phrase }),
+    // Перші count адрес EVM і Solana для фрази без розблокування: нічого не зберігається, seed обнуляється одразу
+    deriveSet: (args = {}) => {
+      const o = deriveOpts(args);
+      const count = args.count;
+      if (!Number.isInteger(count) || count < 1 || count > MAX_DERIVE) throw new Error('bad count');
+      const seed = Buffer.from(Mnemonic.fromPhrase(o.mnemonic, o.passphrase).computeSeed().slice(2), 'hex');
+      try {
+        const evm = [], sol = [];
+        for (let i = 0; i < count; i++) {
+          evm.push(HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(o.mnemonic, o.passphrase), EVM_PATHS[o.evmPath](i)).address);
+          sol.push(S.deriveAccount(seed, i, o.solPath).address);
+        }
+        return { evm, sol };
+      } finally { seed.fill(0); }
+    },
     status: () => ({ unlocked: !!st }),
     // Seed передається один раз при розблокуванні (варіант A з ADR); повторне розблокування замінює попередній стан
     unlock: ({ mnemonic, passphrase = '', evmPath = 'standard', solPath = 'phantom', imported = [], arweave = null } = {}) => {

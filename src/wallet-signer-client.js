@@ -15,6 +15,7 @@ class SignerClient {
     this.pending = new Map();
     this.seq = 0;
     this.idleTimer = null;
+    this.locking = null; // триває блокування: нові виклики чекають, а потім запускають свіжий процес
   }
 
   running() { return !!this.child; }
@@ -54,7 +55,12 @@ class SignerClient {
     if (this.idleTimer.unref) this.idleTimer.unref();
   }
 
-  call(op, args) {
+  async call(op, args) {
+    if (this.locking) await this.locking;
+    return this._callNow(op, args);
+  }
+
+  _callNow(op, args) {
     return new Promise((resolve, reject) => {
       let c;
       try { c = this._ensure(); } catch (e) { reject(new Error('signer-unavailable')); return; }
@@ -68,9 +74,15 @@ class SignerClient {
   }
 
   // Блокування: просимо обнулити стан, потім завершуємо процес
-  async lock() {
-    if (this.child) { try { await this.call('lock'); } catch { /* процес і так буде завершено */ } }
-    this.kill();
+  lock() {
+    if (this.locking) return this.locking;
+    // .finally виконується після присвоєння: без цього при відсутньому процесі locking лишався б «застряглим» і наступні блокування не діяли
+    const p = (async () => {
+      if (this.child) { try { await this._callNow('lock'); } catch { /* процес і так буде завершено */ } }
+      this.kill();
+    })().finally(() => { if (this.locking === p) this.locking = null; });
+    this.locking = p;
+    return p;
   }
 
   kill() {

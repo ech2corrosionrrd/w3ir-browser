@@ -223,9 +223,7 @@ function install(Wallet, { RpcError, unauthorized, clip }) {
             warnings: [tr('Підписуйте лише дані, які розумієте: підпис ключем Arweave може бути використаний як підтвердження дії від вашої адреси.')],
           });
           if (!ok) throw new RpcError(4001, tr('Користувач відхилив підпис'));
-          // за прапором W3IR_SIGNER=1 підписує процес-підписувач; інакше — локально
-          if (this.signerEnabled()) return Array.from((await this.signerCall('arSign', { data: raw })).signature);
-          return Array.from(signData(acc.jwk, raw));
+          return Array.from((await this.signerCall('arSign', { data: raw })).signature); // підписує процес-підписувач
         }
 
         default:

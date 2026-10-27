@@ -5,7 +5,7 @@ const { t: tr } = require('./i18n');
 const guard = require('./wallet-signguard');
 const { IFACE } = require('./wallet-evm-core');
 const {
-  formatEther, formatUnits, getAddress, isAddress, isHexString, hexlify, getBytes, TypedDataEncoder, toUtf8String, Wallet: EthWallet,
+  formatEther, formatUnits, getAddress, isAddress, isHexString, hexlify, getBytes, TypedDataEncoder, toUtf8String,
 } = require('ethers');
 
 function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isSafeRpc, READ_METHODS, describeCall }) {
@@ -185,11 +185,9 @@ function install(Wallet, { RpcError, rejected, unauthorized, clip, hexChain, isS
         if (hw) return hw;
         const secret = this._importedSecret(address, 'evm'); // імпортований за приватним ключем
         if (!secret) throw unauthorized('Невідомий рахунок');
-        if (this.signerEnabled()) return this.remoteEvmSigner({ address }, address);
-        return new EthWallet(secret);
+        return this.remoteEvmSigner({ address }, address);
       }
-      if (this.signerEnabled()) return this.remoteEvmSigner(i, address); // ключ виводить і підписує окремий процес
-      return this._derive(s.mnemonic, i);
+      return this.remoteEvmSigner(i, address); // ключ виводить і підписує окремий процес
     },
 
     async personalSign(win, origin, params, sameTab) {

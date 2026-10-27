@@ -23,8 +23,8 @@ const { assertPublicRpc, guardedRequest } = require('./rpc-guard');
 // (AES-256-GCM + scrypt + DPAPI); приватні ключі виводяться лише на мить підпису й ніколи не кешуються.
 // Кожен підпис і транзакція потребують явного підтвердження у довіреному вікні браузера, яке сторінка підробити не може.
 const {
-  Mnemonic, HDNodeWallet, JsonRpcProvider, Network, formatEther, getAddress, isAddress,
-  randomBytes, parseUnits,
+  Mnemonic, JsonRpcProvider, Network, formatEther, getAddress, isAddress,
+  parseUnits,
 } = require('ethers');
 const {
   BUILTIN_NETWORKS, EVM_PATHS, READ_METHODS, RpcError, rejected, unauthorized,
@@ -104,27 +104,23 @@ class Wallet {
   }
 
   // ---------- керування гаманцем (зі сторінки w3ir://wallet) ----------
-  _store(phrase, opts = {}) {
-    this.signerLock(); // нова фраза: підписувач не повинен тримати стару
+  async _store(phrase, opts = {}) {
+    await this.signerLock(); // нова фраза: підписувач не повинен тримати стару
+    const evmPath = opts.evmPath || 'standard', solPath = opts.solPath || 'phantom';
+    // адреси першого рахунку виводить процес-підписувач (фраза передається йому один раз, стан не зберігається)
+    const d = await this.signerClient().call('deriveSet', { mnemonic: phrase, passphrase: opts.passphrase || '', evmPath, solPath, count: 1 });
     const s = this.section();
     s.mnemonic = phrase;
     s.passphrase = opts.passphrase || '';
     s.evmPath = opts.evmPath || 'standard';
     s.solPath = opts.solPath || 'phantom';
-    s.solAddresses = [];
-    s.addresses = [this._derive(phrase, 0).address];
+    s.solAddresses = [d.sol[0]];
+    s.addresses = [d.evm[0]];
     if (!s.policy) s.policy = { siteDays: 30 }; // новий гаманець: сайти, якими не користуються 30 днів, відключаються (змінюється в режимах обережності)
     this.vault.persist();
     this.ctx.cfg().walletEnabled = true;
     this.ctx.settingsStore.save();
     this.ctx.pushAll();
-  }
-  // Фраза-пароль (25-те слово BIP39) і шлях деривації обираються під час імпорту; для наявних гаманців — стандартні (m/44'/60'/0'/0/i, без пароля)
-  _derive(phrase, i, o) {
-    const s = this.data() || {};
-    const pass = o && o.passphrase !== undefined ? o.passphrase : (s.passphrase || '');
-    const kind = (o && o.evmPath) || s.evmPath || 'standard';
-    return HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(phrase, pass), EVM_PATHS[kind](i));
   }
   // Перевірка обраних параметрів імпорту (без збереження)
   _checkImportOpts(opts = {}) {
@@ -141,42 +137,39 @@ class Wallet {
     return phrase;
   }
   // Перші адреси за обраними параметрами — щоб звірити з іншим гаманцем до імпорту (нічого не зберігається)
-  previewDerivation(text, opts, count = 3) {
+  async previewDerivation(text, opts, count = 3) {
     const phrase = this._checkPhrase(text);
     const o = this._checkImportOpts(opts);
-    const S = require('./solana');
-    const seed = Buffer.from(Mnemonic.fromPhrase(phrase, o.passphrase).computeSeed().slice(2), 'hex');
-    const evm = [], sol = [];
-    try {
-      for (let i = 0; i < count; i++) {
-        evm.push(HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(phrase, o.passphrase), EVM_PATHS[o.evmPath](i)).address);
-        sol.push(S.deriveAccount(seed, i, o.solPath).address);
-      }
-    } finally { seed.fill(0); }
-    return { evm, sol };
+    return this.signerClient().call('deriveSet', { mnemonic: phrase, passphrase: o.passphrase, evmPath: o.evmPath, solPath: o.solPath, count });
   }
 
-  create() {
+  async create() {
     if (this.exists() && this.data()) throw new Error('Гаманець уже створено.');
-    const phrase = Mnemonic.fromEntropy(randomBytes(16)).phrase;
-    this._store(phrase);
+    const { phrase } = await this.signerClient().call('generate');
+    await this._store(phrase);
     return phrase;
   }
 
-  importPhrase(text, opts) {
+  async importPhrase(text, opts) {
     const phrase = this._checkPhrase(text);
     const o = this._checkImportOpts(opts);
     if (this.exists() && this.data()) throw new Error('Гаманець уже існує. Спершу видаліть його.');
-    this._store(phrase, o);
+    await this._store(phrase, o);
     this.section().backupConfirmedAt = Date.now();
     this.vault.persist();
   }
 
-  addAccount() {
+  async addAccount() {
     const s = this.data();
     if (!s) throw unauthorized('Гаманець не створено');
     if (s.addresses.length >= 10) throw new Error('Максимум 10 рахунків.');
-    s.addresses.push(this._derive(s.mnemonic, s.addresses.length).address);
+    const n = s.addresses.length;
+    const evm = (await this.signerCall('address', { chain: 'evm', index: n })).address;
+    const sol = (await this.signerCall('address', { chain: 'sol', index: n })).address;
+    if (s.addresses.length !== n) throw new Error('Рахунки змінилися під час створення, повторіть.');
+    s.addresses.push(evm);
+    // кеш адрес Solana лишається узгодженим із кількістю рахунків
+    if (Array.isArray(s.solAddresses) && s.solAddresses.length === n) s.solAddresses.push(sol);
     this.vault.persist();
     return s.addresses;
   }
@@ -278,6 +271,7 @@ class Wallet {
         for (const origin of Object.keys(conns)) this.emit(origin, 'accountsChanged', []);
         for (const origin of Object.keys(this._lastSolConns || {})) this.emit(origin, 'sol:disconnect', null);
       } else if (this.data()) {
+        this.solAddresses(); // за потреби запускає фонове виведення адрес Solana підписувачем
         const cur = this.section().connections;
         for (const [origin, c] of Object.entries(cur)) this.emit(origin, 'accountsChanged', c.accounts);
       }

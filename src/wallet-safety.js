@@ -205,13 +205,13 @@ function install(Wallet, { RpcError, unauthorized }) {
   };
 
   // Відновлення з файлу: лише коли гаманця ще немає. Усе з файлу перевіряється, пошкоджені записи пропускаються.
-  proto.backupImport = function (buf, password) {
+  proto.backupImport = async function (buf, password) {
     if (this.exists() && this.data()) throw new RpcError(-32602, 'Гаманець уже існує. Спершу видаліть його, щоб відновити з копії.');
     const p = backup.decryptBackup(buf, password);
     if (!p || p.v !== 1 || typeof p.mnemonic !== 'string' || !Mnemonic.isValidMnemonic(p.mnemonic)) throw new RpcError(-32602, 'Файл резервної копії пошкоджено або має невідомий формат.');
     const accounts = Number.isInteger(p.accounts) && p.accounts >= 1 && p.accounts <= 10 ? p.accounts : 1;
-    this.importPhrase(p.mnemonic, { passphrase: typeof p.passphrase === 'string' ? p.passphrase : '', evmPath: p.evmPath, solPath: p.solPath });
-    for (let i = 1; i < accounts; i++) this.addAccount();
+    await this.importPhrase(p.mnemonic, { passphrase: typeof p.passphrase === 'string' ? p.passphrase : '', evmPath: p.evmPath, solPath: p.solPath });
+    for (let i = 1; i < accounts; i++) await this.addAccount();
     const s = this.data();
     const names = Array.isArray(p.names) ? p.names : [];
     s.names = s.addresses.map((_, i) => injectionClean(typeof names[i] === 'string' ? names[i] : '', 32));

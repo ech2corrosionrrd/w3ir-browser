@@ -223,7 +223,7 @@ test('wallet-safety: touchSite оновлює час активності сай
   assert.ok(w.data().solConnections[origin].last > 1000);
 });
 
-test('wallet-safety: backupExport та backupImport повний цикл збереження й відновлення', () => {
+test('wallet-safety: backupExport та backupImport повний цикл збереження й відновлення', async () => {
   const w1 = createMockWallet();
   w1.data().contacts.push({ name: 'Alice', address: '0x1111111111111111111111111111111111111111' });
   const pwd = 'ExportPassword123!';
@@ -233,7 +233,7 @@ test('wallet-safety: backupExport та backupImport повний цикл збе
   assert.ok(Buffer.isBuffer(exported));
 
   // Спроба імпорту коли гаманець вже існує -> помилка
-  assert.throws(() => w1.backupImport(exported, pwd), /Гаманець уже існує/);
+  await assert.rejects(() => w1.backupImport(exported, pwd), /Гаманець уже існує/);
 
   // Створюємо порожній гаманець (не ініціалізований)
   const w2 = createMockWallet();
@@ -241,7 +241,7 @@ test('wallet-safety: backupExport та backupImport повний цикл збе
   assert.equal(w2.exists(), false);
 
   // Успішний імпорт
-  const res = w2.backupImport(exported, pwd);
+  const res = await w2.backupImport(exported, pwd);
   assert.ok(res.accounts >= 1);
   assert.equal(res.contacts, 1);
   assert.equal(w2.data().mnemonic, w1.data().mnemonic);

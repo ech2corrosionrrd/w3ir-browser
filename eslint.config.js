@@ -18,13 +18,12 @@ module.exports = [
   { ignores: ['dist/**', 'node_modules/**', 'build/keys/**', 'docs/**'] },
   { files: ['**/*.js'], ignores: ['pages/**', 'ui/**', 'page-preload.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: { ...globals.node } }, rules },
   // Ключі гаманця виводяться лише в процесі-підписувачі (docs/adr/0001-wallet-signer-process.md): нові місця виведення ключів із фрази заборонені.
-  // Перелік винятків нижче — те, що ще не перенесено (адреси нових рахунків, огляд деривації, запасний локальний підпис W3IR_SIGNER=0).
   { files: ['src/**/*.js'], rules: { 'no-restricted-syntax': ['error',
     { selector: "Identifier[name='HDNodeWallet']", message: 'Key derivation from the phrase is allowed only in src/wallet-signer-core.js (ADR 0001).' },
     { selector: "MemberExpression[property.name='computeSeed']", message: 'The seed is computed only in src/wallet-signer-core.js (ADR 0001).' },
     { selector: "MemberExpression[object.name='Wallet'][property.name='fromPhrase']", message: 'Wallet.fromPhrase is forbidden outside src/wallet-signer-core.js (ADR 0001).' },
   ] } },
-  { files: ['src/wallet-signer-core.js', 'src/wallet.js', 'src/wallet-solana.js'], rules: { 'no-restricted-syntax': 'off' } },
+  { files: ['src/wallet-signer-core.js'], rules: { 'no-restricted-syntax': 'off' } },
   { files: ['page-preload.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser } }, rules },
   { files: ['pages/**/*.js'], ignores: ['pages/common.js', 'pages/help-data.js', 'pages/markdown.js', 'pages/csv.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, ...pageShared } }, rules },
   { files: ['pages/markdown.js', 'pages/csv.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, ...globals.node } }, rules },

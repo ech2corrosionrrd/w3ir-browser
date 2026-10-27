@@ -1,7 +1,6 @@
 'use strict';
 // Solana-частина гаманця: підключення сайтів, підпис повідомлень і транзакцій, симуляція перед підтвердженням.
 // Ключі виводяться з тієї самої фрази відновлення, що й EVM-адреси, лише на мить підпису й ніде не кешуються.
-const { Mnemonic } = require('ethers');
 const S = require('./solana');
 const { t: tr } = require('./i18n');
 const { csvCell } = require('./wallet-history-evm');
@@ -123,52 +122,49 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
   };
 
   // ---------- адреси ----------
-  proto._solSeed = function () {
+  // Адреси Solana виводить процес-підписувач і кешує в секції разом із рахунками EVM. Синхронний геттер лише читає кеш;
+  // для гаманців із неповним кешем (створених давно) решту виводить фоновий _refreshSolAddresses і оновлює інтерфейс.
+  proto._solStale = function () {
     const s = this.data();
-    if (!s) throw unauthorized('Гаманець не створено');
-    return Buffer.from(Mnemonic.fromPhrase(s.mnemonic, s.passphrase || '').computeSeed().slice(2), 'hex');
+    return !!s && (!Array.isArray(s.solAddresses) || s.solAddresses.length !== s.addresses.length);
+  };
+  proto._refreshSolAddresses = function () {
+    if (this._solRefresh) return this._solRefresh;
+    this._solRefresh = (async () => {
+      try {
+        const s = this.data();
+        if (!s) return;
+        const n = s.addresses.length;
+        const out = [];
+        for (let i = 0; i < n; i++) out.push((await this.signerCall('address', { chain: 'sol', index: i })).address);
+        const cur = this.data();
+        if (cur && cur.addresses.length === n) { cur.solAddresses = out; this.vault.persist(); this.ctx.pushAll(); }
+      } catch { /* сховище заблоковано чи підписувач недоступний: повторимо при наступному зверненні */ } finally { this._solRefresh = null; }
+    })();
+    return this._solRefresh;
   };
   proto.solAddresses = function () {
     const s = this.data();
     if (!s) return [];
-    if (!Array.isArray(s.solAddresses) || s.solAddresses.length !== s.addresses.length) {
-      const seed = this._solSeed();
-      try { s.solAddresses = s.addresses.map((_, i) => S.deriveAccount(seed, i, s.solPath || 'phantom').address); } finally { seed.fill(0); }
-      this.vault.persist();
-    }
-    return s.solAddresses.slice();
+    if (this._solStale()) this._refreshSolAddresses();
+    return (Array.isArray(s.solAddresses) ? s.solAddresses : []).slice();
   };
-  proto._solKeypair = function (address) {
-    const i = this.solAddresses().indexOf(address);
-    if (i < 0) {
-      const secret = this._importedSecret(address, 'sol'); // імпортований за приватним ключем
-      if (!secret) throw unauthorized('Невідомий рахунок');
-      const raw = Buffer.from(secret, 'base64');
-      try { return S.keypairFromSeed(raw); } finally { raw.fill(0); }
-    }
-    const seed = this._solSeed();
-    try { return S.deriveAccount(seed, i, (this.data() || {}).solPath || 'phantom'); } finally { seed.fill(0); }
-  };
-  // Підписи: за прапором W3IR_SIGNER=1 рахунки, виведені з фрази, підписує процес-підписувач; імпортовані ключі — локально (етап 4)
-  // Посилання на рахунок для підписувача: { index } для похідного, { address } для імпортованого; null — підписати локально
-  proto._solSignerRef = function (address) {
-    if (!this.signerEnabled()) return null;
+  // Посилання на рахунок для підписувача: { index } для похідного, { address } для імпортованого
+  proto._solSignerRef = async function (address) {
+    if (this._solStale()) await this._refreshSolAddresses();
     const i = this.solAddresses().indexOf(address);
     if (i >= 0) return { index: i };
-    return this._importedSecret(address, 'sol') ? { address } : null;
+    if (this._importedSecret(address, 'sol')) return { address };
+    throw unauthorized('Невідомий рахунок');
   };
   proto._solSign = async function (address, bytes) {
-    const ref = this._solSignerRef(address);
-    if (ref) return Buffer.from((await this.signerCall('solSign', { ...ref, message: bytes })).signature);
-    return S.sign(this._solKeypair(address).secret, bytes);
+    const ref = await this._solSignerRef(address);
+    return Buffer.from((await this.signerCall('solSign', { ...ref, message: bytes })).signature);
   };
   proto._solSignTx = async function (address, wire) {
-    const ref = this._solSignerRef(address);
-    if (ref) {
-      const r = await this.signerCall('solSignTx', { ...ref, address, wire });
-      return { signedWire: Buffer.from(r.signedWire), signature: Buffer.from(r.signature), index: r.index };
-    }
-    return S.signTransaction(this._solKeypair(address).secret, address, wire);
+    const ref = await this._solSignerRef(address);
+    const r = await this.signerCall('solSignTx', { ...ref, address, wire });
+    return { signedWire: Buffer.from(r.signedWire), signature: Buffer.from(r.signature), index: r.index };
   };
   proto.solAccountsFor = function (origin) {
     if (!this.unlocked() || !this.data()) return [];

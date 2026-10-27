@@ -34,10 +34,10 @@ async function walletApi(ctx, entry, name, arg) {
         if (w.hidden()) return { ok: true, vault: st, exists: w.exists(), hidden: true, info: null };
         return { ok: true, vault: st, exists: w.exists(), inject: ctx.cfg().walletInject !== false, askAccount: ctx.cfg().walletAskAccount !== false, reauthMinutes: w.reauthMs() / 60000, prices: ctx.cfg().walletPrices !== false, nftAnyHost: ctx.cfg().walletNftAnyHost === true, info: st === 'unlocked' && w.exists() ? w.info() : null };
       }
-      case 'wallet:create': return { ok: true, phrase: w.create() };
-      case 'wallet:import': w.importPhrase(arg.phrase, { passphrase: arg.passphrase, evmPath: arg.evmPath, solPath: arg.solPath }); return { ok: true };
-      case 'wallet:previewImport': return { ok: true, ...w.previewDerivation(arg.phrase, { passphrase: arg.passphrase, evmPath: arg.evmPath, solPath: arg.solPath }) };
-      case 'wallet:addAccount': return { ok: true, accounts: w.addAccount() };
+      case 'wallet:create': return { ok: true, phrase: await w.create() };
+      case 'wallet:import': await w.importPhrase(arg.phrase, { passphrase: arg.passphrase, evmPath: arg.evmPath, solPath: arg.solPath }); return { ok: true };
+      case 'wallet:previewImport': return { ok: true, ...(await w.previewDerivation(arg.phrase, { passphrase: arg.passphrase, evmPath: arg.evmPath, solPath: arg.solPath })) };
+      case 'wallet:addAccount': return { ok: true, accounts: await w.addAccount() };
       case 'wallet:reveal': if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' }; return { ok: true, passphrase: w.revealPassphrase(), phrase: w.reveal() };
       case 'wallet:remove': {
         if (!(await authed())) return { ok: false, needAuth: true, error: arg.master ? 'Хибний майстер-пароль.' : '' };
@@ -106,7 +106,7 @@ async function walletApi(ctx, entry, name, arg) {
         if (r.canceled || !r.filePaths[0]) return { ok: false, error: 'Вибір скасовано.' };
         const fs = require('fs');
         if (fs.statSync(r.filePaths[0]).size > 1024 * 1024) return { ok: false, error: 'Файл завеликий для резервної копії.' };
-        return { ok: true, ...w.backupImport(fs.readFileSync(r.filePaths[0]), String(arg.password || '')) };
+        return { ok: true, ...(await w.backupImport(fs.readFileSync(r.filePaths[0]), String(arg.password || ''))) };
       }
       case 'wallet:revoke': return { ok: true, hash: await w.revokeAllowance(entry.win, () => entry.win.tabs.includes(entry.tab), { index: arg.index, token: arg.token, spender: arg.spender }) };
       case 'wallet:contacts': return { ok: true, contacts: w.contacts() };

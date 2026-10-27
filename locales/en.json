@@ -1173,6 +1173,7 @@
  "Максимальна сума": "Maximum amount",
  "Максимальний": "Maximum",
  "Максимум 10 рахунків.": "A maximum of 10 accounts.",
+ "Рахунки змінилися під час створення, повторіть.": "Accounts changed while creating a new one, please retry.",
  "Маскування характеристик пристрою, округлення екрана та захист Canvas від зняття відбитків": "Mask device hardware specs, normalize screen dimensions, and inject micro-noise to defeat canvas fingerprinting",
  "Масштаб": "Zoom",
  "Масштаб: більше / менше / 100 %": "Zoom: in / out / 100 %",

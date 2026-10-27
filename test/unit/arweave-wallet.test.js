@@ -54,13 +54,22 @@ test('arweave-wallet: валідація вхідних параметрів т�
 
 // Мінімальна заглушка гаманця: лише те, що потрібно методу arRequest
 function fakeWallet(approve) {
-  class W { signerEnabled() { return false; } signerLock() {} } // заглушки підписувача: гаманець у цих тестах працює локально
+  class W { signerLock() {} }
   class RpcError extends Error { constructor(code, m) { super(m); this.code = code; } }
   arWallet.install(W, { RpcError, unauthorized: (m) => new RpcError(4100, m), clip: (x, n) => String(x).slice(0, n) });
   const w = new W();
   const sec = {};
   w.unlocked = () => true; w.section = () => sec; w.vault = { persist() {} };
   w.approve = async (_win, _origin, _same, req) => { w.last = req; return approve; };
+  // підпис Arweave виконує ядро підписувача (у тестах — в цьому ж процесі), розблоковане ключем зі секції гаманця
+  const core = require('../../src/wallet-signer-core').createCore();
+  let n = 0;
+  w.signerCall = async (op, args) => {
+    if (!core.isUnlocked()) await core.handle({ id: ++n, op: 'unlock', args: { mnemonic: 'test test test test test test test test test test test junk', arweave: sec.arweave && sec.arweave.jwk } });
+    const r = await core.handle({ id: ++n, op, args });
+    if (!r.ok) throw new Error(r.error);
+    return r.result;
+  };
   return w;
 }
 
@@ -99,7 +108,7 @@ test('arweave-wallet: відхилений підпис не виконуєть�
   await assert.rejects(w.arRequest(null, null, o, 'arweave_connect', {}, () => true), (e) => e.code === 4001);
 });
 
-test('arweave-wallet: з підписувачем (W3IR_SIGNER) arweave_signature підписує процес-підписувач, а ключ не використовується локально', async () => {
+test('arweave-wallet: з підписувачем arweave_signature підписує процес-підписувач, а ключ не використовується локально', async () => {
   const { createCore } = require('../../src/wallet-signer-core');
   const w = fakeWallet(true);
   const o = 'https://a.example';
@@ -108,7 +117,6 @@ test('arweave-wallet: з підписувачем (W3IR_SIGNER) arweave_signatur
   const core = createCore();
   await core.handle({ id: 0, op: 'unlock', args: { mnemonic: 'test test test test test test test test test test test junk', arweave: jwk } });
   let calls = 0;
-  w.signerEnabled = () => true;
   w.signerCall = async (op, args) => { calls++; const r = await core.handle({ id: calls, op, args }); if (!r.ok) throw new Error(r.error); return r.result; };
   // ключ у секції стає недоступним локально: якщо код підпише сам, тест впаде
   const saved = w.section().arweave.jwk;

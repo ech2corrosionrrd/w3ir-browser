@@ -326,3 +326,46 @@ test('solana-staking: solStakeDelegate готує транзакцію з дво
   assert.strictEqual(extra.address, r.stakeAccount);
   assert.ok(S.verify(S.b58decode(extra.address), tx.message, Buffer.from(extra.signature, 'base64')), 'підпис stake-акаунта чинний для повідомлення транзакції');
 });
+
+test('signer-client: виклик після lock() чекає завершення блокування і працює зі свіжим процесом (без signer-stopped)', async () => {
+  const { spawn, made } = fakeSpawn();
+  const cl = new SignerClient({ spawn });
+  await cl.call('unlock', { mnemonic: PHRASE });
+  const locking = cl.lock(); // без await: як signerLock() у гаманці
+  const status = await cl.call('status'); // викликається, поки триває блокування
+  await locking;
+  assert.strictEqual(status.unlocked, false);
+  assert.strictEqual(made.length, 2);
+  assert.strictEqual(made[0].killed, true);
+  cl.kill();
+});
+
+test('signer-client: lock() без процесу не «застрягає»: наступний lock() вбиває розблокований процес', async () => {
+  const { spawn, made } = fakeSpawn();
+  const cl = new SignerClient({ spawn });
+  await cl.lock(); // процесу ще немає
+  await cl.lock();
+  assert.strictEqual(cl.locking, null);
+  await cl.call('unlock', { mnemonic: PHRASE });
+  assert.strictEqual(made[0].core.isUnlocked(), true);
+  await cl.lock();
+  assert.strictEqual(made[0].killed, true);
+  assert.strictEqual(made[0].core.isUnlocked(), false);
+});
+
+test('signer-core: generate створює дійсну фразу з 12 слів, deriveSet збігається з прямою деривацією без розблокування', async () => {
+  const core = createCore();
+  const g = await core.handle({ id: 1, op: 'generate' });
+  assert.ok(g.ok && g.result.phrase.split(' ').length === 12 && Mnemonic.isValidMnemonic(g.result.phrase));
+  assert.notStrictEqual((await core.handle({ id: 2, op: 'generate' })).result.phrase, g.result.phrase);
+  const d = await core.handle({ id: 3, op: 'deriveSet', args: { mnemonic: PHRASE, passphrase: 'x', evmPath: 'ledgerLive', solPath: 'bip44', count: 3 } });
+  assert.ok(d.ok, d.error);
+  for (let i = 0; i < 3; i++) {
+    assert.strictEqual(d.result.evm[i], evmAt(i, 'x', 'ledgerLive'));
+    assert.strictEqual(d.result.sol[i], solAt(i, 'x', 'bip44'));
+  }
+  assert.strictEqual(core.isUnlocked(), false, 'deriveSet не розблоковує і нічого не зберігає');
+  for (const args of [{ mnemonic: 'не фраза', count: 1 }, { mnemonic: PHRASE, count: 0 }, { mnemonic: PHRASE, count: 21 }, { mnemonic: PHRASE, count: 1, evmPath: 'evil' }, { mnemonic: PHRASE, count: 1, passphrase: 'a'.repeat(129) }]) {
+    assert.strictEqual((await core.handle({ id: 4, op: 'deriveSet', args })).ok, false);
+  }
+});

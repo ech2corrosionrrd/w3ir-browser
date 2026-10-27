@@ -32,11 +32,11 @@ async function walletTests(ctx) {
   const wal = ctx.wallet;
   await ctx.vault.create(MASTER);
   ok(!wal.exists(), 'wallet: до створення гаманця немає');
-  let bad = ''; try { wal.importPhrase('not a valid phrase at all'); } catch (e) { bad = e.message; }
+  let bad = ''; try { await wal.importPhrase('not a valid phrase at all'); } catch (e) { bad = e.message; }
   ok(/Некоректна фраза/.test(bad), 'wallet: некоректна фраза відхилена');
-  const phrase = wal.create();
+  const phrase = await wal.create();
   const addr0 = wal.section().addresses[0];
-  const priv0 = wal._derive(phrase, 0).privateKey;
+  const priv0 = E.HDNodeWallet.fromMnemonic(E.Mnemonic.fromPhrase(phrase), "m/44'/60'/0'/0/0").privateKey;
   ok(phrase.split(' ').length === 12 && E.isAddress(addr0) && wal.exists(), 'wallet: створення (12 слів, адреса)');
   const raw = require('fs').readFileSync(path.join(ctx.vault.dir, 'vault.bin'), 'utf8');
   ok(!raw.includes(phrase.split(' ')[0] + ' ') && !raw.includes(addr0), 'wallet: у файлі сховища немає відкритих даних гаманця');
@@ -575,7 +575,7 @@ async function walletTests(ctx) {
   ok(wal.removeWatch(wS.id) === true && wal.removeWatch(wE.id) === true && wal.watchAccounts().length === 0 && /Невідомий рахунок/.test(werr(() => wal.removeWatch(5000))), 'watch: видалення рахунків для перегляду');
 
   // --- вибір рахунку під час підключення сайту ---
-  if (wal.info().accounts.length < 2) wal.addAccount();
+  if (wal.info().accounts.length < 2) await wal.addAccount();
   const pickPr = call(wcA, 'eth_requestAccounts');
   const apPick = await waitApproval();
   ok(apPick && apPick.spec.choice && apPick.spec.choice.options.length >= 2 && apPick.spec.choice.value === '0' && !apPick.spec.lines.some(l => l[0] === 'Рахунок'), 'dapp: у запиті підключення є вибір рахунку, коли їх кілька');
@@ -863,6 +863,7 @@ async function walletTests(ctx) {
 
   // --- режими обережності ---
   const perr = (fn) => { try { fn(); return ''; } catch (e) { return e.message; } };
+  const aperr = async (fn) => { try { await fn(); return ''; } catch (e) { return e.message; } };
   ok(/Некоректне/.test(perr(() => wal.setPolicy({ maxUsd: -1 }))) && /Некоректне/.test(perr(() => wal.setPolicy({ confirmUsd: NaN }))) && /Некоректне/.test(perr(() => wal.setPolicy({ siteDays: 1.5 }))) && /Некоректне/.test(perr(() => wal.setPolicy({ siteDays: 999 }))) && /не може перевищувати/.test(perr(() => wal.setPolicy({ confirmUsd: 500, maxUsd: 100 }))) && wal.getPolicy().maxUsd === 0, 'policy: некоректні значення й суперечливі ліміти відхиляються, нічого не змінюється');
   for (let i = 0; i < 5; i++) wal.removeContact(wal.contacts()[0].address); // у тестах уже майже 100 контактів: звільняємо місце
   wal.setPolicy({ contactsOnly: true });
@@ -944,7 +945,7 @@ async function walletTests(ctx) {
   const tamperedHead = Buffer.from(blob); tamperedHead[3] ^= 1;
   ok(/Хибний пароль або файл пошкоджено/.test(perr(() => bk.decryptBackup(tampered, 'довгий-пароль-123'))) && /не файл резервної копії/.test(perr(() => bk.decryptBackup(tamperedHead, 'довгий-пароль-123'))), 'backup: змінений файл (вміст чи заголовок) не розшифровується');
   // повний цикл: експорт → видалення гаманця → відновлення з файлу
-  wal.addAccount();
+  await wal.addAccount();
   wal.rename(1, 'Другий');
   wal.addContact('Контакт', stranger);
   const impKey = E.Wallet.createRandom().privateKey;
@@ -952,11 +953,11 @@ async function walletTests(ctx) {
   const addrsBefore = [...wal.section().addresses];
   const exported = wal.backupExport('резервний-пароль-1');
   ok(Buffer.isBuffer(exported) && !exported.includes(Buffer.from(words[0] + ' ' + words[1])) && !exported.includes(Buffer.from(impKey.slice(2))), 'backup: у файлі немає відкритої фрази чи ключів');
-  ok(/уже існує/.test(perr(() => wal.backupImport(exported, 'резервний-пароль-1'))), 'backup: відновлення поверх наявного гаманця заборонено');
+  ok(/уже існує/.test(await aperr(() => wal.backupImport(exported, 'резервний-пароль-1'))), 'backup: відновлення поверх наявного гаманця заборонено');
   wal.remove();
   ok(!wal.data() || !wal.data().mnemonic, 'backup: гаманець видалено перед відновленням');
-  ok(/Хибний пароль/.test(perr(() => wal.backupImport(exported, 'не-той-пароль-1'))) && !(wal.data() && wal.data().mnemonic), 'backup: хибний пароль не відновлює нічого');
-  const restored = wal.backupImport(exported, 'резервний-пароль-1');
+  ok(/Хибний пароль/.test(await aperr(() => wal.backupImport(exported, 'не-той-пароль-1'))) && !(wal.data() && wal.data().mnemonic), 'backup: хибний пароль не відновлює нічого');
+  const restored = await wal.backupImport(exported, 'резервний-пароль-1');
   ok(restored.accounts === addrsBefore.length && restored.imported === 1 && restored.contacts >= 1 && JSON.stringify(wal.section().addresses) === JSON.stringify(addrsBefore), 'backup: відновлення дає ті самі адреси, імпортований рахунок і контакти');
   ok(wal.section().names[1] === 'Другий' && wal.importedAccounts().length === 1 && wal.importedAccounts()[0].address === impNow.address && wal.backupInfo().confirmed === true, 'backup: відновлено назви рахунків, імпортований ключ і позначку підтвердженої копії');
   wal.removeImported(1000);
@@ -968,19 +969,19 @@ async function walletTests(ctx) {
   const ledgerPath = (i) => `m/44'/60'/${i}'/0/0`;
   const refEvm = (pass, i, f) => E.HDNodeWallet.fromMnemonic(E.Mnemonic.fromPhrase(M, pass), f(i)).address;
   const seedOf = (pass) => Buffer.from(E.Mnemonic.fromPhrase(M, pass).computeSeed().slice(2), 'hex');
-  const pDef = wal.previewDerivation(M, {});
+  const pDef = await wal.previewDerivation(M, {});
   ok(pDef.evm[0] === '0x9858EfFD232B4033E47d90003D41EC34EcaEda94' && pDef.sol[0] === SOLLIB.deriveAccount(seedOf(''), 0, 'phantom').address, 'derivation: стандартні параметри дають відому адресу MetaMask для тестової фрази');
-  const pCustom = wal.previewDerivation(M, { passphrase: 'TREZOR', evmPath: 'ledgerLive', solPath: 'bip44' });
+  const pCustom = await wal.previewDerivation(M, { passphrase: 'TREZOR', evmPath: 'ledgerLive', solPath: 'bip44' });
   ok(pCustom.evm[0] === refEvm('TREZOR', 0, ledgerPath) && pCustom.evm[1] === refEvm('TREZOR', 1, ledgerPath) && pCustom.sol[1] === SOLLIB.deriveAccount(seedOf('TREZOR'), 1, 'bip44').address && pCustom.evm[0] !== pDef.evm[0] && pCustom.sol[0] !== pDef.sol[0], 'derivation: фраза-пароль і шляхи змінюють адреси; попередній перегляд збігається з незалежним розрахунком');
-  ok(wal.previewDerivation(M, { evmPath: 'legacy' }).evm[1] === refEvm('', 1, (i) => `m/44'/60'/0'/${i}`) && wal.previewDerivation(M, { solPath: 'bip44' }).sol[0] !== pDef.sol[0], 'derivation: старий шлях EVM (legacy) і шлях Solana bip44 обчислюються правильно');
-  ok(/Невідомий шлях деривації EVM/.test(perr(() => wal.previewDerivation(M, { evmPath: 'evil' }))) && /Невідомий шлях деривації Solana/.test(perr(() => wal.previewDerivation(M, { solPath: '../x' }))) && /завелика/.test(perr(() => wal.previewDerivation(M, { passphrase: 'x'.repeat(200) }))) && /Некоректна фраза/.test(perr(() => wal.previewDerivation('сміття сміття', {}))), 'derivation: невідомі шляхи, завелика фраза-пароль і хибна фраза відхиляються');
+  ok((await wal.previewDerivation(M, { evmPath: 'legacy' })).evm[1] === refEvm('', 1, (i) => `m/44'/60'/0'/${i}`) && (await wal.previewDerivation(M, { solPath: 'bip44' })).sol[0] !== pDef.sol[0], 'derivation: старий шлях EVM (legacy) і шлях Solana bip44 обчислюються правильно');
+  ok(/Невідомий шлях деривації EVM/.test(await aperr(() => wal.previewDerivation(M, { evmPath: 'evil' }))) && /Невідомий шлях деривації Solana/.test(await aperr(() => wal.previewDerivation(M, { solPath: '../x' }))) && /завелика/.test(await aperr(() => wal.previewDerivation(M, { passphrase: 'x'.repeat(200) }))) && /Некоректна фраза/.test(await aperr(() => wal.previewDerivation('сміття сміття', {}))), 'derivation: невідомі шляхи, завелика фраза-пароль і хибна фраза відхиляються');
   wal.remove();
-  wal.importPhrase(M, { passphrase: 'TREZOR', evmPath: 'ledgerLive', solPath: 'bip44' });
+  await wal.importPhrase(M, { passphrase: 'TREZOR', evmPath: 'ledgerLive', solPath: 'bip44' });
   ok(wal.section().addresses[0] === refEvm('TREZOR', 0, ledgerPath) && wal.info().derivation.passphrase === true && wal.info().derivation.evmPath === 'ledgerLive' && wal.info().derivation.solPath === 'bip44' && !JSON.stringify(wal.info()).includes('TREZOR'), 'derivation: імпорт зберігає параметри; саме значення фрази-пароля в інформації для сторінки не повертається');
-  wal.addAccount();
-  ok(wal.section().addresses[1] === refEvm('TREZOR', 1, ledgerPath) && wal.signerFor(wal.section().addresses[1]).address === wal.section().addresses[1] && wal.solAddresses()[1] === SOLLIB.deriveAccount(seedOf('TREZOR'), 1, 'bip44').address && wal._solKeypair(wal.solAddresses()[1]).address === wal.solAddresses()[1], 'derivation: нові рахунки й підпис (EVM і Solana) використовують обрані шлях і фразу-пароль');
+  await wal.addAccount();
+  ok(wal.section().addresses[1] === refEvm('TREZOR', 1, ledgerPath) && wal.signerFor(wal.section().addresses[1]).address === wal.section().addresses[1] && wal.solAddresses()[1] === SOLLIB.deriveAccount(seedOf('TREZOR'), 1, 'bip44').address, 'derivation: нові рахунки й підпис (EVM і Solana) використовують обрані шлях і фразу-пароль');
   // S1: з типовим процесом-підписувачем головний процес після підписання не тримає похідних ключів (лише клієнт підписувача)
-  if (process.env.W3IR_SIGNER !== '0') {
+  {
     const sg = wal.signerFor(wal.section().addresses[1]);
     const sig = await sg.signMessage('state-check');
     const holdsKey = (o) => Object.values(o).some(v => v && typeof v === 'object' && (v.privateKey !== undefined || v.signingKey !== undefined || (v.mnemonic && v.mnemonic.phrase)));
@@ -991,11 +992,11 @@ async function walletTests(ctx) {
   const addrsCustom = [...wal.section().addresses];
   const bkCustom = wal.backupExport('резервний-пароль-3');
   wal.remove();
-  wal.backupImport(bkCustom, 'резервний-пароль-3');
+  await wal.backupImport(bkCustom, 'резервний-пароль-3');
   ok(JSON.stringify(wal.section().addresses) === JSON.stringify(addrsCustom) && wal.revealPassphrase() === 'TREZOR' && wal.info().derivation.evmPath === 'ledgerLive', 'derivation: резервна копія зберігає фразу-пароль і шляхи — відновлення дає ті самі адреси');
   wal.remove();
   ok(!wal.data() || !wal.data().mnemonic, 'derivation: гаманець видалено перед відновленням початкового');
-  wal.backupImport(origBk, 'резервний-пароль-2');
+  await wal.backupImport(origBk, 'резервний-пароль-2');
   ok(wal.section().addresses[0] === addr0 && wal.info().derivation.passphrase === false && wal.info().derivation.evmPath === 'standard', 'derivation: початковий гаманець відновлено зі стандартними параметрами');
 
   A.s.close(); B.s.close(); rpc.close();
