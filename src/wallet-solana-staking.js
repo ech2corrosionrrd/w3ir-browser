@@ -7,7 +7,7 @@ function installStaking(proto, { S, RpcError, clip, unauthorized }) {
     if (!address || !S.isAddress(address)) return [];
     const cluster = this.solCluster();
     const res = await this.solRpc(cluster, 'getParsedProgramAccounts', [
-      S.P.STAKE,
+      S.PROGRAMS.STAKE,
       {
         commitment: 'confirmed',
         encoding: 'jsonParsed',
@@ -85,7 +85,7 @@ function installStaking(proto, { S, RpcError, clip, unauthorized }) {
         newAccount: stakeKp.address,
         lamports: totalLamports,
         space: 200,
-        programId: S.P.STAKE,
+        programId: S.PROGRAMS.STAKE,
       }),
       S.ixStakeInitialize({
         stakeAccount: stakeKp.address,

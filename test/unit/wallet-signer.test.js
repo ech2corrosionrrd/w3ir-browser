@@ -292,3 +292,16 @@ test('signer-arweave: підпис ключем Arweave перевіряєтьс
   assert.strictEqual(arweave.verifySignature(jwk, Buffer.from('інші'), Buffer.from(r.result.signature)), false);
   assert.strictEqual((await core.handle({ id: 4, op: 'arSign', args: { data: 'рядок' } })).ok, false);
 });
+
+// ---- стейкінг: адреса Stake Program береться з експорту solana.js (раніше S.P був undefined, і виклики падали) ----
+test('solana-staking: solStakeAccounts запитує програму Stake за адресою PROGRAMS.STAKE', async () => {
+  const proto = {};
+  require('../../src/wallet-solana-staking').installStaking(proto, { S, RpcError: Error, clip: (x) => x, unauthorized: Error });
+  let seen = null;
+  const me = solAt(0);
+  const out = await proto.solStakeAccounts.call({ solCluster: () => 'devnet', solRpc: async (_c, method, params) => { seen = { method, params }; return []; } }, me);
+  assert.deepStrictEqual(out, []);
+  assert.strictEqual(seen.method, 'getParsedProgramAccounts');
+  assert.strictEqual(seen.params[0], S.PROGRAMS.STAKE);
+  assert.strictEqual(seen.params[1].filters[0].memcmp.bytes, me);
+});
