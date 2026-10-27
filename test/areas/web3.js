@@ -979,6 +979,14 @@ async function walletTests(ctx) {
   ok(wal.section().addresses[0] === refEvm('TREZOR', 0, ledgerPath) && wal.info().derivation.passphrase === true && wal.info().derivation.evmPath === 'ledgerLive' && wal.info().derivation.solPath === 'bip44' && !JSON.stringify(wal.info()).includes('TREZOR'), 'derivation: імпорт зберігає параметри; саме значення фрази-пароля в інформації для сторінки не повертається');
   wal.addAccount();
   ok(wal.section().addresses[1] === refEvm('TREZOR', 1, ledgerPath) && wal.signerFor(wal.section().addresses[1]).address === wal.section().addresses[1] && wal.solAddresses()[1] === SOLLIB.deriveAccount(seedOf('TREZOR'), 1, 'bip44').address && wal._solKeypair(wal.solAddresses()[1]).address === wal.solAddresses()[1], 'derivation: нові рахунки й підпис (EVM і Solana) використовують обрані шлях і фразу-пароль');
+  // S1: з типовим процесом-підписувачем головний процес після підписання не тримає похідних ключів (лише клієнт підписувача)
+  if (process.env.W3IR_SIGNER !== '0') {
+    const sg = wal.signerFor(wal.section().addresses[1]);
+    const sig = await sg.signMessage('state-check');
+    const holdsKey = (o) => Object.values(o).some(v => v && typeof v === 'object' && (v.privateKey !== undefined || v.signingKey !== undefined || (v.mnemonic && v.mnemonic.phrase)));
+    ok(sg.constructor.name === 'RemoteEvmSigner' && typeof sig === 'string' && sig.startsWith('0x') && !holdsKey(sg) && !holdsKey(wal) && !('mnemonic' in sg), 'signer: після підпису головний процес не тримає похідних ключів, а підпис виконано окремим процесом');
+    wal.signerLock();
+  }
   ok(wal.revealPassphrase() === 'TREZOR' && wal.reveal() === M, 'derivation: показ фрази повертає й фразу-пароль');
   const addrsCustom = [...wal.section().addresses];
   const bkCustom = wal.backupExport('резервний-пароль-3');

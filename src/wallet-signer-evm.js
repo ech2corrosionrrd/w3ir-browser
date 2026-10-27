@@ -49,7 +49,7 @@ class RemoteEvmSigner extends AbstractSigner {
 
 function install(Wallet, { unauthorized }) {
   Object.assign(Wallet.prototype, {
-    signerEnabled() { return process.env.W3IR_SIGNER === '1'; },
+    signerEnabled() { return process.env.W3IR_SIGNER !== '0'; }, // підпис у процесі-підписувачі типово увімкнено; W3IR_SIGNER=0 — локальний підпис (діагностика)
     signerClient() { return this._signerClient || (this._signerClient = new SignerClient()); },
     // Розблоковує підписувач поточною фразою, якщо він ще не розблокований (після простою, збою чи блокування сховища)
     async signerCall(op, args) {
