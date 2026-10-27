@@ -5,7 +5,6 @@ const { t: tr } = require('./i18n');
 const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { autoUpdater } = require('electron-updater');
 const { verifyFile, fingerprint } = require('./update-verify');
 
 const CHECK_EVERY = 6 * 60 * 60 * 1000;
@@ -41,7 +40,14 @@ class Updater {
     this.timer = null;
     this.state = { state: 'idle', version: '', percent: 0, error: '', notes: '', checkedAt: 0 };
 
-    const u = autoUpdater;
+    this.cacheDirName = cacheDirName;
+    this._au = null;
+  }
+
+  get au() { if (!this._au) this._au = this.initUpdater(); return this._au; }
+
+  initUpdater() {
+    const { autoUpdater: u } = require('electron-updater'); // важкий модуль (≈50 мс): завантажується при першому зверненні, а не на старті
     // Журнал оновлень (updater.log у теці даних) — допомагає розібратися, якщо щось пішло не так
     u.logger = { info: (m) => this.log('info', m), warn: (m) => this.log('warn', m), error: (m) => this.log('error', m), debug: () => {} };
     u.autoDownload = false;
@@ -49,9 +55,9 @@ class Updater {
     u.allowDowngrade = false;
     u.allowPrerelease = false;
     u.disableWebInstaller = true;
-    u.forceDevUpdateConfig = forceDev;
+    u.forceDevUpdateConfig = this.forceDev;
     // Конфігурація задається в коді, а не з app-update.yml; publisherName змушує electron-updater викликати нашу перевірку підпису
-    u.configOnDisk = { value: Promise.resolve({ provider: 'generic', url: 'https://invalid.invalid/', publisherName: ['W3IR'], updaterCacheDirName: cacheDirName }) };
+    u.configOnDisk = { value: Promise.resolve({ provider: 'generic', url: 'https://invalid.invalid/', publisherName: ['W3IR'], updaterCacheDirName: this.cacheDirName }) };
     u.verifyUpdateCodeSignature = (names, file) => this.verifyDownloaded(file);
 
     u.on('checking-for-update', () => this.set({ state: 'checking', error: '' }));
@@ -69,6 +75,7 @@ class Updater {
       this.set({ state: 'ready', version: clip(ev.version, 40), percent: 100, checkedAt: Date.now() });
     });
     u.on('error', (e) => this.fail(e && e.message ? e.message : String(e)));
+    return u;
   }
 
   notes(info) {
@@ -78,7 +85,7 @@ class Updater {
   }
 
   fail(msg, file) {
-    autoUpdater.autoInstallOnAppQuit = false;
+    if (this._au) this._au.autoInstallOnAppQuit = false;
     if (file) { try { fs.unlinkSync(file); } catch { /* ignore */ } }
     this.set({ state: 'error', error: clip(msg, 300), checkedAt: Date.now() });
   }
@@ -136,10 +143,10 @@ class Updater {
     if (!(app.isPackaged || this.forceDev)) { this.set({ state: 'idle', error: manual ? 'У режимі розробки оновлення вимкнено.' : '' }); return this.status(); }
     if (!f) { this.set({ state: 'idle', error: manual ? 'Джерело оновлень не налаштовано.' : '' }); return this.status(); }
     try {
-      autoUpdater.setFeedURL(f);
+      this.au.setFeedURL(f);
       // бета-канал: пре-релізи GitHub; нижчу версію (повернення зі «бети» на стабільну) все одно не встановлюємо
-      autoUpdater.allowPrerelease = !!this.getCfg().betaChannel && f.provider === 'github';
-      const r = await autoUpdater.checkForUpdates();
+      this.au.allowPrerelease = !!this.getCfg().betaChannel && f.provider === 'github';
+      const r = await this.au.checkForUpdates();
       if (r && r.isUpdateAvailable && this.state.state === 'available' && (this.getCfg().autoUpdate !== false || manual)) {
         await this.download();
       }
@@ -152,7 +159,7 @@ class Updater {
   async download() {
     if (this.state.state !== 'available') return;
     this.log('download', 'початок');
-    try { this.set({ state: 'downloading', percent: 0 }); await autoUpdater.downloadUpdate(); }
+    try { this.set({ state: 'downloading', percent: 0 }); await this.au.downloadUpdate(); }
     catch (e) { if (this.state.state !== 'error') this.fail(e.message); }
   }
 
@@ -163,12 +170,12 @@ class Updater {
     try {
       new Notification({ title: 'W3IR Browser', body: tr('Встановлюється оновлення {0}. Браузер закриється й сам запуститься приблизно за 30 секунд — не відкривайте його вручну.', this.state.version) }).show();
     } catch { /* сповіщення необов'язкове */ }
-    autoUpdater.quitAndInstall(true, true);
+    this.au.quitAndInstall(true, true);
     // Якщо браузер не завершився за 20 с — встановлення не розпочалося: повідомляємо й лишаємо автовстановлення при виході
     clearTimeout(this.watchdog);
     this.watchdog = setTimeout(() => {
       this.log('error', 'застосунок не завершився після quitAndInstall за 20 с');
-      autoUpdater.autoInstallOnAppQuit = true;
+      this.au.autoInstallOnAppQuit = true;
       this.set({ state: 'ready', error: 'Не вдалося автоматично перезапустити для встановлення. Закрийте браузер вручну — оновлення встановиться при виході.' });
     }, 20000);
     this.watchdog.unref && this.watchdog.unref();
@@ -184,7 +191,7 @@ class Updater {
     const f = this.attemptFile();
     if (!f) return;
     try {
-      const helper = autoUpdater.downloadedUpdateHelper;
+      const helper = this.au.downloadedUpdateHelper;
       fs.writeFileSync(f, JSON.stringify({
         from: app.getVersion(), to: this.state.version, time: Date.now(),
         installer: helper && helper.file ? helper.file : '', signature: this.info && this.info.w3irSignature ? this.info.w3irSignature : '',
@@ -225,7 +232,7 @@ class Updater {
     return 'manual';
   }
 
-  resetForTest() { this.info = null; this.state = { state: 'idle', version: '', percent: 0, error: '', notes: '', checkedAt: 0 }; autoUpdater.autoInstallOnAppQuit = false; }
+  resetForTest() { this.info = null; this.state = { state: 'idle', version: '', percent: 0, error: '', notes: '', checkedAt: 0 }; if (this._au) this._au.autoInstallOnAppQuit = false; }
 }
 
 // Чи працює зараз інсталятор браузера (щоб не запускати браузер посеред оновлення)

@@ -123,6 +123,7 @@ async function updateTests(ctx) {
 
   // --- інтеграція з electron-updater через локальний сервер ---
   const u = ctx.manager.updater;
+  void u.au; // ліниву ініціалізацію виконуємо до підміни configOnDisk
   const saved = { pub: u.publicKey, ins: u.allowInsecure, dev: u.forceDev, cfg: u.getCfg, conf: autoUpdater.configOnDisk };
   const cacheName = 'w3ir-test-updater-' + process.pid;
   const cacheDir = path.join(process.env.LOCALAPPDATA || os.tmpdir(), cacheName);
