@@ -54,6 +54,21 @@ function createCore() {
       if (!domain || !types || !value) throw new Error('bad typed data');
       return { signature: await w.signTypedData(domain, types, value) };
     },
+    // Підпис Solana: похідний ключ існує лише всередині виклику; повідомлення й транзакції головний процес уже схвалив
+    solSign: ({ index: i, message } = {}) => {
+      const s = need();
+      if (!ArrayBuffer.isView(message)) throw new Error('bad message');
+      const kp = S.deriveAccount(s.seed, index(i), s.solPath);
+      return { signature: S.sign(kp.secret, message) };
+    },
+    solSignTx: ({ index: i, address, wire } = {}) => {
+      const s = need();
+      if (typeof address !== 'string' || !ArrayBuffer.isView(wire)) throw new Error('bad tx');
+      const kp = S.deriveAccount(s.seed, index(i), s.solPath);
+      if (kp.address !== address) throw new Error('address mismatch');
+      const r = S.signTransaction(kp.secret, address, Buffer.from(wire));
+      return { signedWire: r.signedWire, signature: r.signature, index: r.index };
+    },
     address: ({ chain, index: i } = {}) => {
       const s = need();
       const n = index(i);

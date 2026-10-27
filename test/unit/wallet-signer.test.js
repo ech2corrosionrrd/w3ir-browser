@@ -196,3 +196,39 @@ test('signer-evm: підпис, що не належить рахунку, ві�
   const wrong = new RemoteEvmSigner(call, 5, local.address); // індекс 5, але адреса рахунку 0
   await assert.rejects(wrong.signTransaction({ type: 2, to: local.address, value: 1n, nonce: 0, gasLimit: 21000n, maxFeePerGas: 10n ** 9n, maxPriorityFeePerGas: 1n, chainId: 1n }), /does not match the account/);
 });
+
+// ---- підпис Solana: збігається з локальним Ed25519 (детермінований) ----
+const solSeed = () => Buffer.from(Mnemonic.fromPhrase(PHRASE).computeSeed().slice(2), 'hex');
+const solTx = (from) => S.unsignedWire(S.buildTransferMessage({ from, to: solAt(5), lamports: 1_000n, blockhash: solAt(6) }));
+
+test('signer-sol: підпис повідомлення і транзакції збігається з локальним', async () => {
+  const core = createCore();
+  await core.handle({ id: 0, op: 'unlock', args: { mnemonic: PHRASE } });
+  for (const i of [0, 3]) {
+    const kp = S.deriveAccount(solSeed(), i, 'phantom');
+    const msg = Buffer.from('повідомлення ' + i);
+    const m = await core.handle({ id: 1, op: 'solSign', args: { index: i, message: msg } });
+    assert.ok(m.ok, m.error);
+    assert.deepStrictEqual(Buffer.from(m.result.signature), S.sign(kp.secret, msg));
+    const wire = solTx(kp.address);
+    const t = await core.handle({ id: 2, op: 'solSignTx', args: { index: i, address: kp.address, wire } });
+    assert.ok(t.ok, t.error);
+    const local = S.signTransaction(kp.secret, kp.address, wire);
+    assert.deepStrictEqual(Buffer.from(t.result.signedWire), local.signedWire);
+    assert.deepStrictEqual(Buffer.from(t.result.signature), local.signature);
+    assert.strictEqual(t.result.index, local.index);
+  }
+});
+
+test('signer-sol: чужа адреса, не потрібний підпис, некоректні дані й блокування відхиляються', async () => {
+  const core = createCore();
+  assert.strictEqual((await core.handle({ id: 1, op: 'solSign', args: { index: 0, message: Buffer.from('x') } })).error, 'locked');
+  await core.handle({ id: 2, op: 'unlock', args: { mnemonic: PHRASE } });
+  const wire = solTx(solAt(0));
+  assert.strictEqual((await core.handle({ id: 3, op: 'solSignTx', args: { index: 1, address: solAt(0), wire } })).error, 'address mismatch');
+  assert.strictEqual((await core.handle({ id: 4, op: 'solSignTx', args: { index: 1, address: solAt(1), wire } })).ok, false); // рахунок 1 не підписант
+  assert.strictEqual((await core.handle({ id: 5, op: 'solSign', args: { index: 0, message: 'рядок' } })).ok, false);
+  assert.strictEqual((await core.handle({ id: 6, op: 'solSignTx', args: { index: 0, address: solAt(0), wire: 5 } })).ok, false);
+  await core.handle({ id: 7, op: 'lock' });
+  assert.strictEqual((await core.handle({ id: 8, op: 'solSignTx', args: { index: 0, address: solAt(0), wire } })).error, 'locked');
+});

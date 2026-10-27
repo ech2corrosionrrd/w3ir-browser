@@ -149,6 +149,21 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
     const seed = this._solSeed();
     try { return S.deriveAccount(seed, i, (this.data() || {}).solPath || 'phantom'); } finally { seed.fill(0); }
   };
+  // Підписи: за прапором W3IR_SIGNER=1 рахунки, виведені з фрази, підписує процес-підписувач; імпортовані ключі — локально (етап 4)
+  proto._solSignerIndex = function (address) { return this.signerEnabled() ? this.solAddresses().indexOf(address) : -1; };
+  proto._solSign = async function (address, bytes) {
+    const i = this._solSignerIndex(address);
+    if (i >= 0) return Buffer.from((await this.signerCall('solSign', { index: i, message: bytes })).signature);
+    return S.sign(this._solKeypair(address).secret, bytes);
+  };
+  proto._solSignTx = async function (address, wire) {
+    const i = this._solSignerIndex(address);
+    if (i >= 0) {
+      const r = await this.signerCall('solSignTx', { index: i, address, wire });
+      return { signedWire: Buffer.from(r.signedWire), signature: Buffer.from(r.signature), index: r.index };
+    }
+    return S.signTransaction(this._solKeypair(address).secret, address, wire);
+  };
   proto.solAccountsFor = function (origin) {
     if (!this.unlocked() || !this.data()) return [];
     const c = (this.section().solConnections || {})[origin];
@@ -589,8 +604,7 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       lines: [['Рахунок Solana', address], ['Повідомлення', text !== null ? clip(text, 1500) : bytes.toString('hex').slice(0, 300)]],
       warnings: [...(text === null ? ['Дані нечитабельні: підписуйте лише якщо повністю довіряєте сайту.'] : []), ...(cut ? [cut] : [])],
     });
-    const kp = this._solKeypair(address);
-    const signature = S.sign(kp.secret, bytes);
+    const signature = await this._solSign(address, bytes);
     this.log({ origin, action: 'Підпис повідомлення Solana' });
     return { signature: signature.toString('base64'), address };
   };
@@ -696,9 +710,9 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
       kind: 'tx', title: send ? tr('Підтвердження транзакції') : tr('Підпис транзакції'), danger, lines, warnings, ...(opts.delay ? { delay: opts.delay } : {}),
     });
 
-    const kp = this._solKeypair(address);
-    const signed = txs.map((tx) => {
-      const s = S.signTransaction(kp.secret, address, tx.wire);
+    const signed = [];
+    for (const tx of txs) {
+      const s = await this._solSignTx(address, tx.wire);
       if (Array.isArray(opts.extraSigners)) {
         for (const extra of opts.extraSigners) {
           if (extra && extra.address && extra.signature) {
@@ -710,8 +724,8 @@ function install(Wallet, { RpcError, isSafeRpc, clip, unauthorized }) {
           }
         }
       }
-      return s;
-    });
+      signed.push(s);
+    }
     if (!send) {
       gate.commit(); // підпис без відправки: чи надішле сайт транзакцію, невідомо, тож ліміт списується одразу
       this.log({ origin, action: `Підпис транзакції Solana (${signed.length})` });
