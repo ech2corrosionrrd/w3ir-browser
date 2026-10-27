@@ -30,7 +30,7 @@ const BUILTIN_NETWORKS = [
   { chainId: 8453, name: 'Base', symbol: 'ETH', rpc: 'https://mainnet.base.org', explorer: 'https://basescan.org' },
   { chainId: 42161, name: 'Arbitrum One', symbol: 'ETH', rpc: 'https://arb1.arbitrum.io/rpc', explorer: 'https://arbiscan.io' },
   { chainId: 43114, name: 'Avalanche C-Chain', symbol: 'AVAX', rpc: 'https://api.avax.network/ext/bc/C/rpc', explorer: 'https://snowtrace.io' },
-  { chainId: 11155111, name: 'Sepolia (тестова)', symbol: 'ETH', rpc: 'https://ethereum-sepolia-rpc.publicnode.com', rpcFallback: ['https://1rpc.io/sepolia', 'https://sepolia.drpc.org'], explorer: 'https://sepolia.etherscan.io' },
+  { chainId: 11155111, name: 'Sepolia (тестова)', symbol: 'ETH', rpc: 'https://ethereum-sepolia-public.nodies.app', rpcFallback: ['https://api.zan.top/eth-sepolia', 'https://sepolia.rpc.thirdweb.com', 'https://ethereum-sepolia-rpc.publicnode.com'], explorer: 'https://sepolia.etherscan.io' },
 ];
 
 // Шляхи деривації EVM: standard — m/44'/60'/0'/0/i (MetaMask, Trezor, Ledger у MetaMask); ledgerLive — m/44'/60'/i'/0/0; legacy — m/44'/60'/0'/i (старі MEW/Ledger)

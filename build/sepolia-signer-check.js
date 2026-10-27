@@ -16,7 +16,7 @@ const { FailoverProvider } = require(path.join(root, 'src', 'rpc-failover'));
 
 const args = process.argv.slice(2).filter(a => !a.startsWith('--'));
 // Публічні вузли Sepolia нестабільні, тому використовується той самий перемикач вузлів, що й у гаманці
-const RPCS = [...args.filter(a => /^https:/.test(a)), 'https://sepolia.gateway.tenderly.co', 'https://ethereum-sepolia-rpc.publicnode.com', 'https://1rpc.io/sepolia', 'https://sepolia.drpc.org'];
+const RPCS = [...args.filter(a => /^https:/.test(a)), 'https://ethereum-sepolia-public.nodies.app', 'https://api.zan.top/eth-sepolia', 'https://sepolia.rpc.thirdweb.com'];
 const waitIdx = process.argv.indexOf('--wait');
 const WAIT = waitIdx > 0 ? Number(process.argv[waitIdx + 1]) || 0 : 0;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -56,7 +56,7 @@ async function main() {
       bal = await provider.getBalance(address);
     }
 
-    const req = await s.populateTransaction({ to: address, value: 1n, type: 2 });
+    const req = await s.populateTransaction({ to: address, value: 1n, type: 2, gasLimit: 21000n });
     check(req.chainId === 11155111n && req.maxFeePerGas > 0n, 'транзакцію підготовлено для Sepolia', `nonce ${req.nonce}, maxFee ${req.maxFeePerGas}`);
     const raw = await s.signTransaction(req);
     if (bal > 0n) {
