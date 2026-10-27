@@ -305,3 +305,24 @@ test('solana-staking: solStakeAccounts запитує програму Stake з�
   assert.strictEqual(seen.params[0], S.PROGRAMS.STAKE);
   assert.strictEqual(seen.params[1].filters[0].memcmp.bytes, me);
 });
+
+test('solana-staking: solStakeDelegate готує транзакцію з двома підписантами, підпис stake-акаунта чинний (раніше message.serialize() падав)', async () => {
+  const proto = {};
+  require('../../src/wallet-solana-staking').installStaking(proto, { S, RpcError: Error, clip: (x) => x, unauthorized: Error });
+  const owner = solAt(0), vote = solAt(9);
+  let sent = null;
+  const fake = {
+    data: () => ({}), solAccount: () => owner, solCluster: () => 'devnet',
+    solRpc: async () => ({ value: { blockhash: solAt(7) } }),
+    solPriorityFee: async () => ({ instructions: [] }),
+    _solSignTransactions: async (_w, _o, params, _t, _send, opts) => { sent = { params, opts }; return { signature: 'sig' }; },
+  };
+  const r = await proto.solStakeDelegate.call(fake, null, false, { index: 0, votePubkey: vote, amount: '0.05' });
+  assert.strictEqual(r.signature, 'sig');
+  const wire = Buffer.from(sent.params.transactions[0], 'base64');
+  const tx = S.parseTransaction(wire);
+  assert.strictEqual(tx.parsed.numSigs, 2);
+  const extra = sent.opts.extraSigners[0];
+  assert.strictEqual(extra.address, r.stakeAccount);
+  assert.ok(S.verify(S.b58decode(extra.address), tx.message, Buffer.from(extra.signature, 'base64')), 'підпис stake-акаунта чинний для повідомлення транзакції');
+});

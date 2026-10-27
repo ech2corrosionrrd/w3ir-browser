@@ -100,7 +100,7 @@ function installStaking(proto, { S, RpcError, clip, unauthorized }) {
     ];
 
     const message = S.compileMessage({ feePayer: from, instructions, blockhash: bh });
-    const kpSig = S.sign(stakeKp.secret, message.serialize());
+    const kpSig = S.sign(stakeKp.secret, message);
 
     const r = await this._solSignTransactions(win, 'w3ir://wallet', {
       transactions: [S.unsignedWire(message).toString('base64')],

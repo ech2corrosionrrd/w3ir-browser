@@ -1,6 +1,7 @@
 'use strict';
 // Перевірка підпису Solana через процес-підписувач на ЖИВІЙ мережі Devnet (без реальних коштів):
-//   npx electron build/devnet-signer-check.js [rpc-url] [--wait <секунд>]
+//   npx electron build/devnet-signer-check.js [rpc-url] [--wait <секунд>] [--phrase-file <файл.json>]
+// --phrase-file — JSON { "phrase": "…" } з тестовою фразою (лише для Devnet; файл тримайте поза репозиторієм), щоб повторно використати поповнений рахунок.
 // Якщо кран RPC закритий, надішліть кілька тестових SOL на виведену адресу рахунку 0 (https://faucet.solana.com) протягом --wait секунд.
 // Одноразова фраза лише в пам'яті. Через підписувач виконуються: підпис повідомлення (перевіряється відкритим ключем),
 // переказ SOL між двома рахунками однієї фрази, стейкінг із двома підписантами (рахунок-власник у підписувачі, одноразовий
@@ -17,6 +18,8 @@ const { SignerClient } = require(path.join(root, 'src', 'wallet-signer-client'))
 const RPC = process.argv.slice(2).find(a => /^https:/.test(a)) || 'https://api.devnet.solana.com';
 const waitIdx = process.argv.indexOf('--wait');
 const WAIT = waitIdx > 0 ? Number(process.argv[waitIdx + 1]) || 0 : 0;
+const pfIdx = process.argv.indexOf('--phrase-file');
+const PHRASE_FILE = pfIdx > 0 ? process.argv[pfIdx + 1] : '';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let failed = 0;
 const check = (cond, name, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL'} ${name}${extra ? ' — ' + extra : ''}`); if (!cond) failed++; };
@@ -50,7 +53,8 @@ async function send(wire, label) {
 async function main() {
   const client = new SignerClient();
   try {
-    await client.call('unlock', { mnemonic: Mnemonic.fromEntropy(crypto.randomBytes(16)).phrase });
+    const phrase = PHRASE_FILE ? JSON.parse(require('fs').readFileSync(PHRASE_FILE, 'utf8')).phrase : Mnemonic.fromEntropy(crypto.randomBytes(16)).phrase;
+    await client.call('unlock', { mnemonic: phrase });
     const a = (await client.call('address', { chain: 'sol', index: 0 })).address;
     const b = (await client.call('address', { chain: 'sol', index: 1 })).address;
     console.log('RPC', RPC, '\nрахунок 0', a, '\nрахунок 1', b);
@@ -62,8 +66,9 @@ async function main() {
     check(S.verify(S.b58decode(a), msg, sig), 'підпис повідомлення Solana перевіряється відкритим ключем рахунку');
 
     // 2. безкоштовні тестові SOL
-    let funded = 0;
-    for (const amount of [1_000_000_000, 500_000_000, 200_000_000, 100_000_000]) {
+    let funded = await balance(a);
+    if (funded) console.log('Рахунок уже поповнено:', funded, 'лампортів');
+    for (const amount of funded ? [] : [1_000_000_000, 500_000_000, 200_000_000, 100_000_000]) {
       try {
         await rpc('requestAirdrop', [a, amount]);
         for (let i = 0; i < 40 && !funded; i++) { await sleep(1000); funded = await balance(a); }
@@ -77,21 +82,26 @@ async function main() {
     if (!funded) { console.log('SKIP: Devnet не видав тестові SOL (ліміт faucet). Повторіть пізніше або вкажіть інший RPC.'); return 2; }
 
     // 3. переказ SOL через підписувач
+    const before = await balance(b);
     const wire1 = S.unsignedWire(S.buildTransferMessage({ from: a, to: b, lamports: 12_345_678n, blockhash: await latest() }));
     await send(await signTx(0, a, wire1), 'переказ SOL');
-    check(await balance(b) === 12_345_678, 'переказ SOL: баланс одержувача точно збігається із сумою');
+    check(await balance(b) - before === 12_345_678, 'переказ SOL: баланс одержувача зріс точно на суму переказу');
 
     // 4. стейкінг: два підписанти — рахунок-власник (підписувач) і одноразовий ключ stake-акаунта (локально, як у гаманці)
     const votes = await rpc('getVoteAccounts', [{ commitment: 'confirmed' }]);
     const vote = (votes.current || []).sort((x, y) => Number(y.activatedStake) - Number(x.activatedStake))[0];
     if (!vote) { check(false, 'на Devnet немає поточного валідатора'); return 1; }
+    // мінімальне делегування в мережі (на Devnet — 1 SOL): менша сума відхиляється програмою Stake (Custom 12)
+    const minDelegation = BigInt((await rpc('getStakeMinimumDelegation', [{ commitment: 'confirmed' }])).value);
+    const need = minDelegation + 2_282_880n + 50_000n;
+    if (BigInt(await balance(a)) < need) { console.log(`SKIP: для стейкінгу потрібно щонайменше ${Number(need) / 1e9} SOL на ${a}, поповніть рахунок.`); return 2; }
     const stake = S.generateKeypair();
     const msgStake = S.compileMessage({ feePayer: a, blockhash: await latest(), instructions: [
-      S.ixSystemCreateAccount({ from: a, newAccount: stake.address, lamports: 2_282_880n + 20_000_000n, space: 200, programId: S.PROGRAMS.STAKE }),
+      S.ixSystemCreateAccount({ from: a, newAccount: stake.address, lamports: 2_282_880n + minDelegation, space: 200, programId: S.PROGRAMS.STAKE }),
       S.ixStakeInitialize({ stakeAccount: stake.address, staker: a, withdrawer: a }),
       S.ixStakeDelegate({ stakeAccount: stake.address, voteAccount: vote.votePubkey, authorizedPubkey: a }),
     ] });
-    const kpSig = S.sign(stake.secret, msgStake.serialize());
+    const kpSig = S.sign(stake.secret, msgStake);
     const wire2 = S.unsignedWire(msgStake);
     const signed = await signTx(0, a, wire2);
     const tx = S.parseTransaction(wire2);
