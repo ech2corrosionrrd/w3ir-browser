@@ -31,14 +31,25 @@ const { auditTests, webauthnTests, ipcPolicyTests, historySearchTests, designTes
 
 // W3IR_ONLY=updateTests,agentTests — запустити лише названі області (швидка перевірка окремих тестів)
 const only = process.env.W3IR_ONLY ? new Set(process.env.W3IR_ONLY.split(',')) : null;
-const step = (name, fn) => (!only || only.has(name) ? fn() : undefined);
+// Час кожної області: підсумок «найповільніші області» наприкінці допомагає шукати, що гальмує прогін
+// W3IR_SHARD=k/n — виконати лише області з номером за порядком, що дає k за модулем n (паралельні екземпляри, див. build/run-tests.js)
+const shard = process.env.W3IR_SHARD ? process.env.W3IR_SHARD.split('/').map(Number) : null;
+let stepNo = 0;
+const times = [];
+const step = async (name, fn) => {
+  const no = stepNo++;
+  if (only && !only.has(name)) return undefined;
+  if (shard && no % shard[1] !== shard[0]) return undefined;
+  const t0 = Date.now();
+  try { return await fn(); } finally { times.push([name, Date.now() - t0]); }
+};
 
 module.exports = async function run(ctx) {
   try {
     await sleep(2000);
     // наскрізні тести клікають по справжньому вікну: виводимо його вперед, щоб інші застосунки його не перекривали
     for (const w of ctx.windows) { try { w.win.setAlwaysOnTop(true); w.win.show(); w.win.focus(); w.win.moveTop(); } catch { /* ignore */ } }
-    await vaultTests().catch(e => { stats.failed++; console.log('[sec] ERROR vault1', e.stack); });
+    if (!shard || shard[0] === 0) await vaultTests().catch(e => { stats.failed++; console.log('[sec] ERROR vault1', e.stack); });
     await step('vaultTests2', () => vaultTests2());
     await step('syncTests', () => syncTests());
     await step('e2eTests', () => e2eTests(ctx));
@@ -97,6 +108,7 @@ module.exports = async function run(ctx) {
     console.log('[sec] ERROR', e.stack || e);
   }
   cleanup();
+  for (const [n, ms] of times.sort((a, b) => b[1] - a[1]).slice(0, 12)) console.log(`[sec] TIME ${n} ${(ms / 1000).toFixed(1)} с`);
   console.log(`[sec] RESULT: ${stats.pass} passed, ${stats.failed} failed`);
   app.quit();
 };
