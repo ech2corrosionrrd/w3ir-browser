@@ -19,7 +19,9 @@ if (!process.versions.electron) {
 }
 
 const PORT = 9444;
-const TABS = Number(process.env.PERF_TABS || 5);
+// PERF_TABS — загальна кількість вкладок на щаблях через кому (типово 1,5,10,20); 1 — лише початкова вкладка (спокій).
+const TIERS = String(process.env.PERF_TABS || '1,5,10,20').split(',').map(Number).filter(n => n >= 1).sort((a, b) => a - b);
+const SETTLE = Number(process.env.PERF_SETTLE || 10000); // пауза перед зняттям пам'яті на щаблі, мс
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const appEnv = (extra = {}) => { const e = { ...process.env, ...extra }; delete e.ELECTRON_RUN_AS_NODE; return e; };
 const stats = (a) => { const s = [...a].sort((x, y) => x - y); return { n: s.length, p50: +s[s.length >> 1].toFixed(2), p95: +s[Math.floor(s.length * 0.95)].toFixed(2), max: +s[s.length - 1].toFixed(2) }; };
@@ -43,20 +45,21 @@ function benchStore() {
 }
 
 // ---- пам'ять процесів: усі процеси, чий командний рядок містить наш тимчасовий профіль ----
-// wsMb: робочий набір (завищений: спільні сторінки Chromium рахуються в кожному процесі); privMb: приватна частина, ближча до правди.
+// wsMb: робочий набір (завищений: спільні сторінки Chromium рахуються в кожному процесі); privMb: приватна частина робочого набору;
+// commitMb: приватні байти (PrivateBytes) — Windows обрізає робочий набір фонових процесів, тож privMb для фонових вкладок занижується, а commitMb ні.
 function memory(marker) {
   const ps = `$perf = Get-CimInstance Win32_PerfFormattedData_PerfProc_Process
 Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${marker}*' } | ForEach-Object { $id = $_.ProcessId; $pf = $perf | Where-Object { $_.IDProcess -eq $id }
  $t = if ($_.CommandLine -match '--type=([a-z-]+)') { $matches[1] } else { 'main' }
  if ($_.CommandLine -match '--utility-sub-type=([A-Za-z.]+)') { $t = $t + ':' + $matches[1] }
- [pscustomobject]@{ type = $t; ws = $_.WorkingSetSize; priv = $pf.WorkingSetPrivate } } | ConvertTo-Json -Compress`;
+ [pscustomobject]@{ type = $t; ws = $_.WorkingSetSize; priv = $pf.WorkingSetPrivate; commit = $pf.PrivateBytes } } | ConvertTo-Json -Compress`;
   const r = spawnSync('powershell', ['-NoProfile', '-Command', ps], { encoding: 'utf8' });
   let rows = [];
   try { rows = [].concat(JSON.parse(String(r.stdout).trim() || '[]')); } catch { /* порожньо */ }
   const byType = {};
-  for (const x of rows) { const k = byType[x.type] || (byType[x.type] = { n: 0, privMb: 0 }); k.n++; k.privMb += (x.priv || 0) / 1048576; }
-  for (const k of Object.values(byType)) k.privMb = Math.round(k.privMb);
-  return { wsMb: mb(rows.reduce((a, x) => a + (x.ws || 0), 0)), privMb: mb(rows.reduce((a, x) => a + (x.priv || 0), 0)), byType };
+  for (const x of rows) { const k = byType[x.type] || (byType[x.type] = { n: 0, privMb: 0, commitMb: 0 }); k.n++; k.privMb += (x.priv || 0) / 1048576; k.commitMb += (x.commit || 0) / 1048576; }
+  for (const k of Object.values(byType)) { k.privMb = Math.round(k.privMb); k.commitMb = Math.round(k.commitMb); }
+  return { wsMb: mb(rows.reduce((a, x) => a + (x.ws || 0), 0)), privMb: mb(rows.reduce((a, x) => a + (x.priv || 0), 0)), commitMb: mb(rows.reduce((a, x) => a + (x.commit || 0), 0)), byType };
 }
 
 const cdp = (ws) => new Promise((res, rej) => {
@@ -115,36 +118,37 @@ async function benchApp() {
       await sleep(4000); // відкладені фонові завдання (оновлення, списки загроз, блокувальник)
       res.idle = memory(marker);
 
-      // Вимірювання пам'яті за етапами (5, 10, 20 вкладок)
-      const tiers = [5, 10, 20];
-      const maxTabs = Math.max(...tiers, TABS);
-      const tabSteps = Array.from(new Set([...tiers.filter(t => t <= maxTabs), maxTabs])).sort((a, b) => a - b);
+      // Щаблі за загальною кількістю вкладок (PERF_TABS); початкова вкладка вже відкрита, тож щабель 1 — це спокій
       res.tabsTiers = {};
-
-      let currentTabs = 0;
-      for (const targetCount of tabSteps) {
-        while (currentTabs < targetCount) {
+      let currentTabs = 1;
+      for (const target of TIERS) {
+        while (currentTabs < target) {
           await evalIn(ui, `api.cmd('newTab')`);
           await sleep(350);
           await evalIn(ui, `api.cmd('go', ${JSON.stringify(url)})`);
           await sleep(1000);
           currentTabs++;
         }
-        await sleep(2000);
-        const mem = memory(marker);
-        res.tabsTiers[`tabs_${targetCount}`] = {
-          count: targetCount,
+        await sleep(SETTLE);
+        const mem = target === 1 ? res.idle : memory(marker);
+        const added = target - 1 || 1;
+        res.tabsTiers[`tabs_${target}`] = {
+          count: target,
           wsMb: mem.wsMb,
           privMb: mem.privMb,
-          perTabPrivMb: +((mem.privMb - res.idle.privMb) / targetCount).toFixed(1),
-          perTabWsMb: +((mem.wsMb - res.idle.wsMb) / targetCount).toFixed(1),
+          commitMb: mem.commitMb,
+          renderers: (mem.byType.renderer || { n: 0 }).n,
+          perTabPrivMb: +((mem.privMb - res.idle.privMb) / added).toFixed(1),
+          perTabCommitMb: +((mem.commitMb - res.idle.commitMb) / added).toFixed(1),
         };
       }
 
       res.tabs = currentTabs;
       res.withTabs = memory(marker);
-      res.perTabPrivMb = +((res.withTabs.privMb - res.idle.privMb) / currentTabs).toFixed(0);
-      res.perTabWsMb = +((res.withTabs.wsMb - res.idle.wsMb) / currentTabs).toFixed(0);
+      const extra = Math.max(1, currentTabs - 1);
+      res.perTabPrivMb = +((res.withTabs.privMb - res.idle.privMb) / extra).toFixed(0);
+      res.perTabCommitMb = +((res.withTabs.commitMb - res.idle.commitMb) / extra).toFixed(0);
+      res.perTabWsMb = +((res.withTabs.wsMb - res.idle.wsMb) / extra).toFixed(0);
     });
   } finally {
     srv.close();
