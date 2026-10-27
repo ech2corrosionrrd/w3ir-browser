@@ -105,6 +105,7 @@ class Wallet {
 
   // ---------- керування гаманцем (зі сторінки w3ir://wallet) ----------
   _store(phrase, opts = {}) {
+    this.signerLock(); // нова фраза: підписувач не повинен тримати стару
     const s = this.section();
     s.mnemonic = phrase;
     s.passphrase = opts.passphrase || '';
@@ -184,6 +185,7 @@ class Wallet {
   revealPassphrase() { const s = this.data(); if (!s) throw new Error('Гаманець не створено'); return s.passphrase || ''; }
 
   remove() {
+    this.signerLock();
     const s = this.section();
     s.mnemonic = null; s.addresses = []; s.connections = {}; s.log = [];
     s.solAddresses = []; s.solConnections = {}; s.pending = []; s.contacts = []; s.tokens = {}; s.names = []; s.recipients = []; s.imported = []; s.watch = [];
@@ -272,6 +274,7 @@ class Wallet {
       const unlocked = this.unlocked();
       const conns = this._lastConns || {};
       if (!unlocked) {
+        this.signerLock();
         for (const origin of Object.keys(conns)) this.emit(origin, 'accountsChanged', []);
         for (const origin of Object.keys(this._lastSolConns || {})) this.emit(origin, 'sol:disconnect', null);
       } else if (this.data()) {
@@ -392,5 +395,6 @@ require('./wallet-history-evm').install(Wallet, { RpcError, clip, unauthorized }
 require('./wallet-portfolio').install(Wallet, { unauthorized });
 require('./wallet-simulate').install(Wallet, { clip });
 require('./wallet-watch').install(Wallet);
+require('./wallet-signer-evm').install(Wallet, { unauthorized });
 
 module.exports = { Wallet, RpcError, EVM_PATHS, BUILTIN_NETWORKS, describeCall, hexChain, isSafeRpc };

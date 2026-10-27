@@ -140,3 +140,59 @@ test('signer-client: сторонні й помилкові повідомлен
   assert.strictEqual((await cl.call('ping')).pong, true);
   cl.kill();
 });
+
+// ---- підпис EVM: результат підписувача збігається з локальним HDNodeWallet (підпис ECDSA детермінований) ----
+const { RemoteEvmSigner } = require('../../src/wallet-signer-evm');
+const { getBytes } = require('ethers');
+
+async function remoteSigner(i = 0) {
+  const core = createCore();
+  await core.handle({ id: 0, op: 'unlock', args: { mnemonic: PHRASE } });
+  let n = 0;
+  const call = async (op, args) => { const r = await core.handle({ id: ++n, op, args }); if (!r.ok) throw new Error(r.error); return r.result; };
+  const local = HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(PHRASE), EVM_PATHS.standard(i));
+  return { core, local, signer: new RemoteEvmSigner(call, i, local.address) };
+}
+
+test('signer-evm: підпис транзакцій (legacy, EIP-1559) збігається з локальним', async () => {
+  const { local, signer } = await remoteSigner(2);
+  const to = '0x000000000000000000000000000000000000dEaD';
+  for (const req of [
+    { type: 0, to, value: 1n, nonce: 3, gasLimit: 21000n, gasPrice: 5n * 10n ** 9n, chainId: 1n },
+    { type: 2, to, value: 10n ** 18n, nonce: 0, gasLimit: 50000n, maxFeePerGas: 30n * 10n ** 9n, maxPriorityFeePerGas: 10n ** 9n, chainId: 11155111n, data: '0xa9059cbb' },
+  ]) {
+    assert.strictEqual(await signer.signTransaction({ ...req, from: local.address }), await local.signTransaction(req));
+  }
+});
+
+test('signer-evm: підпис повідомлень і typed data збігається з локальним', async () => {
+  const { local, signer } = await remoteSigner(1);
+  assert.strictEqual(await signer.signMessage('привіт'), await local.signMessage('привіт'));
+  assert.strictEqual(await signer.signMessage(getBytes('0x0102ff')), await local.signMessage(getBytes('0x0102ff')));
+  const domain = { name: 'W3IR', version: '1', chainId: 1n, verifyingContract: '0x000000000000000000000000000000000000dEaD' };
+  const types = { Order: [{ name: 'amount', type: 'uint256' }, { name: 'who', type: 'address' }] };
+  const value = { amount: 10n ** 20n, who: '0x000000000000000000000000000000000000dEaD' };
+  assert.strictEqual(await signer.signTypedData(domain, types, value), await local.signTypedData(domain, types, value));
+});
+
+test('signer-evm: чужа адреса відправника, підписана чи некоректна транзакція і заблокований підписувач відхиляються', async () => {
+  const { core, local, signer } = await remoteSigner(0);
+  const base = { type: 2, to: local.address, value: 1n, nonce: 0, gasLimit: 21000n, maxFeePerGas: 10n ** 9n, maxPriorityFeePerGas: 1n, chainId: 1n };
+  await assert.rejects(signer.signTransaction({ ...base, from: '0x000000000000000000000000000000000000dEaD' }), /from address mismatch/);
+  const signed = await local.signTransaction(base);
+  const r = await core.handle({ id: 1, op: 'evmSignTx', args: { index: 0, raw: signed } });
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual((await core.handle({ id: 2, op: 'evmSignTx', args: { index: 0, raw: 5 } })).ok, false);
+  assert.strictEqual((await core.handle({ id: 3, op: 'evmSignMessage', args: { index: 0 } })).ok, false);
+  await core.handle({ id: 4, op: 'lock' });
+  assert.strictEqual((await core.handle({ id: 5, op: 'evmSignMessage', args: { index: 0, text: 'x' } })).error, 'locked');
+});
+
+test('signer-evm: підпис, що не належить рахунку, відхиляється (розсинхрон індексу)', async () => {
+  const { local } = await remoteSigner(0);
+  const core = createCore();
+  await core.handle({ id: 0, op: 'unlock', args: { mnemonic: PHRASE } });
+  const call = async (op, args) => (await core.handle({ id: 1, op, args })).result;
+  const wrong = new RemoteEvmSigner(call, 5, local.address); // індекс 5, але адреса рахунку 0
+  await assert.rejects(wrong.signTransaction({ type: 2, to: local.address, value: 1n, nonce: 0, gasLimit: 21000n, maxFeePerGas: 10n ** 9n, maxPriorityFeePerGas: 1n, chainId: 1n }), /does not match the account/);
+});

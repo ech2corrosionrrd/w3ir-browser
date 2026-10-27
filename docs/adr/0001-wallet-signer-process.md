@@ -22,7 +22,7 @@ Seed і ключі гаманця виводяться та використов
 | `ping`, `status` | перевірка процесу, стан блокування | 1 |
 | `unlock`, `lock` | передати/обнулити seed | 1 |
 | `address` (`evm`/`sol`, індекс 0–1000) | адреса за шляхом деривації | 1 |
-| `signTx`, `signMessage`, `signTypedData` (EVM) | підписи EVM | 2 |
+| `evmSignTx`, `evmSignMessage`, `evmSignTyped` | підписи EVM | 2 |
 | `solSign`, `solSignTx` | підписи Solana (у т. ч. стейкінг із двома підписантами) | 3 |
 | імпортовані ключі, Arweave | підписи без seed | 4 |
 
@@ -38,7 +38,7 @@ Seed і ключі гаманця виводяться та використов
 
 0. Це рішення.
 1. Каркас: ядро, транспорт, клієнт, unit-тести; гаманець їх ще не використовує.
-2. EVM через `RemoteEvmSigner` (за зразком `LedgerSigner`) за прапором `W3IR_SIGNER=1`; Sepolia за `WALLET-AUDIT.md`.
+2. EVM через `RemoteEvmSigner` (`src/wallet-signer-evm.js`, за зразком `LedgerSigner`) за прапором `W3IR_SIGNER=1` — _код і автотести готові (2026-10-27: повний `npm test` 1415/1415 з прапором і без), самоперевірка на Sepolia за `WALLET-AUDIT.md` ще не виконана_. Адреси нових рахунків (`_derive` у `wallet.js`) поки виводяться локально — переносяться разом зі зняттям прапора.
 3. Solana (переказ, стейкінг); Solana devnet.
 4. Імпортовані ключі й Arweave.
 5. Автоблокування, тест «у main немає фрази й ключів після підписання», правило lint «`HDNodeWallet`/`Wallet.fromPhrase`/`computeSeed` лише в `wallet-signer-core.js`», прапор знімається.
