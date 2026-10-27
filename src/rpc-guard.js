@@ -4,7 +4,6 @@
 // Локальні вузли розробки (localhost, 127.0.0.1) і IP-літерали пропускаються: їх вирішує isSafeRpc.
 // Якщо ім'я не вдалося розв'язати, вердикту немає: запит однаково не дійде до вузла.
 const dns = require('dns');
-const { FetchRequest } = require('ethers');
 const { isPublicIp } = require('./safe-fetch');
 
 const TTL_MS = 30000;
@@ -30,6 +29,7 @@ async function assertPublicRpc(url, resolver = (h) => dns.promises.lookup(h, { a
 
 // Запит ethers, який перед кожним з'єднанням перевіряє адресу (guard — async (url) => void, кидає помилку, якщо вузол заборонений)
 function guardedRequest(url, guard) {
+  const { FetchRequest } = require('ethers'); // ethers вантажиться при першому запиті, а не на старті
   const req = new FetchRequest(url);
   req.preflightFunc = async (r) => { await guard(r.url); return r; };
   return req;

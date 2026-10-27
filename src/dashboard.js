@@ -3,7 +3,7 @@
 // Логіка в головному процесі: сторінка отримує лише готові дані (без токенів, ключів і мнемоніки).
 const fs = require('fs');
 const path = require('path');
-const { isSafeRpc } = require('./wallet');
+const isSafeRpc = (url) => require('./wallet-evm-core').isSafeRpc(url); // wallet-evm-core тягне ethers: вантажимо при першому виклику
 const { assertPublicRpc } = require('./rpc-guard');
 
 const PING_TIMEOUT = 6000;

@@ -13,13 +13,13 @@ const { Vault } = require('./vault');
 const { Sync } = require('./sync');
 const { GitHub } = require('./github');
 const { Agent } = require('./agent');
-const { Wallet } = require('./wallet');
 const { Threats } = require('./threats');
 const { Places, BookmarkStore } = require('./places');
 const { Assistant } = require('./assistant');
 const arweave = require('./arweave');
 const ipfs = require('./ipfs');
-const { LedgerBridge, allowDevice, isHelperOrigin } = require('./ledger-bridge');
+// Гаманець і міст Ledger тягнуть ethers (≈60 мс завантаження), тому вантажаться при першому зверненні, а не на старті
+const ledgerBridge = () => require('./ledger-bridge');
 const { parse: parseHost } = require('tldts-experimental');
 const { attachCosmetic } = require('./adblock');
 const { stripTracking, upgradeHttps } = require('./urlrules');
@@ -127,9 +127,16 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
   ctx.downloads = new Downloads(ctx);
 
   const userData = dataDir;
-  ctx.vault = new Vault({ dir: userData, autolockMinutes: ctx.cfg().autolockMinutes, onChange: () => { ctx.pushAll(); if (ctx.wallet) ctx.wallet.onVaultChange(); } });
-  ctx.wallet = new Wallet(ctx);
-  ctx.ledger = () => (ctx._ledger = ctx._ledger || new LedgerBridge(ctx));
+  ctx.vault = new Vault({ dir: userData, autolockMinutes: ctx.cfg().autolockMinutes, onChange: () => { ctx.pushAll(); if (ctx._wallet) ctx._wallet.onVaultChange(); } });
+  // Гаманець створюється при першому зверненні; прогрів після старту інтерфейсу, щоб перша сторінка не чекала на завантаження ethers
+  Object.defineProperty(ctx, 'wallet', {
+    configurable: true, enumerable: true,
+    get() { if (!ctx._wallet) { const { Wallet } = require('./wallet'); ctx._wallet = new Wallet(ctx); } return ctx._wallet; },
+    set(v) { ctx._wallet = v; },
+  });
+  const warm = setTimeout(() => { try { void ctx.wallet; } catch (e) { console.error('Wallet warm-up failed', e && e.message); } }, 1500);
+  if (warm.unref) warm.unref();
+  ctx.ledger = () => (ctx._ledger = ctx._ledger || new (ledgerBridge().LedgerBridge)(ctx));
   ctx.arweave = arweave;
   // Захист від шахрайських сайтів: списки спільні для всіх профілів і лежать у теці основного профілю
   shared.threats = shared.threats || { lists: null };
@@ -615,10 +622,10 @@ function createContext({ id = 'default', dir, shared, manager } = {}) {
       }).catch(() => cb(false));
     });
     // WebHID для Ledger: лише службова сторінка w3ir://ledger й лише пристрої виробника Ledger (див. src/ledger-bridge.js)
-    ses.setDevicePermissionHandler(allowDevice);
+    ses.setDevicePermissionHandler((details) => ledgerBridge().allowDevice(details));
     ses.setPermissionCheckHandler((wc, permission, origin) => {
       if (ALWAYS_ALLOW.has(permission)) return true;
-      if (permission === 'hid') return isHelperOrigin(origin);
+      if (permission === 'hid') return ledgerBridge().isHelperOrigin(origin);
       return decisions()[originOf(origin) + '|' + permission] === true;
     });
 

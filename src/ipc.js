@@ -2,7 +2,7 @@
 const { ipcMain, app, dialog, shell } = require('electron');
 const { t: tr } = require('./i18n');
 const { normOrigin } = require('./vault');
-const { hexChain } = require('./wallet');
+const hexChain = (id) => '0x' + Number(id).toString(16);
 const { i18n, LANGS } = require('./i18n');
 const protection = require('./protection');
 const { walletApi, arweaveApi } = require('./ipc-wallet');
