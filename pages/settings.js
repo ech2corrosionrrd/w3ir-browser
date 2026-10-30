@@ -239,19 +239,41 @@ async function main() {
     { id: 'sec-privacy', label: 'Приватність', icon: '🛡️' },
     { id: 'sec-passwords', label: 'Паролі', icon: '🔐' },
     { id: 'sec-wallet', label: 'Гаманець', icon: '💼' },
+    { id: 'sec-integrations', label: 'Інтеграції', icon: '🔗' },
     { id: 'sec-ai', label: 'ШІ', icon: '🤖' },
     { id: 'sec-updates', label: 'Оновлення', icon: '📦' }
   ];
+  const tabAnchor = {
+    'sec-integrations': 'sec-sync',
+  };
 
   const tabBtns = {};
-  const activateTab = (targetId) => {
+  let activeTab = 'sec-general';
+  const secToTab = {
+    'sec-general': 'sec-general',
+    'sec-privacy': 'sec-privacy',
+    'sec-sites': 'sec-privacy',
+    'sec-downloads': 'sec-general',
+    'sec-passwords': 'sec-passwords',
+    'sec-wallet': 'sec-wallet',
+    'sec-sync': 'sec-integrations',
+    'sec-updates': 'sec-updates',
+    'sec-github': 'sec-integrations',
+    'sec-ai': 'sec-ai',
+    'sec-keywords': 'sec-integrations',
+    'sec-defaultbrowser': 'sec-general',
+    'sec-extensions': 'sec-integrations',
+    'sec-features': 'always',
+    'sec-clear': 'sec-privacy'
+  };
+
+  const paintTabs = () => {
     for (const td of tabDefs) {
       const btn = tabBtns[td.id];
-      if (btn) {
-        const isCur = td.id === targetId;
-        btn.classList.toggle('active', isCur);
-        btn.setAttribute('aria-selected', isCur ? 'true' : 'false');
-      }
+      if (!btn) continue;
+      const on = td.id === activeTab;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
     }
   };
 
@@ -261,38 +283,17 @@ async function main() {
       role: 'tab',
       'aria-selected': i === 0 ? 'true' : 'false',
       onclick: () => {
-        activateTab(td.id);
-        const el = document.getElementById(td.id);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        activeTab = td.id;
+        filterInput.value = '';
         try { history.replaceState(null, '', '#' + td.id); } catch {}
+        applySections();
+        const el = document.getElementById(tabAnchor[td.id] || td.id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, h('span', null, td.icon), h('span', null, td.label));
     tabBtns[td.id] = btn;
     return btn;
   }));
-
-  const secToTab = {
-    'sec-general': 'sec-general',
-    'sec-privacy': 'sec-privacy',
-    'sec-sites': 'sec-privacy',
-    'sec-downloads': 'sec-general',
-    'sec-passwords': 'sec-passwords',
-    'sec-wallet': 'sec-wallet',
-    'sec-sync': 'sec-general',
-    'sec-updates': 'sec-updates',
-    'sec-github': 'sec-general',
-    'sec-ai': 'sec-ai',
-    'sec-keywords': 'sec-general',
-    'sec-defaultbrowser': 'sec-general',
-    'sec-extensions': 'sec-general',
-    'sec-features': 'sec-general',
-    'sec-clear': 'sec-privacy'
-  };
-
-  window.syncActiveTab = (headId) => {
-    const target = secToTab[headId] || headId;
-    if (tabBtns[target]) activateTab(target);
-  };
 
   const filterInput = h('input', {
     type: 'search',
@@ -302,17 +303,41 @@ async function main() {
     spellcheck: false
   });
   const filterBar = h('div', { class: 'wfilter-bar', style: 'margin: 12px 0 16px' }, filterInput);
-  const noMatches = h('div', { class: 'note', style: 'display:none;margin:18px 0;text-align:center;padding:20px;background:var(--card);border-radius:12px;border:1px dashed var(--line)' }, 'Нічого не знайдено');
+  const noMatches = h('div', { id: 'settings-nomatch', class: 'note', style: 'display:none;margin:18px 0;text-align:center;padding:20px;background:var(--card);border-radius:12px;border:1px dashed var(--line)' }, 'Нічого не знайдено');
 
-  const onFilter = () => {
-    const q = filterInput.value.trim().toLowerCase();
-    const allRows = app.querySelectorAll('.list .row');
-    if (!q) {
-      allRows.forEach(r => { r.style.display = ''; });
-      app.querySelectorAll('h2, .list, p.note').forEach(el => { el.style.display = ''; });
-      noMatches.style.display = 'none';
-      return;
+  const showSection = (hd, show) => {
+    hd.style.display = show ? '' : 'none';
+    let cur = hd.nextElementSibling;
+    while (cur && cur.tagName !== 'H2') {
+      if (cur.id !== 'sec-foot') cur.style.display = show ? '' : 'none';
+      cur = cur.nextElementSibling;
     }
+  };
+
+  const applySections = () => {
+    paintTabs();
+    const q = filterInput.value.trim().toLowerCase();
+    if (q) { onFilter(q); buildRail(); return; }
+    app.querySelectorAll('.list .row').forEach(r => { r.style.display = ''; });
+    for (const hd of app.querySelectorAll(':scope > h2')) {
+      const tab = secToTab[hd.id] || 'sec-general';
+      showSection(hd, tab === 'always' || tab === activeTab);
+    }
+    const foot = document.getElementById('sec-foot');
+    if (foot) foot.style.display = '';
+    noMatches.style.display = 'none';
+    buildRail();
+  };
+  window.applySettingsSections = applySections;
+  window.openSettingsTab = (id) => {
+    if (!tabDefs.some(t => t.id === id)) return;
+    activeTab = id;
+    filterInput.value = '';
+    applySections();
+  };
+
+  const onFilter = (q) => {
+    const allRows = app.querySelectorAll('.list .row');
     let matchedTotal = 0;
     allRows.forEach(r => {
       const match = r.textContent.toLowerCase().includes(q);
@@ -339,9 +364,11 @@ async function main() {
       notes.forEach(n => { n.style.display = hasVisible ? '' : 'none'; });
     });
     noMatches.style.display = matchedTotal === 0 ? 'block' : 'none';
+    const foot = document.getElementById('sec-foot');
+    if (foot) foot.style.display = '';
   };
-  applyFilter = () => { if (filterInput.value.trim()) onFilter(); };
-  filterInput.addEventListener('input', debounce(onFilter, 50));
+  applyFilter = () => { if (filterInput.value.trim()) onFilter(filterInput.value.trim().toLowerCase()); };
+  filterInput.addEventListener('input', debounce(() => applySections(), 50));
 
   app.append(
     h('h1', null, 'Налаштування'),
@@ -419,7 +446,8 @@ async function main() {
         } else {
           alert((r && r.error) || t('Не вдалося показати гаманець. Перевірте майстер-пароль.'));
         }
-      } }, 'Показати') : h('button', { onclick: async () => { await w3ir.invoke('wallet:hide'); location.reload(); } }, 'Приховати'))),
+      } }, 'Показати') : h('button', { onclick: async () => { await w3ir.invoke('wallet:hide'); location.reload(); } }, 'Приховати')),
+      toggle('arweaveForSites', 'Гаманець Arweave для сайтів', 'Сайти бачать гаманець Arweave лише коли це увімкнено. Підпис транзакцій не підтримується: доступні адреса й підпис даних. Після зміни оновіть сторінку.')),
     h('h2', { id: 'sec-sync' }, 'Синхронізація закладок (наскрізне шифрування)'),
     syncBox,
     h('h2', { id: 'sec-updates' }, 'Оновлення браузера'),
@@ -457,7 +485,7 @@ async function main() {
       ['experimental', 'Ledger (EVM)', 'Перевірено лише на імітованому пристрої; починайте з малої суми.'],
       ['beta', 'Швидкий перегляд (Glance) і Tab Stash', 'Нові функції: повідомляйте про проблеми.'],
       ['beta', 'Вимкнення JavaScript і кадрів для сайту', 'Без скриптів частина сайтів не працює.'],
-      ['experimental', 'Arweave Wallet для сайтів', 'Лише підпис даних; транзакції не підтримуються.'],
+      ['experimental', 'Arweave Wallet для сайтів', 'Вимкнено, доки не увімкнено в розділі «Гаманець». Лише підпис даних; транзакції не підтримуються.'],
     ].map(([level, name, note]) => h('div', { class: 'row' },
       h('div', null, h('div', null, name), note && h('div', { class: 'd' }, note)),
       h('span', { class: 'maturity ' + level }, { stable: 'Стабільна', beta: 'Бета', experimental: 'Експериментальна' }[level])))),
@@ -468,33 +496,34 @@ async function main() {
         h('label', null, cookies, ' Cookie та дані сайтів'), ' ',
         h('label', null, cache, ' Кеш')),
       h('div', null, clear, status))),
-    h('p', { class: 'note' }, `W3IR Browser ${version} · на основі Chromium/Electron`));
+    h('p', { id: 'sec-foot', class: 'note' }, `W3IR Browser ${version} · на основі Chromium/Electron`));
+  if (location.hash && location.hash.length > 1) {
+    const tab = secToTab[location.hash.slice(1)];
+    if (tab && tab !== 'always') activeTab = tab;
+  }
+  applySections();
 }
 function buildRail() {
-  const heads = [...document.querySelectorAll('main > h2')];
-  if (heads.length < 4) return;
-  const links = heads.map((hd, i) => {
-    if (!hd.id) hd.id = 'sec' + i;
-    return h('a', { href: '#' + hd.id, onclick: (e) => { e.preventDefault(); hd.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, hd.textContent);
-  });
+  document.querySelector('nav.rail')?.remove();
+  const heads = [...document.querySelectorAll('main > h2')].filter(hd => hd.style.display !== 'none' && hd.id !== 'sec-features');
+  if (heads.length < 2) return;
+  const links = heads.map(hd => h('a', { href: '#' + hd.id, onclick: (e) => { e.preventDefault(); hd.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, hd.textContent));
   document.body.append(h('nav', { class: 'rail', 'aria-label': 'Розділи налаштувань' }, links));
   const mark = () => {
+    const visible = [...document.querySelectorAll('main > h2')].filter(hd => hd.style.display !== 'none' && hd.id !== 'sec-features');
     let cur = 0;
-    heads.forEach((hd, i) => { if (hd.getBoundingClientRect().top < 140) cur = i; });
+    visible.forEach((hd, i) => { if (hd.getBoundingClientRect().top < 140) cur = i; });
     links.forEach((a, i) => a.classList.toggle('on', i === cur));
-    if (window.syncActiveTab && heads[cur] && heads[cur].id) window.syncActiveTab(heads[cur].id);
   };
-  window.addEventListener('scroll', mark, { passive: true });
+  if (!window.__settingsRailBound) {
+    window.addEventListener('scroll', () => window.__settingsRailMark && window.__settingsRailMark(), { passive: true });
+    window.__settingsRailBound = true;
+  }
+  window.__settingsRailMark = mark;
   mark();
 }
 main().then(() => setTimeout(() => {
-  buildRail();
-  if (location.hash && location.hash.length > 1) {
-    const targetId = location.hash.slice(1);
-    const targetEl = document.getElementById(targetId);
-    if (targetEl) {
-      if (window.syncActiveTab) window.syncActiveTab(targetId);
-      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
+  if (!(location.hash && location.hash.length > 1)) return;
+  const targetEl = document.getElementById(location.hash.slice(1));
+  if (targetEl && targetEl.style.display !== 'none') targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }, 50));

@@ -198,12 +198,20 @@ class AppWindow {
   }
 
   // ---------- стан для інтерфейсу ----------
+  sessionKey() {
+    try { return JSON.stringify(this.snapshot()); } catch { return ''; }
+  }
+
   push() {
     if (this.pushTimer || this.win.isDestroyed()) return;
     this.pushTimer = setTimeout(() => {
       this.pushTimer = null;
       if (this.win.isDestroyed()) return;
       this.sendState();
+      if (this.incognito) return;
+      const key = this.sessionKey();
+      if (key === this._sessionKey) return;
+      this._sessionKey = key;
       this.ctx.saveSession();
     }, 30);
   }
@@ -254,6 +262,7 @@ class AppWindow {
       vault: this.vaultState(curUrl),
       profile: ctx.profile(),
       github: { connected: ctx.github.connected(), count: ctx.github.count() },
+      assistant: !!(cfg.ollamaModel && String(cfg.ollamaModel).trim()),
       update: ctx.manager && ctx.manager.updater ? ctx.manager.updater.brief() : { state: 'idle' },
     };
     this.chrome.send('state', state);

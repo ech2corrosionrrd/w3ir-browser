@@ -451,7 +451,13 @@ async function smallScreenTests(ctx) {
     await sleep(900);
     const dims = await w.chrome.executeJavaScript('({ W: innerWidth, url: document.getElementById("url").getBoundingClientRect().width, tb: document.getElementById("toolbar").scrollWidth <= innerWidth + 1 })');
     ok(dims.W <= 500 && dims.url >= 100 && dims.tb, 'малий екран: на мінімальному вікні адресний рядок має ' + Math.round(dims.url) + ' px і панель інструментів не виходить за межі');
-    ok(await w.chrome.executeJavaScript('["home", "vault", "dl"].every(id => getComputedStyle(document.getElementById(id)).display === "none") && getComputedStyle(document.getElementById("copilot")).width === "32px"'), 'малий екран: другорядні кнопки сховано, «Помічник» стиснуто до значка');
+    const prevModel = ctx.cfg().ollamaModel;
+    ctx.cfg().ollamaModel = 'llama-test';
+    w.sendState();
+    await sleep(200);
+    ok(await w.chrome.executeJavaScript('["home", "vault", "dl"].every(id => getComputedStyle(document.getElementById(id)).display === "none") && getComputedStyle(document.getElementById("copilot")).display !== "none" && getComputedStyle(document.getElementById("copilot")).width === "32px"'), 'малий екран: другорядні кнопки сховано, «Помічник» стиснуто до значка');
+    ctx.cfg().ollamaModel = prevModel;
+    w.sendState();
 
     await w.chrome.executeJavaScript('document.getElementById("menu").click()');
     await sleep(900);

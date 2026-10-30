@@ -17,6 +17,8 @@ function el(tag, cls, text) {
 
 // ---------- групи вкладок ----------
 let editing = null; // { id, value } — група, яку зараз перейменовують у рядку вкладок
+const tabNodes = new Map();
+const chipNodes = new Map();
 
 function startEditGroup(id) {
   const g = (state.groups || []).find(x => x.id === id);
@@ -32,41 +34,194 @@ function commitEdit(save) {
   render(state);
 }
 
-function makeChip(g, index) {
-  const chip = el('div', 'gchip' + (g.collapsed ? ' collapsed' : '') + (g.name ? '' : ' noname'));
-  chip.style.setProperty('--gc', g.hex);
-  chip.dataset.group = String(g.id);
-  chip.title = `Група${g.name ? ' «' + g.name + '»' : ''} · вкладок: ${g.count}\nКлік — ${g.collapsed ? 'розгорнути' : 'згорнути'} · Подвійний клік — перейменувати · Правий клік — меню групи\nПеретягніть вкладку сюди, щоб додати її до групи`;
-  if (editing && editing.id === g.id) {
-    const input = el('input', 'gedit');
-    input.value = editing.value;
-    input.maxLength = 40;
-    input.placeholder = 'Назва групи';
-    input.oninput = () => { editing.value = input.value; };
-    input.onkeydown = (e) => { if (e.key === 'Enter') commitEdit(true); else if (e.key === 'Escape') commitEdit(false); e.stopPropagation(); };
-    input.onblur = () => commitEdit(true);
-    chip.append(input);
-    setTimeout(() => { input.focus(); input.select(); }, 0);
-    return chip;
-  }
-  chip.append(el('span', 'gname', g.name));
-  if (g.collapsed) chip.append(el('span', 'gcount', String(g.count)));
+function bindChip(chip) {
   let timer = null;
-  chip.onclick = () => { clearTimeout(timer); timer = setTimeout(() => api.cmd('groupToggle', g.id), 220); };
-  chip.ondblclick = (e) => { e.preventDefault(); clearTimeout(timer); startEditGroup(g.id); };
-  chip.oncontextmenu = (e) => { e.preventDefault(); api.cmd('groupMenu', g.id); };
+  chip.onclick = () => { clearTimeout(timer); timer = setTimeout(() => api.cmd('groupToggle', Number(chip.dataset.group)), 220); };
+  chip.ondblclick = (e) => { e.preventDefault(); clearTimeout(timer); startEditGroup(Number(chip.dataset.group)); };
+  chip.oncontextmenu = (e) => { e.preventDefault(); api.cmd('groupMenu', Number(chip.dataset.group)); };
   chip.draggable = true;
-  chip.ondragstart = (e) => { e.dataTransfer.setData('text/plain', 'g' + g.id); e.dataTransfer.effectAllowed = 'move'; };
+  chip.ondragstart = (e) => { e.dataTransfer.setData('text/plain', 'g' + chip.dataset.group); e.dataTransfer.effectAllowed = 'move'; };
   chip.ondragover = (e) => { e.preventDefault(); chip.classList.add('dragover'); };
   chip.ondragleave = () => chip.classList.remove('dragover');
   chip.ondrop = (e) => {
     e.preventDefault();
     chip.classList.remove('dragover');
     const data = e.dataTransfer.getData('text/plain');
-    if (data.startsWith('g')) { const id = Number(data.slice(1)); if (id && id !== g.id) api.cmd('moveGroup', { id, index }); }
-    else { const tabId = Number(data); if (tabId) api.cmd('groupAdd', { tabId, groupId: g.id }); }
+    const gid = Number(chip.dataset.group);
+    const index = Number(chip.dataset.index);
+    if (data.startsWith('g')) { const id = Number(data.slice(1)); if (id && id !== gid) api.cmd('moveGroup', { id, index }); }
+    else { const tabId = Number(data); if (tabId) api.cmd('groupAdd', { tabId, groupId: gid }); }
   };
+}
+
+function ensureChip(g, index) {
+  let chip = chipNodes.get(g.id);
+  if (!chip) {
+    chip = el('div', 'gchip');
+    chip.dataset.group = String(g.id);
+    chipNodes.set(g.id, chip);
+  }
+  chip.dataset.index = String(index);
+  chip.className = 'gchip' + (g.collapsed ? ' collapsed' : '') + (g.name ? '' : ' noname');
+  chip.style.setProperty('--gc', g.hex);
+  chip.title = `Група${g.name ? ' «' + g.name + '»' : ''} · вкладок: ${g.count}\nКлік — ${g.collapsed ? 'розгорнути' : 'згорнути'} · Подвійний клік — перейменувати · Правий клік — меню групи\nПеретягніть вкладку сюди, щоб додати її до групи`;
+  if (editing && editing.id === g.id) {
+    chip.onclick = null;
+    chip.ondblclick = null;
+    chip.oncontextmenu = null;
+    chip.ondragstart = null;
+    chip.draggable = false;
+    if (!chip.querySelector('input.gedit')) {
+      chip.textContent = '';
+      const input = el('input', 'gedit');
+      input.value = editing.value;
+      input.maxLength = 40;
+      input.placeholder = 'Назва групи';
+      input.oninput = () => { editing.value = input.value; };
+      input.onkeydown = (e) => { if (e.key === 'Enter') commitEdit(true); else if (e.key === 'Escape') commitEdit(false); e.stopPropagation(); };
+      input.onblur = () => commitEdit(true);
+      chip.append(input);
+      setTimeout(() => { input.focus(); input.select(); }, 0);
+    }
+    return chip;
+  }
+  bindChip(chip);
+  let name = chip.querySelector(':scope > .gname');
+  if (!name) {
+    chip.textContent = '';
+    name = el('span', 'gname', g.name);
+    chip.append(name);
+  } else if (name.textContent !== (g.name || '')) name.textContent = g.name || '';
+  let count = chip.querySelector(':scope > .gcount');
+  if (g.collapsed) {
+    if (!count) chip.append(el('span', 'gcount', String(g.count)));
+    else count.textContent = String(g.count);
+  } else if (count) count.remove();
   return chip;
+}
+
+function bindTab(tab) {
+  tab.oncontextmenu = (e) => { e.preventDefault(); api.cmd('tabMenu', Number(tab.dataset.id)); };
+  tab.draggable = true;
+  tab.ondragstart = (e) => { e.dataTransfer.setData('text/plain', String(tab.dataset.id)); e.dataTransfer.effectAllowed = 'move'; };
+  tab.ondragend = (e) => {
+    if (e.dataTransfer.dropEffect !== 'none' || (e.clientX === 0 && e.clientY === 0)) return;
+    if (e.clientY > 90 || e.clientY < -4 || e.clientX < 0 || e.clientX > innerWidth) api.cmd('tabToWindow', { id: Number(tab.dataset.id), drag: true });
+  };
+  tab.ondragover = (e) => { e.preventDefault(); tab.classList.add('dragover'); };
+  tab.ondragleave = () => tab.classList.remove('dragover');
+  tab.ondrop = (e) => {
+    e.preventDefault();
+    tab.classList.remove('dragover');
+    const data = e.dataTransfer.getData('text/plain');
+    const index = Number(tab.dataset.index);
+    if (data.startsWith('g')) {
+      const gid = Number(data.slice(1));
+      const cur = (state.tabs || []).find(x => x.id === Number(tab.dataset.id));
+      if (gid && (!cur || gid !== cur.group)) api.cmd('moveGroup', { id: gid, index });
+      return;
+    }
+    const id = Number(data);
+    if (id && id !== Number(tab.dataset.id)) api.cmd('moveTab', { id, index });
+  };
+  tab.onmousedown = (e) => { if (e.button === 0) api.cmd('switchTab', Number(tab.dataset.id)); };
+  tab.onauxclick = (e) => { if (e.button === 1) { e.preventDefault(); api.cmd('closeTab', Number(tab.dataset.id)); } };
+}
+
+function tabSignature(t, s, grp) {
+  return [
+    t.id === s.activeId, t.pinned ? 1 : 0, t.sleeping ? 1 : 0, t.split || '', t.loading ? 1 : 0,
+    t.favicon || '', t.ai || '', t.audible ? 1 : 0, t.muted ? 1 : 0, t.title, t.url,
+    t.container ? t.container.color + '\n' + t.container.label : '',
+    grp ? String(grp.id) + '\n' + grp.hex + '\n' + (grp.name || '') : '',
+  ].join('\0');
+}
+
+function fillTab(tab, t, s, grp) {
+  tab.className = 'tab' + (t.id === s.activeId ? ' active' : '') + (t.pinned ? ' pinned' : '') + (t.sleeping ? ' sleeping' : '') + (t.split ? ' split' : '');
+  if (t.container) { tab.classList.add('contained'); tab.style.setProperty('--cc', t.container.color); }
+  else tab.style.removeProperty('--cc');
+  let title = (t.container ? t.container.label + '\n' : '') + t.title + (t.url ? '\n' + t.url : '') + (t.pinned ? '\n📌 Закріплена вкладка' : '') + (t.sleeping ? '\n💤 Спляча вкладка: оживе при відкритті' : '') +
+    '\n\nПравий клік — меню вкладки (групи, закріплення…) · Середня кнопка — закрити · Перетягніть — змінити порядок або додати до групи';
+  if (grp) { tab.classList.add('ingroup'); tab.style.setProperty('--gc', grp.hex); title = `Група${grp.name ? ' «' + grp.name + '»' : ''}\n` + title; }
+  else tab.style.removeProperty('--gc');
+  tab.title = title;
+  tab.textContent = '';
+  const pinLetter = () => {
+    let host = ''; try { host = new URL(t.url).hostname.replace(/^www\./, ''); } catch { /* ignore */ }
+    return el('span', 'pinletter', ((host || t.title || '?').trim()[0] || '?').toUpperCase());
+  };
+  if (t.loading) tab.append(el('span', 'spin'));
+  else if (t.favicon) {
+    const img = el('img', 'fav');
+    img.src = t.favicon;
+    img.onerror = () => { if (t.pinned) img.replaceWith(pinLetter()); else img.remove(); };
+    tab.append(img);
+  }
+  if (t.pinned && !t.favicon && !t.loading) tab.append(pinLetter());
+  if (t.ai) {
+    const b = el('span', 'ai' + (t.ai === 'control' ? ' ctl' : ''), t.ai === 'control' ? 'ШІ ✎' : 'ШІ');
+    b.title = t.ai === 'control' ? 'ШІ може керувати цією вкладкою (меню вкладки → припинити)' : 'ШІ може читати цю вкладку (меню вкладки → припинити)';
+    tab.append(b);
+  }
+  if (t.split) { const b = el('span', 'splitmark', t.split === 'L' ? '◧' : '◨'); b.title = 'Розділений екран: ця вкладка показана поруч з іншою'; tab.append(b); }
+  tab.append(el('span', 'title', t.title));
+  if (t.audible || t.muted) {
+    const b = el('button', 'ico', t.muted ? '🔇' : '🔊');
+    b.title = t.muted ? 'Вкладку приглушено. Клік — увімкнути звук' : 'Вкладка відтворює звук. Клік — вимкнути';
+    b.onmousedown = (e) => e.stopPropagation();
+    b.onclick = (e) => { e.stopPropagation(); api.cmd('muteTab', Number(tab.dataset.id)); };
+    tab.append(b);
+  }
+  const close = el('button', 'close', '✕');
+  close.title = 'Закрити вкладку (Ctrl+W)';
+  close.onmousedown = (e) => e.stopPropagation();
+  close.onclick = (e) => { e.stopPropagation(); api.cmd('closeTab', Number(tab.dataset.id)); };
+  tab.append(close);
+}
+
+function ensureTab(t, s, grp, index) {
+  let tab = tabNodes.get(t.id);
+  if (!tab) {
+    tab = el('div', 'tab');
+    tab.dataset.id = String(t.id);
+    tabNodes.set(t.id, tab);
+    bindTab(tab);
+  }
+  tab.dataset.index = String(index);
+  const sig = tabSignature(t, s, grp);
+  if (tab.dataset.sig !== sig) {
+    tab.dataset.sig = sig;
+    fillTab(tab, t, s, grp);
+  }
+  return tab;
+}
+
+function paintTabs(s) {
+  const tabsEl = $('tabs');
+  const groupsById = new Map((s.groups || []).map(g => [g.id, g]));
+  const chipShown = new Set();
+  const keepTabs = new Set();
+  const keepChips = new Set();
+  const order = [];
+  s.tabs.forEach((t, index) => {
+    const grp = t.group ? groupsById.get(t.group) : null;
+    if (grp && !chipShown.has(grp.id)) {
+      chipShown.add(grp.id);
+      keepChips.add(grp.id);
+      order.push(ensureChip(grp, index));
+    }
+    if (grp && grp.collapsed) return;
+    keepTabs.add(t.id);
+    order.push(ensureTab(t, s, grp, index));
+  });
+  for (const [id, node] of tabNodes) if (!keepTabs.has(id)) { node.remove(); tabNodes.delete(id); }
+  for (const [id, node] of chipNodes) if (!keepChips.has(id)) { node.remove(); chipNodes.delete(id); }
+  let same = tabsEl.children.length === order.length;
+  if (same) for (let i = 0; i < order.length; i++) if (tabsEl.children[i] !== order[i]) { same = false; break; }
+  if (same) return;
+  for (const child of [...tabsEl.children]) if (!order.includes(child)) child.remove();
+  for (const node of order) tabsEl.appendChild(node);
 }
 
 function render(s) {
@@ -88,74 +243,7 @@ function render(s) {
     document.body.style.setProperty('--pcolor', prof.color);
   }
 
-  const tabsEl = $('tabs');
-  tabsEl.textContent = '';
-  const groupsById = new Map((s.groups || []).map(g => [g.id, g]));
-  const chipShown = new Set();
-  s.tabs.forEach((t, index) => {
-    const grp = t.group ? groupsById.get(t.group) : null;
-    if (grp && !chipShown.has(grp.id)) { chipShown.add(grp.id); tabsEl.append(makeChip(grp, index)); }
-    if (grp && grp.collapsed) return; // вкладки згорнутої групи не показуємо
-    const tab = el('div', 'tab' + (t.id === s.activeId ? ' active' : '') + (t.pinned ? ' pinned' : '') + (t.sleeping ? ' sleeping' : '') + (t.split ? ' split' : ''));
-    tab.dataset.id = String(t.id);
-    if (t.container) { tab.classList.add('contained'); tab.style.setProperty('--cc', t.container.color); }
-    tab.title = (t.container ? t.container.label + '\n' : '') + t.title + (t.url ? '\n' + t.url : '') + (t.pinned ? '\n📌 Закріплена вкладка' : '') + (t.sleeping ? '\n💤 Спляча вкладка: оживе при відкритті' : '') +
-      '\n\nПравий клік — меню вкладки (групи, закріплення…) · Середня кнопка — закрити · Перетягніть — змінити порядок або додати до групи';
-    tab.oncontextmenu = (e) => { e.preventDefault(); api.cmd('tabMenu', t.id); };
-    tab.draggable = true;
-    if (grp) { tab.classList.add('ingroup'); tab.style.setProperty('--gc', grp.hex); tab.title = `Група${grp.name ? ' «' + grp.name + '»' : ''}\n` + tab.title; }
-    // літера-значок для закріпленої вкладки без фавікона (або якщо він не завантажився)
-    const pinLetter = () => {
-      let host = ''; try { host = new URL(t.url).hostname.replace(/^www\./, ''); } catch { /* ignore */ }
-      return el('span', 'pinletter', ((host || t.title || '?').trim()[0] || '?').toUpperCase());
-    };
-    if (t.loading) tab.append(el('span', 'spin'));
-    else if (t.favicon) {
-      const img = el('img', 'fav');
-      img.src = t.favicon;
-      img.onerror = () => { if (t.pinned) img.replaceWith(pinLetter()); else img.remove(); };
-      tab.append(img);
-    }
-    if (t.pinned && !t.favicon && !t.loading) tab.append(pinLetter());
-    if (t.ai) {
-      const b = el('span', 'ai' + (t.ai === 'control' ? ' ctl' : ''), t.ai === 'control' ? 'ШІ ✎' : 'ШІ');
-      b.title = t.ai === 'control' ? 'ШІ може керувати цією вкладкою (меню вкладки → припинити)' : 'ШІ може читати цю вкладку (меню вкладки → припинити)';
-      tab.append(b);
-    }
-    if (t.split) { const b = el('span', 'splitmark', t.split === 'L' ? '◧' : '◨'); b.title = 'Розділений екран: ця вкладка показана поруч з іншою'; tab.append(b); }
-    tab.append(el('span', 'title', t.title));
-    if (t.audible || t.muted) {
-      const b = el('button', 'ico', t.muted ? '🔇' : '🔊');
-      b.title = t.muted ? 'Вкладку приглушено. Клік — увімкнути звук' : 'Вкладка відтворює звук. Клік — вимкнути';
-      b.onmousedown = (e) => e.stopPropagation();
-      b.onclick = (e) => { e.stopPropagation(); api.cmd('muteTab', t.id); };
-      tab.append(b);
-    }
-    const close = el('button', 'close', '✕');
-    close.title = 'Закрити вкладку (Ctrl+W)';
-    close.onmousedown = (e) => e.stopPropagation(); // клік по хрестику не повинен спершу перемикати на цю вкладку
-    close.onclick = (e) => { e.stopPropagation(); api.cmd('closeTab', t.id); };
-    tab.append(close);
-    tab.onmousedown = (e) => { if (e.button === 0) api.cmd('switchTab', t.id); };
-    tab.onauxclick = (e) => { if (e.button === 1) { e.preventDefault(); api.cmd('closeTab', t.id); } };
-    tab.ondragstart = (e) => { e.dataTransfer.setData('text/plain', String(t.id)); e.dataTransfer.effectAllowed = 'move'; };
-    // Вкладку відпустили поза панеллю вкладок (не на прийнятому місці): виносимо її в нове вікно. Скасування (Esc) дає нульові координати
-    tab.ondragend = (e) => {
-      if (e.dataTransfer.dropEffect !== 'none' || (e.clientX === 0 && e.clientY === 0)) return;
-      if (e.clientY > 90 || e.clientY < -4 || e.clientX < 0 || e.clientX > innerWidth) api.cmd('tabToWindow', { id: t.id, drag: true });
-    };
-    tab.ondragover = (e) => { e.preventDefault(); tab.classList.add('dragover'); };
-    tab.ondragleave = () => tab.classList.remove('dragover');
-    tab.ondrop = (e) => {
-      e.preventDefault();
-      tab.classList.remove('dragover');
-      const data = e.dataTransfer.getData('text/plain');
-      if (data.startsWith('g')) { const gid = Number(data.slice(1)); if (gid && gid !== t.group) api.cmd('moveGroup', { id: gid, index }); return; }
-      const id = Number(data);
-      if (id && id !== t.id) api.cmd('moveTab', { id, index });
-    };
-    tabsEl.append(tab);
-  });
+  paintTabs(s);
 
   const a = s.tabs.find(t => t.id === s.activeId);
   if (a) {
@@ -183,6 +271,7 @@ function render(s) {
   upd.title = us.state === 'ready' ? `Оновлення ${us.version} готове й перевірене. Клік — встановити та перезапустити`
     : us.state === 'downloading' ? `Завантаження оновлення${us.percent ? ' (' + us.percent + ' %)' : ''}…`
     : `Доступне оновлення ${us.version}. Клік — відкрити налаштування оновлень`;
+  $('copilot').hidden = !s.assistant;
   const gh = $('gh');
   gh.hidden = !s.github.connected;
   gh.textContent = '🐙';
