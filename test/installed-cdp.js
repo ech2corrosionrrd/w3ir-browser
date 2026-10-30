@@ -233,8 +233,7 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   if (pg) {
     // Arweave Wallet: типово провайдера немає; після вмикання в налаштуваннях він з’являється, підпис транзакцій не підтримується
     ok(await ev(pg, 'typeof window.arweaveWallet') === 'undefined', 'Arweave: провайдер не з’являється, доки його не увімкнено');
-    await ev(ui, `api.cmd('openPage', 'settings')`);
-    await sleep(800);
+    // налаштування міняємо в уже відкритій вкладці: нова вкладка стала б активною, і перемикачі Shield далі діяли б не на тестову сторінку
     const setT = (await find(t => /^w3ir:\/\/settings\/?$/.test(t.url)))[0];
     const setRes = setT ? await ev(setT, `w3ir.invoke('settings:set', { arweaveForSites: true })`) : null;
     ok(!!(setRes && setRes.arweaveForSites === true), 'Arweave: налаштування для сайтів увімкнено', setRes && setRes.arweaveForSites);
