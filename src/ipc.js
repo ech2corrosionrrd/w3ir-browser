@@ -268,6 +268,7 @@ function registerIpc(resolve) {
       if (entry && entry.tab && !entry.win.incognito && origin && ctx.wallet.injectEnabled()) {
         r.enabled = true;
         r.chainId = hexChain(ctx.wallet.chainOf(origin));
+        r.arweave = ctx.cfg().arweaveForSites === true;
       }
     } catch { /* ignore */ }
     e.returnValue = r;
@@ -341,7 +342,7 @@ function registerIpc(resolve) {
   const SETTING_TYPES = {
     homepage: 'string', searchEngine: 'string', startup: 'string', adblock: 'boolean', cookieBanners: 'boolean',
     sendGpc: 'boolean', showBookmarksBar: 'boolean', askDownload: 'boolean', downloadDir: 'string',
-    httpsFirst: 'boolean', stripTracking: 'boolean', protection: 'string', fingerprintProtection: 'boolean', sleepTabs: 'boolean', sleepMinutes: 'number', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean',
+    httpsFirst: 'boolean', stripTracking: 'boolean', protection: 'string', fingerprintProtection: 'boolean', sleepTabs: 'boolean', sleepMinutes: 'number', verticalTabs: 'boolean', savePasswords: 'boolean', safeBrowsing: 'boolean', theme: 'string', language: 'string', keywords: 'string', torrentConfirm: 'boolean', arweaveForSites: 'boolean',
   };
 
   ipcMain.handle('internal', async (e, name, arg) => {

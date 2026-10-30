@@ -133,6 +133,7 @@ function install(Wallet, { RpcError, unauthorized, clip }) {
     },
 
     async arRequest(win, tab, origin, method, params, sameTab) {
+      if (this.ctx.cfg().arweaveForSites !== true) throw unauthorized(tr('Гаманець Arweave для сайтів вимкнено в налаштуваннях'));
       const acc = this.arGetAccount();
       if (!acc) throw unauthorized(tr('Спершу розблокуйте сховище гаманця'));
 

@@ -509,6 +509,9 @@ function setupWeb3AndProtection() {
 
   let init = null;
   try {
+    // Синхронно навмисно: відповідь має бути до першого скрипта сторінки.
+    // Асинхронний invoke приходить уже після inline-скриптів, тож dApp не побачить
+    // window.ethereum, а вікно без гаманця не встигне лишити його відсутнім.
     init = ipcRenderer.sendSync('wallet:init');
   } catch {
     return;
@@ -539,9 +542,11 @@ function setupWeb3AndProtection() {
     try {
       contextBridge.executeInMainWorld({ func: installSolana, args: [bridge] });
     } catch { /* ignore */ }
-    try {
-      contextBridge.executeInMainWorld({ func: installArweave, args: [bridge] });
-    } catch { /* ignore */ }
+    if (init.arweave) {
+      try {
+        contextBridge.executeInMainWorld({ func: installArweave, args: [bridge] });
+      } catch { /* ignore */ }
+    }
   }
 }
 

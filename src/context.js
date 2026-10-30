@@ -60,6 +60,7 @@ const DEFAULT_SETTINGS = {
   keywords: '',
   walletEnabled: false,
   walletInject: true,
+  arweaveForSites: false, // window.arweaveWallet лише за вибором: підпис транзакцій Arweave не підтримується
   walletHidden: false, // гаманець приховано (дані збережено; показати можна на сторінці гаманця з майстер-паролем)
   walletReauthMinutes: 2, // через скільки хвилин гаманець знову просить майстер-пароль для підтверджень (2, 5, 10, 15)
   walletAskAccount: true, // щоразу питати, яким рахунком авторизуватись на сайті (навіть якщо сайт уже підключено)

@@ -231,8 +231,17 @@ async function waitFor(fn, ms = 10000, step = 250) { const t0 = Date.now(); whil
   await sleep(1200);
   ok(!!pg && await ev(pg, 'document.title') === 'js-ran', 'нові функції: тестова сторінка відкрита, скрипти виконуються');
   if (pg) {
-    // Arweave Wallet: провайдер є, підпис транзакцій не підтримується
-    ok(await ev(pg, `typeof window.arweaveWallet === 'object' && ['connect', 'getActiveAddress', 'getActivePublicKey', 'signature'].every(m => typeof window.arweaveWallet[m] === 'function')`), 'Arweave: window.arweaveWallet з методами ArConnect/Wander у вебсторінці');
+    // Arweave Wallet: типово провайдера немає; після вмикання в налаштуваннях він з’являється, підпис транзакцій не підтримується
+    ok(await ev(pg, 'typeof window.arweaveWallet') === 'undefined', 'Arweave: провайдер не з’являється, доки його не увімкнено');
+    await ev(ui, `api.cmd('openPage', 'settings')`);
+    await sleep(800);
+    const setT = (await find(t => /^w3ir:\/\/settings\/?$/.test(t.url)))[0];
+    const setRes = setT ? await ev(setT, `w3ir.invoke('settings:set', { arweaveForSites: true })`) : null;
+    ok(!!(setRes && setRes.arweaveForSites === true), 'Arweave: налаштування для сайтів увімкнено', setRes && setRes.arweaveForSites);
+    await ev(pg, 'location.reload()');
+    await sleep(1200);
+    pg = await pageAt(base + '/');
+    ok(!!pg && await ev(pg, `typeof window.arweaveWallet === 'object' && ['connect', 'getActiveAddress', 'getActivePublicKey', 'signature'].every(m => typeof window.arweaveWallet[m] === 'function')`), 'Arweave: window.arweaveWallet з методами ArConnect/Wander у вебсторінці');
     ok(await ev(pg, `window.arweaveWallet.sign({}).then(() => 'signed', () => 'rejected')`) === 'rejected', 'Arweave: підпис транзакції відхиляється (не підтримується)');
     ok(await ev(pg, `window.arweaveWallet.getActiveAddress().then(() => 'ok', () => 'rejected')`) === 'rejected', 'Arweave: адреса недоступна, поки сайт не підключено');
 

@@ -60,6 +60,7 @@ function fakeWallet(approve) {
   const w = new W();
   const sec = {};
   w.unlocked = () => true; w.section = () => sec; w.vault = { persist() {} };
+  w.ctx = { cfg: () => ({ arweaveForSites: true }) };
   w.approve = async (_win, _origin, _same, req) => { w.last = req; return approve; };
   // підпис Arweave виконує ядро підписувача (у тестах — в цьому ж процесі), розблоковане ключем зі секції гаманця
   const core = require('../../src/wallet-signer-core').createCore();
@@ -72,6 +73,13 @@ function fakeWallet(approve) {
   };
   return w;
 }
+
+test('arweave-wallet: без налаштування сайти не доходять до ключа', async () => {
+  const w = fakeWallet(true);
+  w.ctx = { cfg: () => ({ arweaveForSites: false }) };
+  await assert.rejects(w.arRequest(null, null, 'https://a.example', 'arweave_connect', {}, () => true), (e) => e.code === 4100);
+  assert.equal(w.section().arweave, undefined);
+});
 
 test('arweave-wallet: arweave_sign і arweave_dispatch не підписують (4200)', async () => {
   const w = fakeWallet(true);
