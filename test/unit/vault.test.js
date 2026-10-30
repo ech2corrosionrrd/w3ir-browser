@@ -288,3 +288,44 @@ test('vault: файл із хибною структурою не підміня
     assert.ok(!fs.readdirSync(dir).some(n => n.includes('.corrupt-')));
   });
 });
+
+test('vault: розділ гаманця не лежить у об’єкті паролів і переживає збереження, зміну пароля й резервну копію', async () => {
+  const phrase = 'test seed phrase for vault seal';
+  await withVaultDir(async (dir) => {
+    const v = new Vault({ dir, usePepper: false });
+    assert.equal((await v.create('Password123!')).ok, true);
+    const w = v.section('wallet', { mnemonic: null, addresses: [] });
+    w.mnemonic = phrase;
+    v.add({ url: 'https://example.com', username: 'a', password: 'secret-pass-1' });
+    assert.equal(v.data.wallet, undefined);
+    assert.equal(JSON.stringify(v.data).includes(phrase), false);
+    const doc = JSON.parse(fs.readFileSync(path.join(dir, 'vault.bin'), 'utf8'));
+    assert.equal(doc.v, 1);
+    assert.equal(doc.wallet, undefined);
+    assert.ok(doc.iv && doc.tag && doc.ct);
+    v.lock();
+    assert.equal((await v.unlock('Password123!')).ok, true);
+    assert.equal(v.data.wallet, undefined);
+    assert.equal(JSON.stringify(v.data).includes(phrase), false);
+    v.add({ url: 'https://example.com', username: 'b', password: 'secret-pass-2' });
+    v.lock();
+    assert.equal((await v.unlock('Password123!')).ok, true);
+    assert.equal(v.section('wallet', { mnemonic: null }).mnemonic, phrase);
+    assert.equal(v.data.wallet, undefined);
+    assert.equal((await v.changeMaster('Password123!', 'New-Master-2026!')).ok, true);
+    v.lock();
+    assert.equal((await v.unlock('New-Master-2026!')).ok, true);
+    assert.equal(v.section('wallet', { mnemonic: null }).mnemonic, phrase);
+    const bak = path.join(dir, 'backup.json');
+    assert.equal((await v.exportBackup(bak, 'Backup-Password-2026!')).ok, true);
+    await withVaultDir(async (dir2) => {
+      const v2 = new Vault({ dir: dir2, usePepper: false });
+      assert.equal((await v2.create('Password123!')).ok, true);
+      assert.equal((await v2.importBackup(bak, 'Backup-Password-2026!')).ok, true);
+      assert.equal(v2.data.wallet, undefined);
+      assert.equal(JSON.stringify(v2.data).includes(phrase), false);
+      assert.equal(v2.section('wallet', { mnemonic: null }).mnemonic, phrase);
+      assert.equal(v2.list().length, 2);
+    });
+  });
+});

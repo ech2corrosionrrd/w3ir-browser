@@ -4,6 +4,9 @@
 //  * Ключ = scrypt(майстер-пароль + «перець» DPAPI, сіль) — файл сховища марний без акаунта Windows і майстер-пароля.
 //  * Дані шифруються AES-256-GCM; заголовок (параметри KDF) входить в AAD, тому підміна параметрів виявляється.
 //  * Ключ та розшифровані дані живуть лише в пам'яті головного процесу й стираються при блокуванні.
+//  * Розділ гаманця після розблокування не лежить у об’єкті паролів: він у окремому буфері,
+//    зашифрованому тим самим ключем сховища, і відкривається лише викликом section('wallet').
+//    Формат vault.bin не змінюється: на диск пишеться той самий JSON із полем wallet.
 
 /**
  * @typedef {Object} VaultEntry
@@ -31,6 +34,7 @@ const { generateTotp, parseOtpAuth } = require('./totp');
 
 const MAX = { field: 2048, password: 1024, note: 8192, totp: 2048, entries: 5000 };
 const REAUTH_MS = 2 * 60 * 1000;
+const WALLET_SEAL_AAD = Buffer.from('w3ir-wallet-section');
 
 function checkMaster(pw) {
   pw = String(pw || '');
@@ -82,6 +86,8 @@ class Vault {
     this.autolockMs = autolockMinutes * 60000;
     this.key = null;
     this.data = null;
+    this._walletOpen = null;
+    this._walletSeal = null;
     this.header = null;
     this.fails = 0;
     this.nextAllowed = 0;
@@ -123,8 +129,60 @@ class Vault {
 
   _persist() {
     const h = this.header;
-    const env = encrypt(this.key, Buffer.from(JSON.stringify(this.data), 'utf8'), this._aad(h));
+    const json = Buffer.from(JSON.stringify(this._diskPlain()), 'utf8');
+    const env = encrypt(this.key, json, this._aad(h));
+    json.fill(0);
     writeAtomic(fs, this.file, JSON.stringify({ ...h, iv: b64(env.iv), tag: b64(env.tag), ct: b64(env.ct) }), { backup: true });
+  }
+
+  // Знімок для диска: паролі й розділ гаманця разом, без запису гаманця назад у this.data.
+  _diskPlain() {
+    const snap = { ...this.data };
+    if (this._walletOpen) snap.wallet = this._walletOpen;
+    else if (this._walletSeal) {
+      const w = this._readSeal();
+      if (w) snap.wallet = w;
+    }
+    return snap;
+  }
+
+  _sealWallet() {
+    const w = this.data && this.data.wallet;
+    if (!w || typeof w !== 'object' || Array.isArray(w)) return;
+    const json = Buffer.from(JSON.stringify(w), 'utf8');
+    delete this.data.wallet;
+    this._walletSeal = encrypt(this.key, json, WALLET_SEAL_AAD);
+    this._walletOpen = null;
+    json.fill(0);
+  }
+
+  _readSeal() {
+    if (!this._walletSeal || !this.key) return null;
+    const plain = decrypt(this.key, this._walletSeal, WALLET_SEAL_AAD);
+    try {
+      const obj = JSON.parse(plain.toString('utf8'));
+      return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : null;
+    } finally { plain.fill(0); }
+  }
+
+  // Перешифрувати розділ новим ключем, поки старий ще в this.key. Відкритий розділ лишається відкритим.
+  _rekeyWallet(newKey) {
+    if (!this._walletOpen && !this._walletSeal) return;
+    const wasOpen = this._walletOpen;
+    const obj = wasOpen || this._readSeal();
+    if (!obj) { this._walletSeal = null; this._walletOpen = null; return; }
+    const json = Buffer.from(JSON.stringify(obj), 'utf8');
+    this._walletSeal = encrypt(newKey, json, WALLET_SEAL_AAD);
+    json.fill(0);
+    this._walletOpen = wasOpen || null;
+  }
+
+  _wipeSeal() {
+    if (this._walletSeal) {
+      for (const part of [this._walletSeal.iv, this._walletSeal.tag, this._walletSeal.ct]) if (part) part.fill(0);
+    }
+    this._walletSeal = null;
+    this._walletOpen = null;
   }
 
   async create(master) {
@@ -136,6 +194,7 @@ class Vault {
     this.header = { v: 1, kdf: { ...KDF_DEFAULT, salt: b64(salt) }, pepper: pepper.used };
     this.key = await deriveKey(this._secret(master, pepper.buf), salt, this.header.kdf);
     this.data = { entries: [], never: [] };
+    this._wipeSeal();
     this._persist();
     this.lastAuth = Date.now();
     this.touch();
@@ -184,6 +243,8 @@ class Vault {
     if (!Array.isArray(this.data.never)) this.data.never = [];
     plain.fill(0);
     this.key = key;
+    this._wipeSeal();
+    this._sealWallet();
     this.fails = 0;
     this.lastAuth = Date.now();
     this.touch();
@@ -196,6 +257,7 @@ class Vault {
     clearTimeout(this.clipTimer);
     if (this.key) this.key.fill(0);
     this.key = null;
+    this._wipeSeal();
     this.data = null;
     this.onChange();
   }
@@ -205,6 +267,12 @@ class Vault {
   // Додаткові розділи зашифрованих даних (наприклад, гаманець)
   section(name, init) {
     this._need();
+    if (name === 'wallet') {
+      if (this._walletOpen) return this._walletOpen;
+      const opened = this._readSeal();
+      this._walletOpen = opened || init;
+      return this._walletOpen;
+    }
     if (!this.data[name] || typeof this.data[name] !== 'object') this.data[name] = init;
     return this.data[name];
   }
@@ -311,6 +379,7 @@ class Vault {
     const salt = crypto.randomBytes(16);
     const header = { v: 1, kdf: { ...KDF_DEFAULT, salt: b64(salt) }, pepper: this.header.pepper };
     const key = await deriveKey(this._secret(newPw, pepper.buf), salt, header.kdf);
+    this._rekeyWallet(key);
     this.key.fill(0);
     this.key = key;
     this.header = header;
@@ -326,7 +395,9 @@ class Vault {
     const salt = crypto.randomBytes(16);
     const header = { v: 1, kdf: { ...KDF_DEFAULT, salt: b64(salt) }, pepper: false, backup: true };
     const key = await deriveKey(norm(backupPassword), salt, header.kdf);
-    const env = encrypt(key, Buffer.from(JSON.stringify(this.data), 'utf8'), this._aad(header));
+    const json = Buffer.from(JSON.stringify(this._diskPlain()), 'utf8');
+    const env = encrypt(key, json, this._aad(header));
+    json.fill(0);
     key.fill(0);
     writeAtomic(fs, filePath, JSON.stringify({ ...header, iv: b64(env.iv), tag: b64(env.tag), ct: b64(env.ct) }));
     return { ok: true };
@@ -369,6 +440,16 @@ class Vault {
       }
     }
     for (const n of Array.isArray(data.never) ? data.never : []) if (normOrigin(n) && !this.data.never.includes(n)) this.data.never.push(n);
+    const currentWallet = this._walletOpen || this._readSeal();
+    if (!(currentWallet && currentWallet.mnemonic) && data.wallet && typeof data.wallet === 'object' && !Array.isArray(data.wallet)) {
+      if (this._walletOpen) {
+        for (const k of Object.keys(this._walletOpen)) delete this._walletOpen[k];
+        Object.assign(this._walletOpen, data.wallet);
+      }
+      const json = Buffer.from(JSON.stringify(this._walletOpen || data.wallet), 'utf8');
+      this._walletSeal = encrypt(this.key, json, WALLET_SEAL_AAD);
+      json.fill(0);
+    }
     this._persist();
     return { ok: true, added };
   }
