@@ -69,6 +69,16 @@ Checksums are also available in `SHA256SUMS.txt` accompanying every release.
 - Installed location: `%APPDATA%\W3IR Browser` (development mode: `%APPDATA%\w3ir-browser`); secondary profiles stored in `profiles\<id>`.
 - Core files: `settings.json`, `places.sqlite` (SQLite WAL), `session.json`, `permissions.json`, `downloads.json`, `window.json`, `vault.bin` + `vault.pepper` (encrypted credentials & wallet keys), `sync.json`, `threats-*.bin`, `adblock-engine.bin`, `updater.log`.
 
+## Support the project (optional)
+
+W3IR Browser is a personal project and stays free. If you find it useful and **want** to say thanks, you can send a voluntary donation in **SOL** (Solana network only) to:
+
+```
+63u6SDZckvzcJhC4V5yJn6bZ15qx1iM8c6iB3Z9xD1tn
+```
+
+Donations are entirely optional: nothing is promised in return, there are no extra features or priority support, and sent funds are not refundable. The address is **receive-only** and is not connected to the browser's built-in wallet. Check the first and last characters (`63u6…D1tn`) before sending; the address is published only in this repository (README and the Ukrainian README). Do not send tokens from other networks to it.
+
 ## Development
 
 ```bash
