@@ -13,6 +13,8 @@ const CYR = /[\u0400-\u04FF]/;
 const SKIP = new Set(['agent.js', 'injection-guard.js', 'ollama.js', 'i18n.js', 'i18n-dom.js', 'help-data.js']);
 // agent.js здебільшого описи для моделі (не перекладаються); з нього беремо лише видимі користувачу рядки
 const AGENT_VISIBLE = new Set(['title', 'label', 'message', 'detail']);
+// ollama.js: тексти для моделі не перекладаються, але повідомлення про помилки ({ error: '…' } і new Error('…')) бачить користувач
+const OLLAMA_VISIBLE = new Set(['error']);
 const dirs = [['src', '.js'], ['pages', '.js'], ['ui', '.js'], ['', '.js'], ['pages', '.html'], ['ui', '.html']];
 
 const keys = new Map(); // ключ → [файл:рядок]
@@ -37,7 +39,7 @@ function walk(node, file, visit) {
   }
 }
 
-function jsFile(file, rel, onlyVisible) {
+function jsFile(file, rel, onlyVisible, visibleProps = AGENT_VISIBLE, errorCtor = false) {
   const src = fs.readFileSync(file, 'utf8');
   let ast;
   try { ast = espree.parse(src, { ecmaVersion: 2023, loc: true, sourceType: 'commonjs' }); } catch { ast = espree.parse(src, { ecmaVersion: 2023, loc: true, sourceType: 'script' }); }
@@ -45,7 +47,8 @@ function jsFile(file, rel, onlyVisible) {
   if (onlyVisible) {
     walk(ast, rel, (n) => {
       const mark = (x) => { if (!x) return; if (x.type === 'ConditionalExpression') { mark(x.consequent); mark(x.alternate); } else visible.add(x); };
-      if (n.type === 'Property' && !n.computed && AGENT_VISIBLE.has(n.key.name || n.key.value)) mark(n.value);
+      if (n.type === 'Property' && !n.computed && visibleProps.has(n.key.name || n.key.value)) mark(n.value);
+      if (errorCtor && n.type === 'NewExpression' && n.callee.name === 'Error') mark(n.arguments[0]);
       if (n.type === 'CallExpression' && n.callee.type === 'MemberExpression' && n.callee.property.name === 'toast') mark(n.arguments[0]);
     });
   }
@@ -83,6 +86,7 @@ for (const [d, ext] of dirs) {
 // довідка (pages/help-data.js) — великий масив рядків; включаємо окремо, її рядки показуються через DOM
 jsFile(path.join(root, 'pages', 'help-data.js'), 'pages/help-data.js');
 jsFile(path.join(root, 'src', 'agent.js'), 'src/agent.js', true);
+jsFile(path.join(root, 'src', 'ollama.js'), 'src/ollama.js', true, OLLAMA_VISIBLE, true);
 
 const out = {};
 for (const [k, v] of [...keys].sort((a, b) => a[0].localeCompare(b[0], 'uk'))) out[k] = v.slice(0, 3);
