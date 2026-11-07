@@ -138,6 +138,28 @@ async function main() {
   };
   renderGh();
   // ---------- керування браузером ШІ (MCP) ----------
+  // ---------- добровільні пожертви (лише показ адреси; жодних нагадувань і запитів у мережу) ----------
+  const supportBox = h('div', { class: 'list' });
+  w3ir.invoke('support:info').then((r) => {
+    if (!r || !r.ok) return;
+    const copyBtn = h('button', null, 'Копіювати');
+    copyBtn.addEventListener('click', () => { navigator.clipboard.writeText(r.address).catch(() => {}); const o = copyBtn.textContent; copyBtn.textContent = 'Скопійовано'; setTimeout(() => { copyBtn.textContent = o; }, 1500); });
+    const qrBtn = h('button', null, 'QR-код');
+    qrBtn.addEventListener('click', () => {
+      const box = h('div', { class: 'modal', onmousedown: (e) => { if (e.target === box) box.remove(); } },
+        h('div', { class: 'mbox', style: 'text-align:center' }, h('h2', { class: 'mtitle' }, 'Пожертва в SOL'),
+          h('div', { style: 'display:inline-block;padding:6px;background:#fff;border-radius:10px' }, qrSvg(r.qr)),
+          h('div', { class: 'pw', style: 'user-select:text;word-break:break-all;margin:12px 0;font-size:12px' }, r.address),
+          h('div', { class: 'mbtns' }, h('button', { class: 'primary', onclick: () => box.remove() }, 'Закрити'))));
+      document.body.append(box);
+    });
+    supportBox.append(
+      h('div', { class: 'row' }, h('div', { style: 'flex:1' },
+        h('div', { class: 'd' }, 'W3IR Browser — особистий безкоштовний проєкт. Якщо ви самі хочете подякувати, можна надіслати добровільний донат у SOL (лише мережа Solana). Нічого не обіцяється натомість, надіслані кошти не повертаються. Адреса призначена лише для отримання й не пов’язана з вбудованим гаманцем.'),
+        h('code', { style: 'word-break:break-all;user-select:all;display:block;margin-top:6px' }, r.address),
+        h('div', { class: 'd', style: 'margin-top:4px' }, 'Перед надсиланням звірте початок і кінець адреси з README у репозиторії.')),
+      copyBtn, qrBtn));
+  });
   const agBox = h('div', { class: 'list' });
   let agShow = false;
   let agTest = '';
@@ -267,6 +289,7 @@ async function main() {
     'sec-ai': 'sec-ai',
     'sec-keywords': 'sec-integrations',
     'sec-defaultbrowser': 'sec-general',
+    'sec-support': 'sec-general',
     'sec-extensions': 'sec-integrations',
     'sec-features': 'always',
     'sec-clear': 'sec-privacy'
@@ -471,6 +494,8 @@ async function main() {
       h('button', { onclick: () => w3ir.invoke('defaultbrowser') }, 'Відкрити налаштування'))),
     h('h2', { id: 'sec-extensions' }, 'Розширення (експериментально)'),
     extBox,
+    h('h2', { id: 'sec-support' }, 'Підтримати проєкт (за бажанням)'),
+    supportBox,
     h('h2', { id: 'sec-features' }, 'Стан функцій'),
     h('p', { class: 'note' }, 'Стабільна функція перевірена тривалим використанням і тестами. Бета працює, але ще дозріває. Експериментальна може змінюватися або давати збої.'),
     h('div', { class: 'list' }, [

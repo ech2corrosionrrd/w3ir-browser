@@ -98,3 +98,18 @@ function railNav(label) {
   window.addEventListener('scroll', mark, { passive: true });
   mark();
 }
+
+// QR-код з матриці { size, rows } як SVG (DOM-елементи, без innerHTML)
+function qrSvg(q, px = 240) {
+  const cell = 6, quiet = 4, dim = (q.size + quiet * 2) * cell;
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${dim} ${dim}`); svg.setAttribute('width', String(px)); svg.setAttribute('height', String(px)); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'QR-код адреси');
+  const bg = document.createElementNS(NS, 'rect');
+  bg.setAttribute('width', String(dim)); bg.setAttribute('height', String(dim)); bg.setAttribute('fill', '#fff'); svg.append(bg);
+  let d = '';
+  for (let y = 0; y < q.size; y++) for (let x = 0; x < q.size; x++) if (q.rows[y][x] === '1') d += `M${(x + quiet) * cell} ${(y + quiet) * cell}h${cell}v${cell}h-${cell}z`;
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', d); path.setAttribute('fill', '#000'); svg.append(path);
+  return svg;
+}

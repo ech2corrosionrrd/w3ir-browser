@@ -181,7 +181,7 @@ const POLICY = {
 };
 // Окремі команди без групи: назва → сторінки
 const PAGE_ONLY = {
-  'settings:get': ['settings', 'help'], 'settings:set': ['settings'], defaultbrowser: ['settings'],
+  'support:info': ['settings', 'help'], 'settings:get': ['settings', 'help'], 'settings:set': ['settings'], defaultbrowser: ['settings'],
   'ext:add': ['settings'], 'ext:remove': ['settings'], clear: ['settings'],
   'reader:get': ['reader'], 'reader:translate': ['reader'], 'reader:summarize': ['reader'], 'doc:get': ['doc'], 'doc:print': ['doc'], 'doc:savePdf': ['doc'], resolve: ['newtab'], topsites: ['newtab'], startinfo: ['newtab'],
   'history:get': ['history'], 'history:remove': ['history'], 'history:clear': ['history'],
@@ -376,6 +376,7 @@ function registerIpc(resolve) {
     if (name.startsWith('vault:')) return vaultApi(ctx, entry, name, arg);
     if (name.startsWith('sync:')) return syncApi(ctx, entry, name, arg);
     switch (name) {
+      case 'support:info': return require('./support').info();
       case 'settings:get':
         return { settings: ctx.cfg(), engines: Object.fromEntries(Object.entries(ctx.ENGINES).map(([k, v]) => [k, v.name])), incognito: entry.win.incognito, theme: (ctx.manager ? ctx.manager.ctx('default') : ctx).cfg().theme, language: (ctx.manager ? ctx.manager.ctx('default') : ctx).cfg().language || 'auto', languages: Object.fromEntries(Object.entries(LANGS).map(([k, v]) => [k, v.name])), version: app.getVersion(), adblockEngine: !!ctx.blocker, extensions: ctx.extStore.data.items };
       case 'settings:set': {

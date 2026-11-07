@@ -77,7 +77,7 @@ W3IR Browser is a personal project and stays free. If you find it useful and **w
 63u6SDZckvzcJhC4V5yJn6bZ15qx1iM8c6iB3Z9xD1tn
 ```
 
-Donations are entirely optional: nothing is promised in return, there are no extra features or priority support, and sent funds are not refundable. The address is **receive-only** and is not connected to the browser's built-in wallet. Check the first and last characters (`63u6…D1tn`) before sending; the address is published only in this repository (README and the Ukrainian README). Do not send tokens from other networks to it.
+Donations are entirely optional: nothing is promised in return, there are no extra features or priority support, and sent funds are not refundable. The address is **receive-only** and is not connected to the browser's built-in wallet. Check the first and last characters (`63u6…D1tn`) before sending; the address is published only in this repository (README and the Ukrainian README). Do not send tokens from other networks to it. The same address, with a copy button and a QR code, is in the browser under Settings → “Support the project”.
 
 ## Development
 
