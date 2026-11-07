@@ -111,13 +111,13 @@
   "devDependencies": {
     "electron": "44.9.3",
     "electron-builder": "26.18.0",
-    "eslint": "10.13.0",
-    "globals": "17.13.0",
+    "eslint": "10.14.0",
+    "globals": "17.14.0",
     "jsqr": "1.4.0"
   },
   "dependencies": {
-    "@ghostery/adblocker-electron": "2.20.1",
-    "@ghostery/adblocker-electron-preload": "2.20.1",
+    "@ghostery/adblocker-electron": "2.20.3",
+    "@ghostery/adblocker-electron-preload": "2.20.3",
     "@mozilla/readability": "0.6.0",
     "electron-updater": "6.8.11",
     "ethers": "6.17.0",
