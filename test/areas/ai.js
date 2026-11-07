@@ -267,6 +267,32 @@ async function agentTests(ctx) {
   r = await call('browser_click', { ref: bLs.ref, tab: tabId });
   ok(!r.isError && (await title()) === 'submitted', 'agent: форма без заповненого пароля відправляється як раніше');
   ok((await call('browser_click', { ref: 9999, tab: tabId })).isError, 'agent: хибний номер елемента — помилка');
+  // покрокові дозволи: режими off / risky / all
+  const wasAnswer = answer;
+  const exec = (code) => tabObj.view.webContents.executeJavaScript(code);
+  ok(agent.confirmMode() === 'off', 'agent: у тестах підтвердження дій вимкнено, як і задумано');
+  agent.setConfirm('risky'); answer = false;
+  await exec(`document.title='x'`);
+  let n0 = asked.length;
+  r = await call('browser_click', { ref: bLs.ref, tab: tabId });
+  ok(r.isError && /відхилив цю дію/.test(txt(r)) && asked.length === n0 + 1 && /виконати дію/.test(asked[n0].title) && (await title()) !== 'submitted', 'agent: risky — кнопку надсилання форми заблоковано відмовою користувача');
+  n0 = asked.length;
+  r = await call('browser_click', { ref: bBtn.ref, tab: tabId });
+  ok(!r.isError && asked.length === n0 && (await title()) === 'clicked', 'agent: risky — звичайна кнопка без запиту');
+  answer = true; n0 = asked.length;
+  r = await call('browser_click', { ref: bLs.ref, tab: tabId });
+  ok(!r.isError && asked.length === n0 + 1 && (await title()) === 'submitted', 'agent: risky — за згоди користувача форма відправляється');
+  agent.setConfirm('all'); answer = false; n0 = asked.length;
+  await exec(`document.title='y'`);
+  r = await call('browser_click', { ref: bBtn.ref, tab: tabId });
+  ok(r.isError && asked.length === n0 + 1 && (await title()) === 'y', 'agent: all — навіть звичайний клік потребує підтвердження');
+  r = await call('browser_press', { key: 'Enter', tab: tabId });
+  ok(r.isError && asked.length === n0 + 2, 'agent: all — Enter потребує підтвердження');
+  r = await call('browser_scroll', { direction: 'down', tab: tabId });
+  ok(!r.isError && asked.length === n0 + 2, 'agent: all — прокрутка і читання без запиту');
+  let bad = ''; try { agent.setConfirm('zzz'); } catch (e) { bad = e.message; }
+  ok(/Невідомий/.test(bad) && agent.confirmMode() === 'all', 'agent: невідомий режим підтверджень відхилено');
+  agent.setConfirm('off'); answer = wasAnswer;
   await tabObj.view.webContents.executeJavaScript(`document.getElementById('cover').style.display='block'`);
   r = await call('browser_click', { ref: bBtn.ref, tab: tabId });
   ok(r.isError && /перекритий/.test(txt(r)), 'agent: клік по перекритому елементу відхилено');

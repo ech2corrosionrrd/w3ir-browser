@@ -164,8 +164,13 @@ async function main() {
     } }, 'Перевірити підключення');
     const port = h('input', { type: 'number', min: 1024, max: 65535, value: st.port, style: 'width:90px' });
     port.addEventListener('change', () => run('agent:setPort', { port: Number(port.value) }));
+    const conf = h('select', { onchange: () => run('agent:setConfirm', { mode: conf.value }) },
+      h('option', { value: 'risky' }, 'Лише дії з наслідками (типово)'), h('option', { value: 'all' }, 'Кожну дію'), h('option', { value: 'off' }, 'Не питати'));
+    conf.value = st.confirmActions || 'risky';
     agBox.append(
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Стан'), h('div', { class: 'd' }, (st.running ? `Сервер працює: ${url}` : 'Сервер не запущений') + (st.windowOpen ? ' · вікно ШІ відкрито' : ''))), port),
+      h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Підтвердження дій ШІ'),
+        h('div', { class: 'd' }, 'Перед натисканням кнопок надсилання, «купити», «видалити», Enter у формі браузер питатиме вас. «Кожну дію» питає і про кожен клік; «Не питати» залишає лише підтвердження нових сайтів.')), conf),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Підключення клієнта'),
         h('div', { class: 'd' }, st.client ? `✔ ${st.client.name} ${st.client.version || ''} підключився ${new Date(st.client.at).toLocaleTimeString(LOCALE)}` : 'Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.'),
         testOut),
