@@ -234,7 +234,7 @@ async function ipcPolicyTests() {
   const used = new Set();
   for (const f of fs2.readdirSync(path.join(__dirname, '..', '..', 'pages')).filter(x => x.endsWith('.js'))) {
     const t = fs2.readFileSync(path.join(__dirname, '..', '..', 'pages', f), 'utf8');
-    for (const m of t.matchAll(/(?:w3ir\.invoke|call)\('([a-zA-Z]+(?::[a-zA-Z]+)?)'/g)) used.add(f.replace('.js', '') + ' ' + m[1]);
+    for (const m of t.matchAll(/(?:w3ir\.invoke|call)\('([a-zA-Z]+(?::[a-zA-Z]+)?)'/g)) used.add(f.replace(/^wallet-.*$/, 'wallet').replace('.js', '') + ' ' + m[1]); // wallet-*.js — модулі сторінки wallet
   }
   const denied = [...used].filter(x => { const [page, name] = x.split(' '); return !permitted(name, 'w3ir://' + page); });
   ok(denied.length === 0, 'ipc: кожна команда, яку викликає сторінка, дозволена цій самій сторінці (таблиця не розходиться з кодом сторінок)', denied);
