@@ -1,3 +1,4 @@
+// @ts-check
 'use strict';
 // Підпис оновлень Ed25519: випускач підписує «версія + SHA-512 інсталятора», браузер перевіряє підпис вбудованим публічним ключем.
 // Навіть якщо зловмисник підмінить сервер, latest.yml і сам файл, без приватного ключа він не створить дійсний підпис.
@@ -7,10 +8,12 @@ const fs = require('fs');
 const PREFIX = 'w3ir-update-v1';
 const message = (version, sha512) => Buffer.from(`${PREFIX}\n${version}\n${sha512}`, 'utf8');
 
+/** @param {string} privatePem @param {string} version @param {string} sha512 @returns {string} */
 function sign(privatePem, version, sha512) {
   return crypto.sign(null, message(version, sha512), crypto.createPrivateKey(privatePem)).toString('base64');
 }
 
+/** @param {string|string[]} publicPem один ключ або список (основний і резервний) @param {string} version @param {string} sha512 @param {string} signatureB64 @returns {boolean} */
 function verify(publicPem, version, sha512, signatureB64) {
   try {
     if (typeof signatureB64 !== 'string' || signatureB64.length > 200) return false;
@@ -25,6 +28,7 @@ function verify(publicPem, version, sha512, signatureB64) {
   } catch { return false; }
 }
 
+/** @param {string} file @returns {Promise<string>} */
 function sha512File(file) {
   return new Promise((resolve, reject) => {
     const h = crypto.createHash('sha512');
@@ -33,6 +37,7 @@ function sha512File(file) {
 }
 
 // Повертає null, якщо файл відповідає підписаній версії; інакше — текст причини
+/** @param {{ publicPem: string|string[], version: string, signature?: string, file: string }} o @returns {Promise<string|null>} */
 async function verifyFile({ publicPem, version, signature, file }) {
   if (!signature) return 'Оновлення не містить підпису випускача.';
   if (!/^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$/.test(String(version))) return 'Некоректний номер версії.';
@@ -42,6 +47,7 @@ async function verifyFile({ publicPem, version, signature, file }) {
   return null;
 }
 
+/** @param {string|string[]} publicPem @returns {string} */
 function fingerprint(publicPem) {
   try {
     const key = Array.isArray(publicPem) ? publicPem[0] : publicPem;
