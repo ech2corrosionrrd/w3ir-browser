@@ -4,18 +4,18 @@
 
 [Українська версія](docs/README-uk.md)
 
-A privacy-focused, Web3-native desktop browser for Windows built on Chromium (Electron 44). Engineered with built-in multichain wallet security, local AI assistance, decentralized storage (Arweave), and document viewing tools. Operates entirely locally with **zero telemetry** and no developer server dependencies.
+The author's personal desktop browser for Windows, built on Chromium (Electron 45): privacy protection, a built-in EVM/Solana wallet for small amounts, local AI assistance and document tools. It runs entirely locally with **zero telemetry** and no developer servers.
 
-- Latest release and downloads: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
-- Supported Languages: English, Ukrainian, Polish, German, Spanish, French (switchable in settings) · Platform: Windows 10/11 x64
-- Built-in Browser Help: **F1**
-
-> [!WARNING]
-> **Personal project, provided "as is".** W3IR Browser is built for the author's own use and shared under the MIT License **without warranty of any kind**. You use it at your own risk; the author is not liable for any loss of funds or data. **Do not keep significant funds in the built-in wallet** — use a hardware wallet for that.
+> [!IMPORTANT]
+> **This is a personal build, not a product for a wide audience.** W3IR Browser is made for the author's own daily use on one Windows machine. The source is open (MIT) so anyone can read it, learn from it or build it, but there is no support, no promised roadmap and no target audience beyond the author. The installer is intentionally **not signed** with a publisher certificate, so Windows SmartScreen will show an unknown publisher. If you run it anyway, you do so at your own risk: it is provided **"as is", without warranty of any kind**, and the author is not liable for any loss of funds or data. **Do not keep significant funds in the built-in wallet.**
 >
-> **Особистий проєкт, надається «як є».** W3IR Browser створено для власних потреб автора й поширюється за ліцензією MIT **без жодних гарантій**. Використання — на ваш власний ризик; автор не несе відповідальності за втрату коштів чи даних. **Не зберігайте значні кошти у вбудованому гаманці** — для цього використовуйте апаратний гаманець.
+> **Це особиста збірка, а не продукт для широкої авдиторії.** W3IR Browser зроблено для щоденного користування автора на одному комп'ютері з Windows. Код відкритий (MIT), щоб його можна було читати, вивчати чи зібрати самому, але підтримки, обіцяної дорожньої карти й цільової авдиторії, крім автора, немає. Інсталятор свідомо **не підписано** сертифікатом видавця, тож SmartScreen покаже невідомого видавця. Якщо ви все ж запускаєте його, то на власний ризик: **«як є», без жодних гарантій**, автор не відповідає за втрату коштів чи даних. **Не тримайте значних коштів у вбудованому гаманці.**
 
-## Key Features
+- Releases: <https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest>
+- Interface languages: English, Ukrainian, Polish, German, Spanish, French · Supported platform: Windows 10/11 x64 only
+- Built-in help: **F1**
+
+## What It Does
 
 | Area | Features |
 |---|---|
@@ -40,19 +40,12 @@ A privacy-focused, Web3-native desktop browser for Windows built on Chromium (El
 | **Design** | Obsidian-inspired aesthetic (deep indigo, neon accents, frosted glass; dark/light/system theme), branded new tab page, adaptive responsive layout |
 | **Updates** | Automatic updates signed with an Ed25519 publisher key, differential delta downloads, full verification |
 
-## Installation & Updates
+## If You Run It Anyway
 
-1. Download `W3IR-Browser-Setup-*.exe` from [GitHub Releases](https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest) (includes auto-updater) or the standalone `W3IR-Browser-*-portable.exe`.
-2. Windows SmartScreen may display an unknown publisher notice — code signing certificate acquisition is currently in progress (see [Code Signing Policy](#code-signing-policy) and [Roadmap](docs/ROADMAP.md)).
-3. Automatic updates: Checked every 6 hours, or manually via Settings → "Browser Updates" → "Check for Updates".
-4. Windows Package Managers:
-   - **Winget**: `winget install W3IR.Browser` (pending Microsoft repository approval: PR [#454063](https://github.com/microsoft/winget-pkgs/pull/454063)).
-   - **Scoop**:
-     ```powershell
-     scoop bucket add w3ir https://github.com/ech2corrosionrrd/w3ir-browser
-     scoop install w3ir-browser
-     ```
-   - **Chocolatey**: a community package has been submitted and is awaiting moderation (not installable yet). **Scoop**: manifest in `bucket/w3ir-browser.json`.
+1. Download `W3IR-Browser-Setup-*.exe` from [GitHub Releases](https://github.com/ech2corrosionrrd/w3ir-browser/releases/latest) (updates itself) or the standalone `W3IR-Browser-*-portable.exe`.
+2. SmartScreen will show an unknown publisher. This is expected: the installer is not signed with a publisher certificate and there are no plans to sign it (see [Code Signing Policy](#code-signing-policy--privacy)). Verify the file with the checksums and attestations below.
+3. Updates are checked every 6 hours, or manually via Settings → "Browser Updates" → "Check for Updates". Only builds signed with the publisher's Ed25519 key are accepted.
+4. Package managers are a convenience and are not maintained on a schedule; they may lag behind GitHub Releases. Scoop: `scoop bucket add w3ir https://github.com/ech2corrosionrrd/w3ir-browser`, then `scoop install w3ir-browser`.
 
 ### Verifying Build Provenance (Attestations)
 
@@ -99,7 +92,7 @@ npm run release:github -- ech2corrosionrrd/w3ir-browser  # Sign release and draf
 - [docs/SECURITY.md](docs/SECURITY.md) — Threat model, cryptographic primitives, and sandboxing
 - [docs/TESTING.md](docs/TESTING.md) — Unit and integration test architecture
 - [docs/RELEASING.md](docs/RELEASING.md) — Release packaging, signing, and distribution
-- [docs/PLAN.md](docs/PLAN.md) — Multi-stage strategic development plan
+- [docs/PLAN.md](docs/PLAN.md) — Current plan (Ukrainian)
 - [docs/ROADMAP.md](docs/ROADMAP.md) — Project status, milestones, and pending items
 - [docs/AI-MCP.md](docs/AI-MCP.md) — Claude Code MCP integration guide
 - [docs/I18N.md](docs/I18N.md) — Localization architecture (6 languages)
@@ -107,9 +100,8 @@ npm run release:github -- ech2corrosionrrd/w3ir-browser  # Sign release and draf
 
 ## Code Signing Policy & Privacy
 
-Code signing via Authenticode is being established. Integrity is currently verified via Ed25519 updater signatures, SHA-256 checksums, and GitHub Sigstore provenance attestations.
+The installer is **not signed with Authenticode**, by the author's decision of 2026-11-11: the build exists for the author's own machine, where Ed25519 updater signatures, SHA-256 checksums and GitHub Sigstore provenance attestations already prove that a file was built from this repository. A publisher certificate would only matter for a wider audience, which this project does not target.
 
-- **Scope:** Only binaries compiled from this repository are signed.
 - **Privacy Guarantee:** W3IR Browser **does not collect, track, or transmit any telemetry, usage metrics, or browsing data**. Network requests initiated by the browser are strictly limited to user-configured actions: checking GitHub Releases for updates, downloading public threat blocklists, and querying public blockchain RPC endpoints (which can be customized or disabled in settings).
 
 ## Disclaimer
@@ -118,4 +110,4 @@ W3IR Browser is a personal project created for the author's own needs and shared
 
 ## License
 
-Licensed under the [MIT License](LICENSE). Vulnerabilities should be reported responsibly according to [SECURITY.md](SECURITY.md). Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+Licensed under the [MIT License](LICENSE). Vulnerabilities should be reported responsibly according to [SECURITY.md](SECURITY.md). Issues and pull requests are read, but there is no promise of a reply or a merge — see [CONTRIBUTING.md](CONTRIBUTING.md).

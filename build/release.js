@@ -98,7 +98,7 @@ if (!fs.existsSync(installer)) fail('Не знайдено інсталятор 
     try {
       const url = await publishDraft({
         repo, tag: 'v' + version, dir: out, title: 'W3IR Browser ' + version, prerelease: /-/.test(version), manifest: channelFile,
-        notes: `W3IR Browser ${version}\n\nПідпис випускача: \`${info.w3irKeyId}\`\n\n### Контрольні суми SHA-256:\n${sha256List}\n\nБраузер працює повністю локально та не збирає жодної телеметрії.\nПеревірка походження збірки: \`gh attestation verify <інсталятор> --repo ${repo}\``,
+        notes: `W3IR Browser ${version}\n\n> Особиста збірка автора для власного користування, «як є», без підтримки. Інсталятор не підписано сертифікатом видавця, тож SmartScreen покаже невідомого видавця; це свідоме рішення. Цілісність перевіряйте за SHA-256 і attestations нижче.\n\nПідпис випускача: \`${info.w3irKeyId}\`\n\n### Контрольні суми SHA-256:\n${sha256List}\n\nБраузер працює повністю локально та не збирає жодної телеметрії.\nПеревірка походження збірки: \`gh attestation verify <інсталятор> --repo ${repo}\``,
       });
       console.log('GitHub Release опубліковано:', url);
     } catch (e) { fail(e.message); }
