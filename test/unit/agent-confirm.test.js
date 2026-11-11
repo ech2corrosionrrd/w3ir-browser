@@ -11,7 +11,7 @@ Module._load = function (request, ...rest) {
   if (request === 'electron') return { safeStorage: {}, app: {} };
   return origLoad.call(this, request, ...rest);
 };
-const { needsConfirm, CONFIRM_MODES } = require(path.join(__dirname, '..', '..', 'src', 'agent.js'));
+const { needsConfirm, confirmModeFor, CONFIRM_MODES } = require(path.join(__dirname, '..', '..', 'src', 'agent.js'));
 Module._load = origLoad;
 
 test('режими підтверджень', () => {
@@ -38,4 +38,15 @@ test('risky: введення з відправленням завжди, Enter 
   assert.equal(needsConfirm('risky', 'press', { inForm: true }), true);
   assert.equal(needsConfirm('risky', 'press', { inForm: false }), false);
   assert.equal(needsConfirm('risky', 'select', {}), false);
+});
+
+test('спільна вкладка: кожна дія незалежно від режиму, власне вікно агента — за налаштуванням', () => {
+  const share = { id: 1001, mode: 'control' };
+  for (const mode of CONFIRM_MODES) {
+    assert.equal(confirmModeFor(mode, share), 'all', mode);
+    assert.equal(confirmModeFor(mode, null), mode, mode);
+    for (const kind of ['click', 'type', 'submit', 'press', 'select']) assert.equal(needsConfirm(confirmModeFor(mode, share), kind, { label: 'Натисни' }), true, mode + ' ' + kind);
+  }
+  assert.equal(needsConfirm(confirmModeFor('risky', null), 'click', { label: 'Натисни' }), false);
+  assert.equal(needsConfirm(confirmModeFor('risky', null), 'type', {}), false);
 });

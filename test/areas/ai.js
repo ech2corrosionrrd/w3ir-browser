@@ -42,7 +42,7 @@ async function agentShareTests(ctx) {
   ok(st.ok && st.tools === A.TOOLS.length && st.ms >= 0 && st.client && st.client.name === 'test-client', 'agent: самоперевірка підключення — сервер відповідає, токен діє, клієнт видно');
   const w = [...ctx.windows].find(x => !x.incognito && !x.agent);
   const asked = []; let answer = true;
-  w.requestApproval = async (spec) => { asked.push(spec); return { approved: answer }; };
+  w.requestApproval = async (spec) => { asked.push(spec); return { approved: typeof answer === 'function' ? answer(spec) : answer }; };
   const tab = w.createTab(base, { activate: true });
   await sleep(1800);
   const wc = tab.view.webContents;
@@ -79,24 +79,36 @@ async function agentShareTests(ctx) {
   const c = (f) => s2.find(f);
   r = await call('browser_type', { ref: c(i => i.type === 'password').ref, text: 'x', tab: id2 });
   ok(r.isError && /паролів/.test(txt(r)), 'share: у режимі керування паролі все одно вводити не можна');
+  // кожна дія в спільній вкладці — з підтвердженням, хоча загальний режим тут «off»
+  ok(agent.confirmMode() === 'off', 'share: загальний режим підтверджень у тесті — off');
+  answer = false;
+  let na = asked.length;
+  r = await call('browser_type', { ref: c(i => i.name === 'Пошук').ref, text: 'відхилено', tab: id2 });
+  ok(r.isError && /відхилив цю дію/.test(txt(r)) && asked.length === na + 1 && /виконати дію/.test(asked[na].title) && /вашому сеансі/.test(asked[na].warnings[0]) && await wc.executeJavaScript(`document.getElementById('q').value`) === '', 'share: ввід тексту без згоди користувача не виконано (режим off не діє на спільну вкладку)');
+  r = await call('browser_press', { key: 'Tab', tab: id2 });
+  ok(r.isError && asked.length === na + 2, 'share: будь-яка клавіша у спільній вкладці потребує підтвердження');
+  answer = true; na = asked.length;
   r = await call('browser_type', { ref: c(i => i.name === 'Пошук').ref, text: 'мій запит', tab: id2 });
-  ok(!r.isError && await wc.executeJavaScript(`document.getElementById('q').value`) === 'мій запит', 'share: ввід тексту у вкладку користувача');
+  ok(!r.isError && asked.length === na + 1 && await wc.executeJavaScript(`document.getElementById('q').value`) === 'мій запит', 'share: ввід тексту у вкладку користувача після згоди');
   r = await call('browser_select', { ref: c(i => i.tag === 'select').ref, option: 'Два', tab: id2 });
   ok(!r.isError && await wc.executeJavaScript(`document.getElementById('s').value`) === 'b', 'share: вибір пункту списку');
   ok((await call('browser_select', { ref: c(i => i.tag === 'select').ref, option: 'нема', tab: id2 })).isError, 'share: невідомий пункт списку — помилка з переліком');
-  ok(!(await call('browser_hover', { ref: c(i => i.tag === 'button').ref, tab: id2 })).isError, 'share: наведення курсору');
+  ok(asked.length === na + 3, 'share: вибір пункту списку теж питає підтвердження');
+  na = asked.length;
+  ok(!(await call('browser_hover', { ref: c(i => i.tag === 'button').ref, tab: id2 })).isError && asked.length === na, 'share: наведення курсору без запиту');
   r = await call('browser_click', { ref: c(i => i.tag === 'button').ref, tab: id2 });
-  ok(!r.isError && await wc.executeJavaScript(`document.title`) === 'clicked', 'share: клік у вкладці користувача');
+  ok(!r.isError && asked.length === na + 1 && await wc.executeJavaScript(`document.title`) === 'clicked', 'share: клік у вкладці користувача — з підтвердженням навіть для звичайної кнопки');
   ok((await call('browser_wait_for', { text: 'ГОТОВО', tab: id2 })).isError === false, 'share: browser_wait_for бачить результат кліку');
-  ok(!(await call('browser_scroll', { direction: 'down', tab: id2 })).isError, 'share: прокрутка у режимі керування');
+  na = asked.length;
+  ok(!(await call('browser_scroll', { direction: 'down', tab: id2 })).isError && asked.length === na, 'share: прокрутка у режимі керування без запиту');
   ok((await call('browser_close', { tab: id2 })).isError && w.tabs.includes(tab), 'share: вкладку користувача ШІ не закриває навіть у режимі керування');
 
   // перехід на інший сайт, ініційований діями ШІ: лише з підтвердженням
-  answer = false;
+  answer = (spec) => /виконати дію/.test(spec.title); // клік дозволено, перехід на інший сайт — ні
   const n0 = asked.length;
   await call('browser_click', { ref: c(i => i.name === 'інший сайт').ref, tab: id2 });
   await sleep(900);
-  ok(asked.length === n0 + 1 && /localhost/.test(asked[asked.length - 1].origin) && /вашому сеансі|ВАШ|спільна вкладка/i.test(asked[asked.length - 1].warnings[0]) && wc.getURL().startsWith(base) && agent.status().shares.length === 1, 'share: перехід ШІ на інший сайт зупинено до підтвердження, доступ збережено');
+  ok(asked.length === n0 + 2 && /виконати дію/.test(asked[n0].title) && /localhost/.test(asked[asked.length - 1].origin) && /вашому сеансі|ВАШ|спільна вкладка/i.test(asked[asked.length - 1].warnings[0]) && wc.getURL().startsWith(base) && agent.status().shares.length === 1, 'share: перехід ШІ на інший сайт зупинено до підтвердження, доступ збережено');
   answer = true;
   await call('browser_click', { ref: c(i => i.name === 'інший сайт').ref, tab: id2 });
   await sleep(1800);
