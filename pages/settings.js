@@ -199,8 +199,11 @@ async function main() {
         h('div', { class: 'd' }, 'Перед натисканням кнопок надсилання, «купити», «видалити», Enter у формі браузер питатиме вас. «Кожну дію» питає і про кожен клік; «Не питати» залишає лише підтвердження нових сайтів. У вкладці, якою ви поділилися для керування, браузер завжди питає про кожну дію.')), conf),
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Вимикати після простою'),
         h('div', { class: 'd' }, 'Якщо ШІ стільки часу нічого не робить, браузер сам вимикає сервер, закриває вікно ШІ і забирає доступ до ваших вкладок. Поки сервер увімкнений, у панелі інструментів видно значок MCP.')), offSel),
+      h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Claude Code'),
+        h('div', { class: 'd' }, st.claude.message || (st.claude.linked ? '✔ Браузер уже додано в Claude Code. Після нового токена чи порту запис оновлюється сам.' : st.claude.found ? 'Одна кнопка: браузер сам додасть себе в Claude Code для всіх папок, токен не потрапить ні в буфер обміну, ні в чат. Потім перезапустіть Claude Code.' : 'Claude Code не знайдено на цьому комп’ютері. Встановіть його або скористайтеся командою підключення нижче.'))),
+        h('button', { disabled: !st.claude.found || st.claude.busy, onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = 'Підключення…'; await w3ir.invoke('agent:linkClaude'); renderAg(); } }, st.claude.linked ? 'Підключити знову' : 'Підключити Claude Code')),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Підключення клієнта'),
-        h('div', { class: 'd' }, st.client ? `✔ ${st.client.name} ${st.client.version || ''} підключився ${new Date(st.client.at).toLocaleTimeString(LOCALE)}` : 'Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.'),
+        h('div', { class: 'd' }, st.client ? `✔ ${st.client.name} ${st.client.version || ''} підключився ${new Date(st.client.at).toLocaleTimeString(LOCALE)}` : 'Ще ніхто не підключався: натисніть «Підключити Claude Code» вище або виконайте команду підключення нижче, потім перезапустіть Claude Code, і тут з’явиться клієнт.'),
         testOut),
       testBtn),
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Токен доступу'),
@@ -209,7 +212,7 @@ async function main() {
         h('button', { onclick: () => { agShow = !agShow; renderAg(); } }, agShow ? 'Сховати' : 'Показати'),
         h('button', { class: 'danger', title: 'Старий токен перестане працювати', onclick: () => run('agent:regenerate') }, 'Новий токен')));
     if (agShow && token) {
-      const cmd = `claude mcp add --transport http w3ir-browser ${url} --header "Authorization: Bearer ${token}"`;
+      const cmd = `claude mcp add --transport http --scope user w3ir-browser ${url} --header "Authorization: Bearer ${token}"`;
       const cfg = JSON.stringify({ mcpServers: { 'w3ir-browser': { type: 'http', url, headers: { Authorization: 'Bearer ' + token } } } }, null, 2);
       const b1 = h('button', null, 'Копіювати');
       const b2 = h('button', null, 'Копіювати');

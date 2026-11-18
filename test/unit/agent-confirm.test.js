@@ -65,3 +65,21 @@ test('автовимкнення: варіанти, типове значенн�
   assert.equal(idleExpired(5 * H, 2, 6 * H), false);
   assert.equal(idleExpired(0, 0, 1000 * H), false);
 });
+
+test('Claude Code: пошук claude.exe, аргументи і приховування токена', () => {
+  const { findClaude, claudeArgs, hideToken, CLAUDE_NAME } = agentMod;
+  const has = (set) => (p) => set.has(p);
+  const win = path.win32;
+  const a = win.join('C:\\Tools', 'claude.exe');
+  assert.equal(findClaude({ PATH: 'C:\\Windows;C:\\Tools' }, 'win32', has(new Set([a]))), a);
+  const home = win.join('C:\\Users\\U', '.local', 'bin', 'claude.exe');
+  assert.equal(findClaude({ PATH: '', USERPROFILE: 'C:\\Users\\U' }, 'win32', has(new Set([home]))), home);
+  assert.equal(findClaude({ PATH: 'C:\\npm' }, 'win32', has(new Set([win.join('C:\\npm', 'claude.cmd')]))), '');
+  assert.equal(findClaude({ PATH: '/usr/bin:/opt/x' }, 'linux', has(new Set(['/opt/x/claude']))), '/opt/x/claude');
+  const r = claudeArgs(47821, 'TOK');
+  assert.equal(CLAUDE_NAME, 'w3ir-browser');
+  assert.deepEqual(r.remove, ['mcp', 'remove', 'w3ir-browser', '--scope', 'user']);
+  assert.deepEqual(r.add, ['mcp', 'add', '--transport', 'http', '--scope', 'user', 'w3ir-browser', 'http://127.0.0.1:47821/mcp', '--header', 'Authorization: Bearer TOK']);
+  assert.equal(hideToken('claude mcp add … Bearer TOK failed TOK', 'TOK'), 'claude mcp add … Bearer *** failed ***');
+  assert.equal(hideToken('x', ''), 'x');
+});

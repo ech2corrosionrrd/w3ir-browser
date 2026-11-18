@@ -380,6 +380,34 @@ async function agentTests(ctx) {
   agent.setAutoOff(0);
   await agent.enable();
   ok(!agent.checkIdle(Date.now() + 1000 * 3600 * 1000) && agent.status().running, 'agent: «ніколи» — сервер не вимикається');
+
+  // підключення Claude Code однією кнопкою: підставний claude (Electron як Node) записує аргументи у файл
+  const fakeDir = tmp('fake-claude');
+  const fakeOut = path.join(fakeDir, 'calls.jsonl');
+  const fake = path.join(fakeDir, 'claude.js');
+  fs.writeFileSync(fake, "const fs=require('fs');const a=process.argv.slice(2);fs.appendFileSync(process.env.W3IR_FAKE_OUT,JSON.stringify(a)+'\\n');if(process.env.W3IR_FAKE_FAIL&&a[1]==='add'){console.error('bad '+a[a.length-1]);process.exit(1)}");
+  const fakeEnv = { ...process.env, ELECTRON_RUN_AS_NODE: '1', W3IR_FAKE_OUT: fakeOut };
+  agent.claudeRun = { exe: process.execPath, pre: [fake], env: fakeEnv };
+  const calls = () => (fs.existsSync(fakeOut) ? fs.readFileSync(fakeOut, 'utf8').trim().split('\n').filter(Boolean).map(l => JSON.parse(l)) : []);
+  agent.disable();
+  ok(!(await agent.linkClaude()).ok && calls().length === 0, 'agent: Claude Code не підключається, поки керування ШІ вимкнено');
+  await agent.enable();
+  let lr = await agent.linkClaude();
+  let cs = calls();
+  ok(lr.ok && cs.length === 2 && cs[0].join(' ') === 'mcp remove w3ir-browser --scope user' && cs[1].slice(0, 7).join(' ') === 'mcp add --transport http --scope user w3ir-browser' && cs[1][7] === `http://127.0.0.1:${free}/mcp` && cs[1][9] === 'Authorization: Bearer ' + agent.token, 'agent: кнопка додає браузер у Claude Code для всіх папок із поточним токеном');
+  ok(agent.status().claude.linked && JSON.parse(fs.readFileSync(path.join(dir, 'agent.json'), 'utf8')).claudeLinked === true && !agent.recent.some(l => l.detail.includes(agent.token)), 'agent: підключення запам’ятовано, токена в журналі немає');
+  agent.regenerate();
+  for (let i = 0; i < 50 && calls().length < 4; i++) await sleep(100);
+  cs = calls();
+  ok(cs.length === 4 && cs[3][9] === 'Authorization: Bearer ' + agent.token, 'agent: новий токен сам оновлює запис у Claude Code');
+  await agent.claudeBusy;
+  agent.claudeRun = { exe: process.execPath, pre: [fake], env: { ...fakeEnv, W3IR_FAKE_FAIL: '1' } };
+  lr = await agent.linkClaude();
+  ok(!lr.ok && /не прийняв/.test(lr.message) && !lr.message.includes(agent.token), 'agent: помилку Claude Code показано без токена');
+  agent.claudeRun = { exe: '' };
+  lr = await agent.linkClaude();
+  ok(!lr.ok && /не знайдено/.test(lr.message) && agent.status().claude.found === false, 'agent: без Claude Code — зрозуміле повідомлення і ручна команда');
+  agent.claudeRun = null;
   agent.disable();
   mw.chrome.send = origSend;
   ctx.agent = prevAgent;

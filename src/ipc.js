@@ -218,6 +218,7 @@ async function agentApi(ctx, name, arg) {
       case 'agent:token': return { ok: true, token: a.token || '' };
       case 'agent:regenerate': a.regenerate(); if (a.server) await a.start(); return { ok: true, ...a.status() };
       case 'agent:setPort': a.setPort(arg.port); return { ok: true, ...a.status() };
+      case 'agent:linkClaude': { const r = await a.linkClaude(); return { ...r, ...{ status: a.status() } }; }
       case 'agent:setAutoOff': a.setAutoOff(arg && arg.hours); return { ok: true, ...a.status() };
       case 'agent:setConfirm': a.setConfirm(arg && arg.mode); return { ok: true, ...a.status() };
       case 'agent:closeWindow': a.closeWindow(); return { ok: true, ...a.status() };
