@@ -143,14 +143,19 @@ const SNAPSHOT_JS = `(() => {
   const out = []; const refs = [];
   const seen = new Set();
   const vis = (el) => { const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false; const s = getComputedStyle(el); return s.visibility !== 'hidden' && s.display !== 'none' && Number(s.opacity) > 0.05; };
-  const nm = (el) => (el.getAttribute('aria-label') || el.labels && el.labels[0] && el.labels[0].innerText || el.innerText || el.value || el.placeholder || el.title || el.alt || '').toString();
+  // Ім'я поля вводу не береться з його значення (значення — окремо в value, а для пароля не показується взагалі)
+  // і не з innerText <select> (там склеєні всі пункти).
+  const isField = (el, tag, type) => tag === 'textarea' || tag === 'select' || tag === 'input' && !['submit','button','reset','image'].includes(type);
+  const nm = (el, tag, type) => (el.getAttribute('aria-label') || el.labels && el.labels[0] && el.labels[0].innerText || (isField(el, tag, type)
+    ? el.placeholder || el.title || el.getAttribute('name')
+    : el.innerText || el.value || el.title || el.alt) || '').toString();
   for (const el of document.querySelectorAll(SEL)) {
     if (out.length >= 150) break;
     if (seen.has(el) || !vis(el)) continue;
     seen.add(el);
     const tag = el.tagName.toLowerCase();
     const type = (el.getAttribute('type') || '').toLowerCase();
-    const o = { ref: refs.length, tag, name: nm(el).slice(0, 100) };
+    const o = { ref: refs.length, tag, name: nm(el, tag, type).slice(0, 100) };
     if (type) o.type = type;
     if (el.getAttribute('role')) o.role = el.getAttribute('role');
     if (tag === 'a') o.href = (el.href || '').slice(0, 200);
@@ -203,6 +208,19 @@ const SECRET_FORM_JS = (ref, needSubmit) => `(() => {
   });
 })()`;
 const SECRET_FORM_MSG = 'Агент не може відправити форму, у якій уже заповнено поле пароля, картки чи одноразового коду: цю дію виконує користувач.';
+
+// Поля-«пікери» не приймають insertText: значення ставиться рідним сеттером (React/Vue бачать зміну) з подіями input/change.
+const PICKER_FORMAT = { date: 'РРРР-ММ-ДД', time: 'ГГ:ХХ', 'datetime-local': 'РРРР-ММ-ДДTГГ:ХХ', month: 'РРРР-ММ', week: 'РРРР-W05' };
+const SET_PICKER_JS = (ref, value) => `(() => {
+  const el = (window.__w3irRefs || [])[${ref | 0}];
+  if (!el || !el.isConnected) return { error: 'gone' };
+  const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+  set.call(el, ${JSON.stringify(value)});
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  return { value: el.value };
+})()`;
+const VALUE_JS = (ref) => `(() => { const el = (window.__w3irRefs || [])[${ref | 0}]; return el && el.isConnected ? String(el.isContentEditable ? el.innerText : el.value).slice(0, 200) : null; })()`;
 
 const FOCUS_JS = (ref) => `(() => { const el = (window.__w3irRefs || [])[${ref | 0}]; if (el && el.isConnected) { el.focus(); if (el.select && el.tagName !== 'SELECT') try { el.select(); } catch {} return true; } return false; })()`;
 
@@ -948,18 +966,29 @@ class Agent {
         if (!p.typable || p.disabled) return text('У цей елемент вводити текст не можна.', true);
         if ((a.submit || share) && !(await this.confirmAction(w, tab, a.submit ? 'submit' : 'type', p, a.submit ? 'ввести текст і відправити форму' : 'ввести текст', share))) return text(DENIED_ACTION, true);
         activate();
-        wc.sendInputEvent({ type: 'mouseDown', x: p.x, y: p.y, button: 'left', clickCount: 1 });
-        wc.sendInputEvent({ type: 'mouseUp', x: p.x, y: p.y, button: 'left', clickCount: 1 });
-        await this.inPage(wc, FOCUS_JS(a.ref));
-        await sleep(60);
-        if (str) wc.insertText(str); else { wc.sendInputEvent({ type: 'keyDown', keyCode: 'Backspace' }); wc.sendInputEvent({ type: 'keyUp', keyCode: 'Backspace' }); }
+        const picker = p.tag === 'input' && PICKER_FORMAT[p.type];
+        if (picker) {
+          await this.inPage(wc, FOCUS_JS(a.ref));
+          const r = await this.inPage(wc, SET_PICKER_JS(a.ref, str.trim()));
+          if (r.error) return text('Елемент зник зі сторінки. Зробіть новий знімок (browser_snapshot).', true);
+          if (str.trim() && !r.value) return text(`Поле типу ${p.type} не прийняло «${clean(str, 40)}». Формат: ${picker}.`, true);
+        } else {
+          wc.sendInputEvent({ type: 'mouseDown', x: p.x, y: p.y, button: 'left', clickCount: 1 });
+          wc.sendInputEvent({ type: 'mouseUp', x: p.x, y: p.y, button: 'left', clickCount: 1 });
+          await this.inPage(wc, FOCUS_JS(a.ref));
+          await sleep(60);
+          if (str) wc.insertText(str); else { wc.sendInputEvent({ type: 'keyDown', keyCode: 'Backspace' }); wc.sendInputEvent({ type: 'keyUp', keyCode: 'Backspace' }); }
+        }
+        const value = await this.inPage(wc, VALUE_JS(a.ref)).catch(() => null);
         if (a.submit) {
           await sleep(80);
           if (await this.inPage(wc, SECRET_FORM_JS(null, false))) return text(SECRET_FORM_MSG + ' Текст введено, форму не відправлено.', true);
           wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' }); wc.sendInputEvent({ type: 'char', keyCode: '\r' }); wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
           await this.waitLoad(wc, 8000);
         }
-        return json({ ok: true, tab: share ? share.id : tab.id, url: this.safeUrl(tab) });
+        const res = { ok: true, tab: share ? share.id : tab.id, url: this.safeUrl(tab) };
+        if (typeof value === 'string') res.value = clean(guard.sanitize(value).text, 200);
+        return json(res);
       }
 
       case 'browser_select': {
