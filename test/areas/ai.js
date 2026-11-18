@@ -350,6 +350,38 @@ async function agentTests(ctx) {
   const oldTok = agent.token;
   agent.regenerate();
   ok(agent.token !== oldTok && !bearerOk('Bearer ' + oldTok, agent.token), 'agent: перегенерація токена робить старий недійсним');
+
+  // автовимкнення після простою і значок MCP у звичайному вікні
+  ok(agent.autoOff() === 2 && A.AUTO_OFF_HOURS.includes(0), 'agent: автовимкнення типово через 2 год, «ніколи» доступне');
+  let badErr = '';
+  try { agent.setAutoOff(3); } catch (e) { badErr = e.message; }
+  ok(!!badErr && agent.autoOff() === 2, 'agent: невідомий час автовимкнення відхилено');
+  const mw = [...ctx.windows].find(x => !x.agent && !x.incognito && !x.win.isDestroyed());
+  const sent = [];
+  const origSend = mw.chrome.send;
+  mw.chrome.send = function (ch, v) { sent.push([ch, v]); return origSend.apply(this, arguments); };
+  const lastState = () => { const s = sent.filter(x => x[0] === 'state').pop(); return s && s[1]; };
+  mw.sendState();
+  ok(lastState() && lastState().mcp === null, 'agent: значок MCP прихований, поки сервер вимкнено');
+  await agent.enable();
+  mw.sendState();
+  ok(agent.idleTimer && lastState().mcp && lastState().mcp.autoOffHours === 2, 'agent: увімкнений сервер — значок MCP і таймер простою');
+  ok(!agent.checkIdle(Date.now() + 60 * 60 * 1000) && agent.status().running, 'agent: година простою при налаштуванні 2 год — сервер працює');
+  agent.lastCall = Date.now() + 90 * 60 * 1000;
+  ok(!agent.checkIdle(Date.now() + 2.5 * 3600 * 1000) && agent.status().running, 'agent: відлік простою йде від останньої дії ШІ');
+  agent.setAutoOff(1);
+  ok(JSON.parse(fs.readFileSync(path.join(dir, 'agent.json'), 'utf8')).autoOffHours === 1, 'agent: час автовимкнення збережено');
+  agent.lastCall = 0;
+  ok(agent.checkIdle(Date.now() + 61 * 60 * 1000), 'agent: після простою сервер вимикається сам');
+  await sleep(300);
+  mw.sendState();
+  ok((await raw(auth)).status === 0 && !agent.state.enabled && !agent.idleTimer && lastState().mcp === null, 'agent: автовимкнення закриває порт, знімає перемикач і значок');
+  ok(sent.some(x => x[0] === 'toast' && /год/.test(String(x[1]))) && agent.recent.some(l => l.tool === 'auto-off'), 'agent: про автовимкнення повідомлено й записано в журнал');
+  agent.setAutoOff(0);
+  await agent.enable();
+  ok(!agent.checkIdle(Date.now() + 1000 * 3600 * 1000) && agent.status().running, 'agent: «ніколи» — сервер не вимикається');
+  agent.disable();
+  mw.chrome.send = origSend;
   ctx.agent = prevAgent;
   srv.close(); srv2.close();
 }

@@ -272,6 +272,13 @@ function render(s) {
     : us.state === 'downloading' ? `Завантаження оновлення${us.percent ? ' (' + us.percent + ' %)' : ''}…`
     : `Доступне оновлення ${us.version}. Клік — відкрити налаштування оновлень`;
   $('copilot').hidden = !s.assistant;
+  const mcp = $('mcpon');
+  mcp.hidden = !s.mcp;
+  if (s.mcp) {
+    mcp.classList.toggle('shared', s.mcp.shares > 0);
+    mcp.title = (s.mcp.shares > 0 ? `Керування браузером ШІ (MCP) увімкнено, ШІ має доступ до ваших вкладок: ${s.mcp.shares}.` : 'Керування браузером ШІ (MCP) увімкнено: локальний сервер чекає на команди.')
+      + ' ' + (s.mcp.autoOffHours ? `Вимкнеться сам після ${s.mcp.autoOffHours} год без дій ШІ.` : 'Автовимкнення не налаштовано.') + ' ' + 'Клік — налаштування.';
+  }
   const gh = $('gh');
   gh.hidden = !s.github.connected;
   gh.textContent = '🐙';
@@ -387,6 +394,7 @@ $('reader').onclick = () => api.cmd('reader');
 $('upd').onclick = () => api.cmd((window.__updState === 'ready') ? 'updateInstall' : 'openPage', (window.__updState === 'ready') ? undefined : 'settings');
 $('gh').onclick = () => api.cmd('githubMenu', Math.round($('toolbar').getBoundingClientRect().bottom));
 $('copilot').onclick = () => api.cmd('openPage', 'assistant');
+$('mcpon').onclick = () => api.cmd('openPage', 'settings');
 $('sleepall').onclick = () => api.cmd('sleepInactive');
 $('vault').onclick = () => api.cmd('vaultMenu', Math.round($('toolbar').getBoundingClientRect().bottom));
 $('shield').onclick = () => {

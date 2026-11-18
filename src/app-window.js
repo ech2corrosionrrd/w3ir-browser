@@ -262,6 +262,7 @@ class AppWindow {
       vault: this.vaultState(curUrl),
       profile: ctx.profile(),
       github: { connected: ctx.github.connected(), count: ctx.github.count() },
+      mcp: !this.agent && ctx.agent && ctx.agent.server ? { autoOffHours: ctx.agent.autoOff(), shares: ctx.agent.shares.size } : null,
       assistant: !!(cfg.ollamaModel && String(cfg.ollamaModel).trim()),
       update: ctx.manager && ctx.manager.updater ? ctx.manager.updater.brief() : { state: 'idle' },
     };

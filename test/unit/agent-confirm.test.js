@@ -1,5 +1,5 @@
 'use strict';
-// Unit-тести правил покрокових дозволів ШІ-агента (needsConfirm) без Electron.
+// Unit-тести правил покрокових дозволів ШІ-агента (needsConfirm) і автовимкнення без Electron.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
@@ -11,7 +11,8 @@ Module._load = function (request, ...rest) {
   if (request === 'electron') return { safeStorage: {}, app: {} };
   return origLoad.call(this, request, ...rest);
 };
-const { needsConfirm, confirmModeFor, CONFIRM_MODES } = require(path.join(__dirname, '..', '..', 'src', 'agent.js'));
+const agentMod = require(path.join(__dirname, '..', '..', 'src', 'agent.js'));
+const { needsConfirm, confirmModeFor, CONFIRM_MODES } = agentMod;
 Module._load = origLoad;
 
 test('режими підтверджень', () => {
@@ -49,4 +50,18 @@ test('спільна вкладка: кожна дія незалежно від
   }
   assert.equal(needsConfirm(confirmModeFor('risky', null), 'click', { label: 'Натисни' }), false);
   assert.equal(needsConfirm(confirmModeFor('risky', null), 'type', {}), false);
+});
+
+test('автовимкнення: варіанти, типове значення і простій', () => {
+  const { AUTO_OFF_HOURS, autoOffHours, idleExpired } = agentMod;
+  assert.deepEqual(AUTO_OFF_HOURS, [0, 1, 2, 4, 8, 24]);
+  assert.equal(autoOffHours(undefined), 2);
+  assert.equal(autoOffHours('3'), 2);
+  assert.equal(autoOffHours(0), 0);
+  assert.equal(autoOffHours('8'), 8);
+  const H = 3600 * 1000;
+  assert.equal(idleExpired(0, 2, 2 * H - 1), false);
+  assert.equal(idleExpired(0, 2, 2 * H), true);
+  assert.equal(idleExpired(5 * H, 2, 6 * H), false);
+  assert.equal(idleExpired(0, 0, 1000 * H), false);
 });

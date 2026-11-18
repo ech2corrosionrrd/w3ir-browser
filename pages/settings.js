@@ -189,10 +189,16 @@ async function main() {
     const conf = h('select', { onchange: () => run('agent:setConfirm', { mode: conf.value }) },
       h('option', { value: 'risky' }, 'Лише дії з наслідками (типово)'), h('option', { value: 'all' }, 'Кожну дію'), h('option', { value: 'off' }, 'Не питати'));
     conf.value = st.confirmActions || 'risky';
+    const offSel = h('select', { onchange: () => run('agent:setAutoOff', { hours: Number(offSel.value) }) },
+      h('option', { value: '1' }, '1 год'), h('option', { value: '2' }, '2 год (типово)'), h('option', { value: '4' }, '4 год'),
+      h('option', { value: '8' }, '8 год'), h('option', { value: '24' }, '24 год'), h('option', { value: '0' }, 'Ніколи'));
+    offSel.value = String(st.autoOffHours != null ? st.autoOffHours : 2);
     agBox.append(
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Стан'), h('div', { class: 'd' }, (st.running ? `Сервер працює: ${url}` : 'Сервер не запущений') + (st.windowOpen ? ' · вікно ШІ відкрито' : ''))), port),
       h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Підтвердження дій ШІ'),
         h('div', { class: 'd' }, 'Перед натисканням кнопок надсилання, «купити», «видалити», Enter у формі браузер питатиме вас. «Кожну дію» питає і про кожен клік; «Не питати» залишає лише підтвердження нових сайтів. У вкладці, якою ви поділилися для керування, браузер завжди питає про кожну дію.')), conf),
+      h('div', { class: 'row' }, h('div', { style: 'flex:1' }, h('div', null, 'Вимикати після простою'),
+        h('div', { class: 'd' }, 'Якщо ШІ стільки часу нічого не робить, браузер сам вимикає сервер, закриває вікно ШІ і забирає доступ до ваших вкладок. Поки сервер увімкнений, у панелі інструментів видно значок MCP.')), offSel),
       h('div', { class: 'row' }, h('div', null, h('div', null, 'Підключення клієнта'),
         h('div', { class: 'd' }, st.client ? `✔ ${st.client.name} ${st.client.version || ''} підключився ${new Date(st.client.at).toLocaleTimeString(LOCALE)}` : 'Ще ніхто не підключався: виконайте команду підключення нижче (після неї перезапустіть Claude Code), і тут з’явиться клієнт.'),
         testOut),
