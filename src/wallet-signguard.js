@@ -20,7 +20,7 @@ const KNOWN_SPENDERS = new Map([
   ['0x00000000000000adc04c56bf30ac9d3c0aaf14dc', 'OpenSea Seaport 1.5'],
   ['0x0000000000000068f116a894984e2db1123eb395', 'OpenSea Seaport 1.6'],
   ['0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2', 'Aave V3 Pool'],
-  ['0x6352a56caad4f1e25cd6c75970fa768a3304e64', 'OpenOcean Exchange'],
+  ['0x6352a56caadc4f1e25cd6c75970fa768a3304e64', 'OpenOcean Exchange'],
   ['0x216b4b4ba9f3e719726886d34a177484278bfcae', 'ParaSwap Augustus'],
   ['0xc92e8bdf79f0507f65a392b0ab4667716bfe0110', 'CoW Protocol GPv2VaultRelayer'],
 ]);

@@ -146,7 +146,8 @@ function install(Wallet, { clip }) {
 }
 
 /**
- * Перевірка верифікації смартконтракту через відкритий реєстр Sourcify API v2 (MIT, opt-in).
+ * Запит до Sourcify API v2 (MIT). Зараз його викликають лише тести.
+ * Підпис і переказ ідуть без цього запиту: увімкнення у вікні підтвердження — окреме рішення власника.
  */
 async function checkSourcify(chainId, address, fetchFn = globalThis.fetch) {
   const cid = Number(chainId);

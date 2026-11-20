@@ -264,6 +264,12 @@ async function agentTests(ctx) {
   r = await call('browser_type', { ref: bQ.ref, text: 'привіт світе', tab: tabId });
   ok(!r.isError && await tabObj.view.webContents.executeJavaScript(`document.getElementById('q').value`) === 'привіт світе', 'agent: текст введено в поле');
   ok(JSON.parse(txt(r)).value === 'привіт світе', 'agent: відповідь містить фактичне значення поля');
+  agent.setConfirm('all'); answer = false;
+  const nLab = asked.length;
+  r = await call('browser_click', { ref: bQ.ref, tab: tabId });
+  const lab = asked[nLab] && asked[nLab].lines;
+  ok(r.isError && /відхилив/.test(txt(r)) && lab && lab.some(l => l[0] === 'Елемент' && l[1] === 'Пошук') && !JSON.stringify(lab).includes('привіт'), 'agent: у підтвердженні ім’я поля з мітки, а не зі значення');
+  agent.setConfirm('off'); answer = false;
   const sel = snap.find(i => i.tag === 'select');
   ok(sel && sel.name === 'period' && sel.value === 'День', 'agent: ім’я списку — з атрибута name, а не склеєні пункти');
   await tabObj.view.webContents.executeJavaScript(`document.getElementById('pw').removeAttribute('aria-label')`);
@@ -275,7 +281,7 @@ async function agentTests(ctx) {
   r = await call('browser_type', { ref: bTm.ref, text: '18:30', tab: tabId });
   ok(!r.isError && JSON.parse(txt(r)).value === '18:30' && await tabObj.view.webContents.executeJavaScript(`document.getElementById('tm').value`) === '18:30', 'agent: поле type=time заповнюється');
   r = await call('browser_type', { ref: bTm.ref, text: 'пів на сьому', tab: tabId });
-  ok(r.isError && /ГГ:ХХ/.test(txt(r)), 'agent: хибний формат часу — помилка з підказкою');
+  ok(r.isError && /18:30/.test(txt(r)) && await tabObj.view.webContents.executeJavaScript(`document.getElementById('tm').value`) === '18:30', 'agent: хибний формат часу — помилка з підказкою, попереднє значення лишається');
   r = await call('browser_click', { ref: bBtn.ref, tab: tabId });
   ok(!r.isError && await tabObj.view.webContents.executeJavaScript(`document.title`) === 'clicked', 'agent: клік виконано справжньою подією');
   // форма з уже заповненим паролем не відправляється агентом (ні кліком, ні Enter, ні введенням із submit)

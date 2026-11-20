@@ -186,7 +186,10 @@ const TARGET_JS = (ref) => `(() => {
   const ac = (el.getAttribute('autocomplete') || '').toLowerCase();
   const sensitive = type === 'password' || /password|cc-|one-time-code/.test(ac) || /(card|cvv|cvc|passw|парол)/i.test((el.name || '') + ' ' + (el.id || ''));
   const typable = tag === 'textarea' || tag === 'input' && !['checkbox','radio','button','submit','file','image','reset','range','color','hidden'].includes(type) || el.isContentEditable;
-  const label = (el.getAttribute('aria-label') || el.innerText || el.value || el.title || el.getAttribute('alt') || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  // Ім'я поля — як у знімку: мітка, placeholder, title або name. Значення поля і текст усіх пунктів <select> сюди не входять.
+  const field = tag === 'textarea' || tag === 'select' || (tag === 'input' && !['submit','button','reset','image'].includes(type));
+  const raw = el.getAttribute('aria-label') || (el.labels && el.labels[0] && el.labels[0].innerText) || (field ? (el.placeholder || el.title || el.getAttribute('name')) : (el.innerText || el.value || el.title || el.getAttribute('alt')));
+  const label = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   const submit = !!el.form && (tag === 'button' ? (type === '' || type === 'submit') : (tag === 'input' && (type === 'submit' || type === 'image')));
   return { x, y, sensitive, typable, disabled: !!el.disabled, tag, type, label, submit };
 })()`;
@@ -210,15 +213,31 @@ const SECRET_FORM_JS = (ref, needSubmit) => `(() => {
 const SECRET_FORM_MSG = 'Агент не може відправити форму, у якій уже заповнено поле пароля, картки чи одноразового коду: цю дію виконує користувач.';
 
 // Поля-«пікери» не приймають insertText: значення ставиться рідним сеттером (React/Vue бачать зміну) з подіями input/change.
-const PICKER_FORMAT = { date: 'РРРР-ММ-ДД', time: 'ГГ:ХХ', 'datetime-local': 'РРРР-ММ-ДДTГГ:ХХ', month: 'РРРР-ММ', week: 'РРРР-W05' };
+const PICKER_FORMAT = { date: '2026-11-20', time: '18:30', 'datetime-local': '2026-11-20T18:30', month: '2026-11', week: '2026-W47' };
 const SET_PICKER_JS = (ref, value) => `(() => {
   const el = (window.__w3irRefs || [])[${ref | 0}];
   if (!el || !el.isConnected) return { error: 'gone' };
   const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-  set.call(el, ${JSON.stringify(value)});
+  const prev = el.value;
+  const next = ${JSON.stringify(value)};
+  set.call(el, next);
+  // Неприйнятний формат очищає поле. Повертаємо попереднє значення до подій, щоб слухачі його не втратили.
+  if (next && !el.value) { set.call(el, prev); return { value: el.value, rejected: true }; }
   el.dispatchEvent(new Event('input', { bubbles: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
   return { value: el.value };
+})()`;
+const SET_SELECT_JS = (ref, option) => `(() => {
+  const el = (window.__w3irRefs || [])[${ref | 0}];
+  if (!el || !el.isConnected) return { error: 'gone' };
+  const want = ${JSON.stringify(option)}.toLowerCase();
+  const o = [...el.options].find(x => x.text.trim().toLowerCase() === want || x.value.toLowerCase() === want);
+  if (!o) return { error: 'Пункт не знайдено. Доступні: ' + [...el.options].slice(0, 30).map(x => x.text.trim()).join(' | ') };
+  const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+  set.call(el, o.value);
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  return { ok: true, selected: o.text.trim() };
 })()`;
 const VALUE_JS = (ref) => `(() => { const el = (window.__w3irRefs || [])[${ref | 0}]; return el && el.isConnected ? String(el.isContentEditable ? el.innerText : el.value).slice(0, 200) : null; })()`;
 
@@ -971,7 +990,7 @@ class Agent {
           await this.inPage(wc, FOCUS_JS(a.ref));
           const r = await this.inPage(wc, SET_PICKER_JS(a.ref, str.trim()));
           if (r.error) return text('Елемент зник зі сторінки. Зробіть новий знімок (browser_snapshot).', true);
-          if (str.trim() && !r.value) return text(`Поле типу ${p.type} не прийняло «${clean(str, 40)}». Формат: ${picker}.`, true);
+          if (r.rejected || (str.trim() && !r.value)) return text(`Поле типу ${p.type} не прийняло «${clean(str, 40)}». Формат: ${picker}.`, true);
         } else {
           wc.sendInputEvent({ type: 'mouseDown', x: p.x, y: p.y, button: 'left', clickCount: 1 });
           wc.sendInputEvent({ type: 'mouseUp', x: p.x, y: p.y, button: 'left', clickCount: 1 });
@@ -1000,7 +1019,7 @@ class Agent {
         if (p.error) return text(p.error, true);
         if (p.tag !== 'select' || p.disabled) return text('Це не випадний список.', true);
         if (!(await this.confirmAction(w, tab, 'select', p, 'вибрати пункт списку «' + opt.slice(0, 40) + '»', share))) return text(DENIED_ACTION, true);
-        const r = await this.inPage(wc, `(() => { const el = (window.__w3irRefs || [])[${a.ref | 0}]; const want = ${JSON.stringify(opt)}.toLowerCase(); const o = [...el.options].find(x => x.text.trim().toLowerCase() === want || x.value.toLowerCase() === want); if (!o) return { error: 'Пункт не знайдено. Доступні: ' + [...el.options].slice(0, 30).map(x => x.text.trim()).join(' | ') }; el.value = o.value; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return { ok: true, selected: o.text.trim() }; })()`);
+        const r = await this.inPage(wc, SET_SELECT_JS(a.ref, opt));
         return r.error ? text(clean(r.error, 600), true) : json(r);
       }
 

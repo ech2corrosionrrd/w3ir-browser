@@ -210,6 +210,9 @@ test('signguard: describeTyped для Seaport OrderComponents (захист ві
   // Відомий spender із реєстру RevokeCash/whois підписується зрозумілою назвою протоколу
   const uniRouter = '0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD';
   assert.equal(guard.spenderLabel(uniRouter), 'Uniswap Universal Router');
+  const { isAddress } = require('ethers');
+  for (const [addr, label] of guard.KNOWN_SPENDERS) assert.equal(isAddress(addr), true, label);
+  assert.equal(guard.spenderLabel('0x6352a56caadC4F1E25CD6c75970Fa768A3304e64'), 'OpenOcean Exchange');
   const resKnown = guard.describeTyped({
     primaryType: 'Permit',
     domain: { verifyingContract: TOKEN_USDC },
