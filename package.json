@@ -122,6 +122,6 @@
     "electron-updater": "6.8.11",
     "ethers": "6.17.0",
     "pdf-lib": "1.17.1",
-    "tldts-experimental": "7.5.4"
+    "tldts-experimental": "7.5.5"
   }
 }
